@@ -1,0 +1,105 @@
+local HttpService = game:GetService("HttpService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
+local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
+
+local un
+
+local DrinksService = {}
+
+function DrinksService.MixDrink(player: Player, drinkId: string, mixer: string)
+	if not (drinkId and mixer) then
+		warn(`MixDrink Failed: drinkId({tostring(drinkId)}) or mixer({tostring(mixer)}) is nil`)
+		return
+	end
+
+	local playerId = tostring(player.UserId)
+	local config = CoffeeModule.Config[drinkId]
+	if not config then
+		warn(`MixDrink Failed: {drinkId} is not a valid drink`)
+		return
+	end
+
+	-- ensure player
+	local state = GlobalState:getState()
+	local playersIngredients = state.Ingredients[playerId]
+	local playersMixers = state.Mixers[playerId]
+
+	if not playersIngredients then
+		warn(`MixDrink Failed: player({playerId})'s ingredients not found`)
+		return
+	end
+	if not playersMixers or not playersMixers[mixer] then
+		warn(`MixDrink Failed: player({playerId})'s mixers not found`)
+		return
+	end
+
+	-- ensuring mixer is empty
+	local mixerDrink = playersMixers[mixer].drinkId
+	local occupied = mixerDrink and mixerDrink ~= "none"
+	if occupied then
+		warn(`MixDrink Failed: {mixer} occupied`)
+		return
+	end
+
+	-- ensuring player has enough ingredients
+	local ingredients = config.Ingredients
+	for i, ingredientId in ingredients do
+		local ingredient = playersIngredients[ingredientId]
+		if not ingredient or ingredient <= 0 then
+			warn(`MixDrink Failed: not enough {ingredientId}({tostring(ingredient)})`)
+			return
+		end
+	end
+
+	GlobalState.mixDrink(playerId, {
+		drinkId = drinkId,
+		ingredients = ingredients,
+		mixer = mixer,
+		startTime = tick(),
+	})
+end
+function DrinksService.PickUpDrink(player: Player, mixer: string)
+	if not mixer then
+		warn(`PickUpDrink Failed: mixer({tostring(mixer)}) is nil`)
+		return
+	end
+
+	local playerId = tostring(player.UserId)
+
+	-- ensure player
+	local state = GlobalState:getState()
+	local playersDrinks = state.Drinks[playerId]
+	local playersMixers = state.Mixers[playerId]
+
+	if not playersDrinks then
+		warn(`PickUpDrink Failed: player({playerId})'s drinks not found`)
+		return
+	end
+	if not playersMixers or not playersMixers[mixer] then
+		warn(`PickUpDrink Failed: player({playerId})'s mixers not found`)
+		return
+	end
+
+	-- ensuring mixer is not empty
+	local mixerDrink = playersMixers[mixer].drinkId
+	local occupied = mixerDrink and mixerDrink ~= "none"
+	if not occupied then
+		warn(`PickUpDrink Failed: {mixer} is not occupied`)
+		return
+	end
+
+	GlobalState.pickUpDrinkFromMixer(playerId, {
+		id = HttpService:GenerateGUID(),
+		drinkId = mixerDrink,
+		stock = 5,
+		mixer = mixer,
+	})
+end
+
+function DrinksService.initialize()
+	Remotes.MixDrink.OnServerEvent:Connect(DrinksService.MixDrink)
+	Remotes.PickUpDrink.OnServerEvent:Connect(DrinksService.PickUpDrink)
+end
+return DrinksService

@@ -1,11 +1,12 @@
--- CafeRenderingService/Tables.luau
+-- Server/Services/CafeRenderingService/Tables.luau
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 local React = require(ReplicatedStorage.Packages.React)
 local e = React.createElement
 local useState = React.useState
 local useEffect = React.useEffect
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
-local CafeTypes = require(script.Parent.CafeTypes)
+local CafeTypes = require(game.ReplicatedStorage.Shared.CafeTypes) -- = require(script.Parent.CafeTypes)
 
 -- 1. THE SLOT COMPONENT
 local function SlotComponent(
@@ -19,7 +20,6 @@ local function SlotComponent(
 
 	-- Hydrate unique ID into actual drink data (e.g., finding out "abc" is a "latte")
 	useEffect(function()
-		print("Son😭😭😭")
 		if not props.DrinkId or props.DrinkId == "none" then
 			setDrinkData(nil)
 			return
@@ -76,8 +76,40 @@ local function SlotComponent(
 			end
 		end
 	end, { drinkData, props.SlotInstance })
+	useEffect(function()
+		if not (props.SlotInstance and props.SlotInstance.Parent) then
+			return
+		end
 
-	return nil
+		props.SlotInstance.PlacePart.Transparency = 1
+		props.SlotInstance.PlacePart.TriggerPrompt.RequiresLineOfSight = false
+		props.SlotInstance.PlacePart.TriggerPrompt.Enabled = true
+		local conn = props.SlotInstance.PlacePart.TriggerPrompt.Triggered:Connect(function(player: Player)
+			local TablesService = require(ServerScriptService.Server.Services.TablesService)
+			local tool = player.Character:FindFirstChildWhichIsA("Tool")
+			local drinkUid
+			if tool then
+				drinkUid = tool.Name
+			end
+
+			TablesService.PlaceDrink(
+				player,
+				drinkUid,
+				props.SlotInstance.Parent.Parent.Name, -- the tableUid
+				props.SlotInstance.Name -- the slot
+			)
+		end)
+		return function()
+			conn:Disconnect()
+			if not (props.SlotInstance and props.SlotInstance.Parent) then
+				print("destroyed already")
+				return
+			end
+			props.SlotInstance.PlacePart.TriggerPrompt.Enabled = false
+		end
+	end, { props.SlotInstance })
+
+	return e(React.Fragment)
 end
 
 -- 2. THE TABLE COMPONENT
@@ -99,6 +131,7 @@ local function TableComponent(
 			local placePart = props.TableAnchor:FindFirstChild("PlacePart")
 
 			if placePart then
+				placePart.Transparency = 1
 				clone:PivotTo(placePart.CFrame)
 			end
 
@@ -126,6 +159,7 @@ local function TableComponent(
 				local slotInstance = slotsFolder:FindFirstChild(slotName)
 				if slotInstance then
 					children[slotName] = e(SlotComponent, {
+						key = slotName,
 						PlayerId = props.PlayerId,
 						SlotInstance = slotInstance,
 						DrinkId = drinkId,

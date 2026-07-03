@@ -8,8 +8,9 @@ local useEffect = React.useEffect
 local useRef = React.useRef
 local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
-local CafeTypes = require(script.CafeTypes)
+local CafeTypes = require(game.ReplicatedStorage.Shared.CafeTypes) -- = require(script.CafeTypes)
 local Cafe = require(script.Cafe)
+local Drinks = require(script.Drinks)
 
 local CafeRenderingService = {}
 
@@ -74,6 +75,9 @@ local function BasesManager()
 	for base, playerId in bases do
 		children[playerId] = e(Cafe, {
 			BaseModel = base,
+			PlayerId = playerId,
+		})
+		children[playerId .. "Tools"] = e(Drinks, {
 			PlayerId = playerId,
 		})
 	end

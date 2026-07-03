@@ -1,5 +1,5 @@
 --!strict
--- playersSlice.luau
+-- tablesSlice.luau
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Reflex = require(ReplicatedStorage.Packages.Reflex)
 local Sift = require(ReplicatedStorage.Packages.Sift)
@@ -14,11 +14,16 @@ local RemoveKey = Dictionary.removeKey
 type PlayerData = Types.PlayerData
 export type TableEntity = Types.TableEntity
 
+type PlayerId = string
 export type TablesState = {
-	[string]: TableEntity,
+	[PlayerId]: { [string]: TableEntity },
 }
 
 export type StatsActions = {}
+
+local log = function(message: string)
+	warn(`[tablesSlice]: {message}`)
+end
 
 -- /// INITIALIZATION ///
 local initialState: TablesState = {}
@@ -31,9 +36,94 @@ local actions = {
 	endPlayerSession = function(state: TablesState, playerId: string, data: PlayerData)
 		return RemoveKey(state, playerId)
 	end,
-	setDrink = function(state: TablesState, playerId)
-		local new = table.clone(state[playerId])
-		return Set(state, playerId, Set(new, "Table1", Set(new.Table1, "Slots", Set(new.Table1.Slots, "Slot1", "abc"))))
+	placeDrinkToTableSlot = function(state: TablesState, playerId: string, payload: Types.PlaceDrinkPayload)
+		local playerTables = state[playerId]
+		if not playerTables then
+			log(`player {playerId}'s tables not found`)
+			return state
+		end
+		local targetTable = playerTables[payload.tableUid]
+		if not targetTable then
+			log(`player's table with uid {payload.tableUid} not found`)
+			return state
+		end
+		payload.drinkUid = payload.drinkUid or "none"
+		if payload.drinkUid ~= "none" then
+			for tableUid, table in playerTables do
+				for slotName, drinkUid in table.Slots do
+					if drinkUid == payload.drinkUid then
+						playerTables[tableUid].Slots[slotName] = "none"
+					end
+				end
+			end
+		end
+
+		local newTable = Set(targetTable.Slots, payload.slot, payload.drinkUid)
+		local newSlots = Set(targetTable, "Slots", newTable)
+		local newTables = Set(playerTables, payload.tableUid, newSlots)
+		return Set(state, playerId, newTables)
+	end,
+	customerTakeItems = function(state: TablesState, playerId: string, payload: Types.CustomerItemPayload)
+		local playerTables = state[playerId]
+		if not playerTables then
+			return state
+		end
+
+		-- If no drinks were depleted, we don't need to change the table state
+		if not payload.depletedDrinks or not next(payload.depletedDrinks) then
+			return state
+		end
+
+		local newPlayerTables = table.clone(playerTables)
+		local hasChanges = false
+
+		for tableUid, targetTable in playerTables do
+			local tableChanged = false
+			local newSlots = table.clone(targetTable.Slots)
+
+			-- Check each slot to see if its drink was fully depleted
+			for slotName, drinkUid in newSlots do
+				if payload.depletedDrinks[drinkUid] then
+					newSlots[slotName] = "none"
+					tableChanged = true
+					hasChanges = true
+				end
+			end
+
+			-- Only merge updates if this specific table was modified
+			if tableChanged then
+				newPlayerTables[tableUid] = Set(targetTable, "Slots", newSlots)
+			end
+		end
+
+		-- Only return a new state reference if a slot actually changed
+		if hasChanges then
+			return Set(state, playerId, newPlayerTables)
+		end
+
+		return state
+	end,
+	levelUp = function(state: TablesState, playerId: string, payload: Types.LevelUpPayload)
+		local playerTables = state[playerId]
+		if not playerTables then
+			log(`player {playerId}'s tables not found`)
+			return state
+		end
+
+		local newTables = {}
+		for i, table: string in payload.unlockedTables do
+			newTables[table] = {
+				TableId = "woodentable",
+				Slots = {
+					Slot1 = "none",
+					Slot2 = "none",
+					Slot3 = "none",
+					Slot4 = "none",
+				},
+			}
+		end
+
+		return Set(state, playerId, Merge(playerTables, newTables))
 	end,
 }
 

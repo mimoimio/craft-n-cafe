@@ -16,11 +16,11 @@ type Profile = ProfileStoreModule.Profile<PlayerData> -- Typed Profile object
 
 local PROFILE_TEMPLATE: PlayerData = {
 	Stats = {
-		sfx = 0.5,
-		music = 0.5,
-		secondsPlayed = 0,
-		gold = 0,
-		level = 1,
+		Sfx = 0.5,
+		Music = 0.5,
+		SecondsPlayed = 0,
+		Cash = 100,
+		Level = 1,
 	},
 	Tables = {
 		Table1 = {
@@ -34,7 +34,11 @@ local PROFILE_TEMPLATE: PlayerData = {
 		},
 	},
 	Drinks = {},
-	Mixers = {},
+	Mixers = {
+		Mixer1 = {
+			drinkId = "none",
+		},
+	},
 	Ingredients = {},
 	Cup = {},
 	Customers = {},

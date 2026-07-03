@@ -33,14 +33,37 @@ local actions = {
 	end,
 	levelUp = function(state: StatsState, playerId: string, payload: Types.LevelUpPayload)
 		local playerStats = state[playerId]
-		local level = state[playerId].level
+		local Level = state[playerId].Level
 		return Set(
 			state,
 			playerId,
 			Merge(playerStats, {
-				level = level + 1,
+				Level = Level + 1,
 			})
 		)
+	end,
+	buyIngredient = function(state: StatsState, playerId: string, ingredientId: string, amount: number, cost: number)
+		local playersStats = state[playerId]
+		if not playersStats then
+			return state
+		end
+
+		return Set(state, playerId, Set(playersStats, "Cash", playersStats.Cash - cost))
+	end,
+	playerReceivePayment = function(
+		state: StatsState,
+		playerId: string,
+		payload: {
+			customerUid: string,
+			Cash: number,
+		}
+	)
+		local playersStats = state[playerId]
+		if not playersStats then
+			return state
+		end
+
+		return Set(state, playerId, Set(playersStats, "Cash", playersStats.Cash + payload.Cash))
 	end,
 }
 

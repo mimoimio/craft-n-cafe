@@ -6,7 +6,6 @@ local Players = game:GetService("Players")
 
 local isRunning = RunService:IsRunning()
 local isServer = RunService:IsServer()
-warn("isRunning, isServer", isRunning, isServer)
 
 -- /// pure-Lua Mock for UI Labs ///
 local function CreateMockRemote(name: string)
@@ -75,5 +74,11 @@ return {
 	dispatch = CreateRemote("dispatch"),
 	start = CreateRemote("start"),
 
-	BuyDragon = CreateRemote("BuyDragon"),
+	-- AddIngredient = CreateRemote("AddIngredient"),
+	MixDrink = CreateRemote("MixDrink"),
+	PickUpDrink = CreateRemote("PickUpDrink"),
+	PlaceDrink = CreateRemote("PlaceDrink"),
+	TendCustomer = CreateRemote("TendCustomer"),
+	BuyIngredient = CreateRemote("BuyIngredient"),
+	LevelUp = CreateRemote("LevelUp"),
 }

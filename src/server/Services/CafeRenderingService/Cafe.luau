@@ -9,14 +9,15 @@ local useEffect = React.useEffect
 local useRef = React.useRef
 local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
-local CafeTypes = require(script.Parent.CafeTypes)
+local CafeTypes = require(game.ReplicatedStorage.Shared.CafeTypes) -- = require(script.Parent.CafeTypes)
 
 local Tables = require(script.Parent.Tables)
 local Stations = require(script.Parent.Stations)
 local Mixers = require(script.Parent.Mixers)
+local Customers = require(script.Parent.Customers)
 
-local function getCafeTemplate(level: number): Model
-	local template = workspace:FindFirstChild("Cafe" .. tostring(level))
+local function getCafeTemplate(Level: number): Model
+	local template = workspace:FindFirstChild("Cafe" .. tostring(Level))
 	return template
 end
 
@@ -26,7 +27,7 @@ local function Cafe(props: {
 })
 	local stats, setStats = useState(nil)
 	local clonedCafe: Model, setClonedCafe = useState(nil)
-
+	local level = stats and stats.Level
 	useEffect(function()
 		local state = GlobalState:getState()
 		local playerStats = state.Stats[props.PlayerId]
@@ -47,10 +48,10 @@ local function Cafe(props: {
 	end, { props.PlayerId })
 
 	useEffect(function()
-		if not stats then
+		if not level then
 			return
 		end
-		local cafeTemplate = getCafeTemplate(stats.level)
+		local cafeTemplate = getCafeTemplate(stats.Level)
 		if cafeTemplate then
 			local clone = cafeTemplate:Clone()
 			clone:PivotTo(props.BaseModel:GetPivot())
@@ -68,7 +69,7 @@ local function Cafe(props: {
 		else
 			warn("CAFE TEMPLATE NOT FOUND")
 		end
-	end, { stats, props.BaseModel })
+	end, { level, props.BaseModel })
 
 	local children = {}
 	-- 3. ONLY render children if the dynamic object exists!
@@ -89,6 +90,12 @@ local function Cafe(props: {
 			PlayerId = props.PlayerId,
 			Stats = stats,
 			CafeModel = clonedCafe,
+		})
+
+		children.Customers = e(Customers, {
+			PlayerId = props.PlayerId,
+			CafeModel = clonedCafe,
+			BaseModel = props.BaseModel,
 		})
 	end
 	return e(React.Fragment, nil, children)
