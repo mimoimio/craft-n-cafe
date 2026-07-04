@@ -24,6 +24,7 @@ local useSpring = ReactFlow.useSpring
 local useEffect = React.useEffect
 
 local ConsoleApp = require(script.Parent.ConsoleApp)
+local CashHud = require(script.Parent.CashHud)
 local DefaultPanel = require(script.Parent.DefaultPanel)
 local MixerPanel = require(script.Parent.MixerPanel)
 local IngredientShopPanel = require(script.Parent.IngredientShopPanel)
@@ -54,23 +55,6 @@ local function Main(props)
 	local textRef = React.useRef(nil)
 	local coinsRef = React.useRef(0)
 
-	local hudRot, setHudRot = useSpring({
-		target = 0,
-		start = 0,
-		speed = 0,
-		damper = 0.6,
-	})
-
-	useEffect(function()
-		coinsRef.current = coins
-		setHudRot({
-			target = 0,
-			start = 10,
-			speed = 10,
-			damper = 0.6,
-		})
-	end, { coins })
-
 	local stats: { cash: number }? = getStats(state)
 
 	-- Keep global state in sync
@@ -87,6 +71,18 @@ local function Main(props)
 	end, {})
 
 	-- CollectionService triggers for Mixers
+	-- Why thefuck does this depend on state,
+	-- it's going to be rendered every second.
+	-- TODO: Just listen when player's mixers change.
+	-- TODO: refactor later to do this in its own component.
+	-- TODO: in the component, listen to the mixers.
+	-- if a mixer is occupied, triggering will
+	-- fireserver for PickupDrink instead of opening.
+	-- and also when occupied show progressbar on
+	-- a react state of: Model, to set the model as adornee
+	-- from the component. The proximityprompt
+
+	--#region
 	useEffect(function()
 		if not state then
 			return
@@ -132,6 +128,7 @@ local function Main(props)
 			end
 		end
 	end, { state })
+	--#endregion
 
 	local function toggleShop()
 		setActivePanel(activePanel == "Shop" and nil or "Shop")
@@ -169,15 +166,19 @@ local function Main(props)
 		-- coin vfx
 		setActiveCoins(function(prevCoins)
 			local nextCoins = table.clone(prevCoins)
-			nextCoins[id] = {
-				id = id,
-				amount = stats.Cash - cashRef.current,
-				startPos = workspace.CurrentCamera.ViewportSize / 2,
-				hudPos = textRef.current
-						and textRef.current.AbsolutePosition + textRef.current.AbsoluteSize / 2 + GuiService:GetGuiInset()
-					or nil,
-			}
-			warn(`stats.Cash ({stats.Cash}) - cashRef.current ({cashRef.current}) = {stats.Cash - cashRef.current}`)
+			local done
+			for i = 1, 2 do
+				nextCoins[id .. i] = {
+					id = id .. i,
+					amount = (not done) and (stats.Cash - cashRef.current) or nil,
+					startPos = workspace.CurrentCamera.ViewportSize / 2,
+					hudPos = textRef.current
+							and textRef.current.AbsolutePosition + textRef.current.AbsoluteSize / 2 + GuiService:GetGuiInset()
+						or nil,
+				}
+				done = true
+			end
+
 			cashRef.current = stats.Cash
 			return nextCoins
 		end)
@@ -216,6 +217,16 @@ local function Main(props)
 			}),
 		}),
 		-- HUD Buttons
+		Cash = e(CashHud, {
+			OnMount = function(rbx: TextLabel)
+				textRef.current = rbx
+				if not rbx then
+					return
+				end
+			end,
+			coins = coins,
+		}),
+
 		HUD = e(HStack, {
 			Size = UDim2.new(1, -40, 0, 60),
 			Position = UDim2.new(0, 20, 1, -80),
@@ -233,26 +244,6 @@ local function Main(props)
 				Size = UDim2.new(0, 150, 0, 50),
 				[React.Event.Activated] = toggleShop,
 			}),
-			Cash = e(SmallText, {
-				Text = (
-					([[<font family="rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json">%s</font>]]):format(
-						COINICON
-					) .. [[%s]]
-				):format(coins),
-				RichText = true,
-				TextSize = 42,
-				TextColor3 = Color3.new(1, 1, 0),
-				Position = UDim2.new(0.5, 0, 0, 0),
-				AnchorPoint = Vector2.new(0.5, 0),
-				OnMount = function(rbx: TextLabel)
-					textRef.current = rbx
-					if not rbx then
-						return
-					end
-				end,
-				AutomaticSize = Enum.AutomaticSize.XY,
-				Rotation = hudRot,
-			}),
 			CoinVFXContainer = e(CoinVFXContainer, {
 				activeCoins = activeCoins,
 				hudPos = Vector2.new(100, 50),
@@ -265,7 +256,7 @@ local function Main(props)
 							return prevCoins
 						end
 						setCoins(function(prev)
-							return prev + coin.amount
+							return prev + (coin.amount or 0)
 						end)
 						nextCoins[completedId] = nil
 						return nextCoins
@@ -274,7 +265,6 @@ local function Main(props)
 				end,
 			}),
 		}),
-		-- e(ConsoleApp, { state = state }),
 	})
 end
 

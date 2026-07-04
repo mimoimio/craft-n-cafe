@@ -26,9 +26,7 @@ local function CoinVFXContainer(props)
 				id = id,
 				startPos = coinData.startPos,
 				targetPos = hudPos,
-				Color3 = coinData.side
-						and (coinData.side == "left" and Color3.new(0.5, 0.2, 0.2) or Color3.new(0.2, 0.2, 0.5))
-					or nil,
+				Color3 = Color3.new(1, 1, 1),
 				onComplete = function(completedId)
 					-- We just bubble the event up. The parent handles the data logic!
 					if onCoinComplete then

@@ -65,6 +65,7 @@ local function MixerPanel(props: {
 			Image = config.Image,
 			OverlayTextTransparency = transparency,
 			BackgroundTransparency = transparency,
+			LayoutOrder = config.Price,
 			ImageTransparency = transparency,
 			Padding = { All = UDim.new(0, 4) },
 			[React.Event.Activated] = function()
@@ -101,6 +102,7 @@ local function MixerPanel(props: {
 		selectedIngredientElements[index] = e(SmallButton, {
 			OverlayText = config.DisplayName,
 			OverlayTextSize = 12,
+			LayoutOrder = config.Price,
 			OverlayTextWrapped = true,
 			ButtonClass = "ImageButton",
 			Image = config.Image,

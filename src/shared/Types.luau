@@ -146,4 +146,23 @@ export type CombinedActions = {
 	removeCustomer: (playerId: string, uid: string) -> (),
 }
 
+--Coffee Modules
+export type CoffeeModule = {
+	IngredientsConfig: { [string]: CoffeeConfigType },
+	Config: { [string]: CoffeeConfigType },
+	Array: { CoffeeConfigType },
+	Craft: ({ string }) -> CoffeeConfigType,
+	GetId: ({ string }) -> string,
+}
+export type CoffeeConfigType = {
+	Id: string,
+	DisplayName: string,
+	Ingredients: { string }?,
+	RecipePath: { string }?, -- sorted at config initialization
+	Instruction: string?, -- Readable
+	Image: string?,
+	Price: number,
+	Duration: number,
+}
+
 return {}

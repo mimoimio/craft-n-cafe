@@ -63,6 +63,11 @@ local function Mixers(props: {
 					PlayerId = props.PlayerId,
 					Mixer = mixerAnchor,
 					MixerName = mixerName,
+					-- later change instead of using mixerUids just
+					-- use "Mixer", general, then client can listen
+					-- not needing to listen to all mixeruids, cuz
+					-- uid is unique, no need. And they can discern
+					-- the model's name, which is Uids.
 				})
 			end
 		end

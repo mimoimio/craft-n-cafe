@@ -1,15 +1,9 @@
-local CoffeeConfigArray = require(game.ReplicatedStorage.Shared.Configs.CoffeeConfig)
+local CoffeeConfigArray: { CoffeeConfigType } = require(game.ReplicatedStorage.Shared.Configs.CoffeeConfig)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Types = require(ReplicatedStorage.Shared.Types)
 
-local CoffeeModule = {}
-export type CoffeeConfigType = {
-	Id: string,
-	DisplayName: string,
-	Ingredients: { string }?,
-	RecipePath: { string }?, -- sorted at config initialization
-	Instruction: string?, -- Readable
-	Image: string?,
-}
+export type CoffeeConfigType = Types.CoffeeConfigType
+local CoffeeModule: Types.CoffeeModule = {}
 
 -- Build lookup by Id and track config order for ingredient priority
 local CoffeeConfig: { [string]: CoffeeConfigType } = {}
@@ -30,7 +24,9 @@ end
 -- Initialize lookup table by assigning each config's resulting ingredients GetId to the config
 local lookupTable: { [string]: CoffeeConfigType } = {}
 
-for _, config in ipairs(CoffeeConfigArray) do
+for i, config in ipairs(CoffeeConfigArray) do
+	config.Duration = i
+	config.Price = i
 	if not config.Ingredients then
 		continue
 	end

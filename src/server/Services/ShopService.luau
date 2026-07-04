@@ -76,6 +76,39 @@ local tables = {
 		"Table18",
 	},
 }
+local ingredients = {
+	[1] = {
+		"espresso",
+		"water",
+		"milk",
+	},
+	[2] = {
+		"foam",
+	},
+	[3] = {
+		"ice",
+		"chocolate",
+	},
+	[4] = {
+		"teabag",
+	},
+	[5] = {
+		"lemon",
+	},
+	[6] = {
+		"carbonator",
+	},
+	[7] = {
+		"icecream",
+	},
+	[8] = {
+		"matcha",
+		"boba",
+	},
+	[9] = {
+		"cookies",
+	},
+}
 function ShopService.initialize()
 	Remotes.BuyIngredient.OnServerEvent:Connect(ShopService.BuyIngredient)
 	Remotes.LevelUp.OnServerEvent:Connect(function(player)
@@ -89,10 +122,12 @@ function ShopService.initialize()
 			return
 		end
 		local unlockedTables = tables[level]
+		local unlockedIngredients = ingredients[level]
 
 		GlobalState.levelUp(playerId, {
 			level = level,
 			unlockedTables = unlockedTables,
+			unlockedIngredients = unlockedIngredients,
 		})
 	end)
 end

@@ -24,6 +24,7 @@ local SmallText = function(props)
 		TextScaled = props.TextScaled,
 		Font = props.Font or "FredokaOne",
 		LayoutOrder = props.LayoutOrder,
+		Rotation = props.Rotation,
 		ZIndex = props.ZIndex,
 		RichText = props.RichText,
 		ref = props.OnMount,

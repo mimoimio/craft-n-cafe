@@ -19,6 +19,7 @@ local function IngredientShopPanel(props)
 	for id, config in pairs(CoffeeModule.IngredientsConfig) do
 		shopItems[id] = e(VStack, {
 			Spacing = UDim.new(0, 4),
+			LayoutOrder = config.Price,
 			HorizontalFlex = Enum.UIFlexAlignment.None,
 			HorizontalAlignment = Enum.HorizontalAlignment.Center,
 			BackgroundTransparency = 0,
@@ -31,6 +32,9 @@ local function IngredientShopPanel(props)
 				Image = config.Image,
 				BackgroundTransparency = 1,
 				LayoutOrder = 1,
+				ref = function()
+					warn(`DisplayName({config.DisplayName}), Price({config.Price})`)
+				end,
 			}),
 			Label = e(SmallText, {
 				Text = config.DisplayName,

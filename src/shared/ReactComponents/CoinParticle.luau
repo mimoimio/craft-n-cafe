@@ -3,7 +3,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
 local ReactOtter = require(ReplicatedStorage.Packages.ReactOtter)
 
-local ICON = "<b>two-folders</b>"
+local ICON = "<b>robux</b>"
+-- local ICON = "<b>two-folders</b>"
 local TRAILICON = "<b>circle</b>"
 
 local trailCount = 10
@@ -51,7 +52,7 @@ local function CoinParticle(props)
 	local startPos = props.startPos
 	local targetPos = props.targetPos
 	local onComplete = props.onComplete
-	local randSizeOffset = React.useState(math.random(0, 5))
+	local randSizeOffset = React.useState(math.random(0, 3))
 	local startTick = React.useState(tick())
 
 	local controlPoints = React.useMemo(function()
@@ -85,7 +86,7 @@ local function CoinParticle(props)
 
 	for i = 1, trailCount do
 		local taperScale = 1 - (i / (trailCount + 1))
-		local size = (10 + randSizeOffset) * taperScale
+		local size = (8 + randSizeOffset) * taperScale
 
 		-- uiElements["Trail" .. i] = React.createElement("ImageLabel", {
 		-- 	Size = UDim2.fromOffset(size, size),
@@ -145,11 +146,28 @@ local function CoinParticle(props)
 	end
 	local mainCoinSize = 30 + randSizeOffset
 
-	uiElements.MainCoin = React.createElement("ImageLabel", {
-		Size = UDim2.fromOffset(mainCoinSize, mainCoinSize),
+	-- uiElements.MainCoin = React.createElement("ImageLabel", {
+	-- 	Size = UDim2.fromOffset(mainCoinSize, mainCoinSize),
+	-- 	AnchorPoint = Vector2.new(0.5, 0.5),
+	-- 	Image = "rbxassetid://13249588501",
+	-- 	ImageColor3 = props.Color3,
+	-- 	BackgroundTransparency = 1,
+	-- 	ZIndex = 100,
+	-- 	Position = tBinding:map(function(t)
+	-- 		local easedT = t ^ exp
+	-- 		local pos = getCubicBezierPoint(startPos, controlPoints.p1, controlPoints.p2, targetPos, easedT)
+	-- 		return UDim2.fromOffset(pos.X, pos.Y)
+	-- 	end),
+	uiElements.MainCoin = React.createElement("TextLabel", {
+		RichText = true,
+		Size = UDim2.fromOffset(10 + randSizeOffset, 10 + randSizeOffset),
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Image = "rbxassetid://13249588501",
-		ImageColor3 = props.Color3,
+		Text = ([[<font family="rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json">%s</font>]]):format(
+			ICON
+		),
+		TextStrokeTransparency = props.TextStrokeTransparency or 0,
+		TextSize = 20,
+		TextColor3 = props.Color3,
 		BackgroundTransparency = 1,
 		ZIndex = 100,
 		Position = tBinding:map(function(t)
@@ -157,22 +175,6 @@ local function CoinParticle(props)
 			local pos = getCubicBezierPoint(startPos, controlPoints.p1, controlPoints.p2, targetPos, easedT)
 			return UDim2.fromOffset(pos.X, pos.Y)
 		end),
-		-- uiElements.MainCoin = React.createElement("TextLabel", {
-		-- 	RichText = true,
-		-- 	Size = UDim2.fromOffset(10 + randSizeOffset, 10 + randSizeOffset),
-		-- 	AnchorPoint = Vector2.new(0.5, 0.5),
-		-- 	Text = ([[<font family="rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json">%s</font>]]):format(
-		-- 		ICON
-		-- 	),
-		-- 	TextSize = 32,
-		-- 	TextColor3 = props.Color3,
-		-- 	BackgroundTransparency = 1,
-		-- 	ZIndex = 100,
-		-- 	Position = tBinding:map(function(t)
-		-- 		local easedT = t ^ exp
-		-- 		local pos = getCubicBezierPoint(startPos, controlPoints.p1, controlPoints.p2, targetPos, easedT)
-		-- 		return UDim2.fromOffset(pos.X, pos.Y)
-		-- 	end),
 	}, {
 		Scale = React.createElement("UIScale", {
 			Scale = tBinding:map(scaleMap),
