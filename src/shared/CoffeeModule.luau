@@ -161,6 +161,9 @@ CoffeeModule.Config = CoffeeConfig
 CoffeeModule.Array = CoffeeConfigArray
 CoffeeModule.IngredientsConfig = {}
 for i, config in CoffeeConfigArray do
+	if not config.Ingredients then
+		CoffeeModule.IngredientsConfig[config.Id] = config
+	end
 	if config.Ingredients and type(config.Ingredients) == "table" and #config.Ingredients <= 1 then
 		CoffeeModule.IngredientsConfig[config.Id] = config
 	end

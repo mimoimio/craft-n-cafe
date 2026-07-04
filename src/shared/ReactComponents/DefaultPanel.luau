@@ -184,6 +184,7 @@ local function DefaultPanel(props)
 	return e(VStack, {
 		BackgroundTransparency = 1,
 		BackgroundImage = props.BackgroundImage or "rbxassetid://125157965992606",
+		BackgroundImageTransparency = props.BackgroundImageTransparency or 1,
 		ScaleType = props.ScaleType or Enum.ScaleType.Tile,
 		TileSize = props.TileSize or UDim2.new(0, 50, 0, 50),
 		Size = props.Size or UDim2.new(0.5, 0, 0.5, 0),

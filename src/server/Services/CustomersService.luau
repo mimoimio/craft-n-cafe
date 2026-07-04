@@ -48,6 +48,11 @@ function CustomersService.CustomerTakeItems(playerId: string, customerUid: strin
 	local tables = state.Tables[playerId]
 	local drinks = state.Drinks[playerId]
 
+	if not drinks or not tables then
+		print()
+		return
+	end
+
 	local drinkLookup = {}
 	for i, drink in drinks do
 		drinkLookup[drink.id] = drink.drinkId
@@ -135,7 +140,7 @@ function CustomersService.TendCustomer(player: Player, uid: string)
 		end
 	end
 	if not (found and found.drinkIds) then
-		warn(`customer {uid}, customer.drinkIds({found and found.drinkIds}) not found`)
+		-- warn(`customer {uid}, customer.drinkIds({found and found.drinkIds}) not found`)
 		return
 	end
 	local drinkIds = found.drinkIds
@@ -159,17 +164,21 @@ function CustomersService.initialize()
 				local playerId = tostring(player.UserId)
 				-- will this task cause memory leak if waiting for that once?
 				task.spawn(function()
-					local uid: string? = CustomersService.SpawnCustomer(playerId)
+					local uid: string? = CustomersService.SpawnCustomer(playerId) -- customer spawned in front of cafe
 					if not uid then
 						return
 					end
-					task.wait(5)
+
+					task.wait(5) -- wait for walking into cafe + looking at items
+
 					local success = CustomersService.CustomerTakeItems(playerId, uid)
-					warn(`{success and "succes" or "failed"}`)
 					if not success then
+						--  cafe empty, leave
 						GlobalState.removeCustomer(playerId, uid)
 						return
 					end
+
+					-- listen to customer's drinkIds being cleared
 					GlobalState:once(function(state: GlobalState.GlobalState)
 						local customers = state.Customers
 						local playerCustomers = customers[playerId]

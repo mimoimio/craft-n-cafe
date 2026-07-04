@@ -2,12 +2,14 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 
 local React = require(ReplicatedStorage.Packages.React)
 local Reflex = require(ReplicatedStorage.Packages.Reflex)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local Types = require(ReplicatedStorage.Shared.Types)
 local CafeTypes = require(ReplicatedStorage.Shared.CafeTypes)
+local CustomersService = require(ServerScriptService.Server.Services.CustomersService)
 
 local e = React.createElement
 local useEffect = React.useEffect
@@ -25,81 +27,55 @@ local function getPlayer(playerId: string): Player?
 	return Players:GetPlayerByUserId(userId)
 end
 
-local function buildDrinkTool(player: Player, drink: DrinkEntity): Tool?
-	local drinkModel = ReplicatedStorage.Shared.Models:FindFirstChild(drink.drinkId)
-	if not drinkModel then
-		warn(`Drink tool render failed: model {drink.id} not found for {player.Name}`)
-		return nil
-	end
-
-	local tool = Instance.new("Tool")
-	tool.Name = drink.id
-	tool.RequiresHandle = true
-	tool.CanBeDropped = false
-	local ingredientPackageLink = drinkModel:FindFirstChildWhichIsA("PackageLink", true)
-	if ingredientPackageLink then
-		local numericId = string.match(tostring(ingredientPackageLink.PackageId), "%d+")
-		tool.TextureId = string.format("rbxthumb://type=Asset&id=%s&w=150&h=150", numericId)
-	end
-
-	local handle = Instance.new("Part")
-	handle.Name = "Handle"
-	handle.Anchored = false
-	handle.CanCollide = false
-	handle.Massless = true
-	handle.Parent = tool
-	handle.Transparency = 1
-
-	local clonedModel = drinkModel:Clone()
-	clonedModel.Parent = tool
-
-	local modelBasePart = clonedModel:FindFirstChildWhichIsA("BasePart", true)
-	if not modelBasePart then
-		warn(`Drink tool render failed: {drink.id} has no BasePart to weld`)
-		tool:Destroy()
-		return nil
-	end
-
-	for _, descendant in clonedModel:GetDescendants() do
-		if descendant:IsA("BasePart") then
-			descendant.Anchored = false
-		end
-	end
-
-	modelBasePart.Anchored = false
-	handle.CFrame = modelBasePart.CFrame
-
-	local weld = Instance.new("WeldConstraint")
-	weld.Part0 = handle
-	weld.Part1 = modelBasePart
-	weld.Parent = handle
-
-	return tool
-end
-
 local function Customer(props: {
 	PlayerId: string,
 	CafeModel: CafeTypes.Cafe,
 	Customer: Types.CustomerEntity,
 	BaseModel: CafeTypes.CafeBase,
+	numberInLine: number?,
 })
-	local rig, setRig = useState(nil)
+	local rig: CafeTypes.CustomerRig, setRig = useState(nil)
+	local prompt: ProximityPrompt, setPrompt = useState(nil)
 	useEffect(function()
-		local clone = workspace.Rig:Clone()
+		local clone: CafeTypes.CustomerRig = workspace.Rig:Clone()
 		clone:PivotTo(props.BaseModel.Entrance:GetPivot())
 		clone.Parent = workspace
 		setRig(clone)
+		setPrompt(clone.TriggerPrompt)
+		local conn = clone.TriggerPrompt.Triggered:Connect(function(player: Player)
+			if tostring(player.UserId) ~= props.PlayerId then
+				return
+			end
+			CustomersService.TendCustomer(player, props.Customer.id)
+		end)
 
 		return function()
 			if clone and clone.Parent then
 				clone:Destroy()
 			end
+			if conn then
+				conn:Disconnect()
+			end
 			setRig(nil)
+			setPrompt(nil)
 		end
 	end, { props.Customer.id, props.BaseModel })
 
-	-- useEffect(function()
-	-- end, { props.CafeModel })
+	useEffect(function()
+		if not (prompt and rig) then
+			return
+		end
+		if not props.numberInLine then
+			prompt.Enabled = false
+			return
+		end
+		if props.numberInLine == 1 then
+			prompt.Enabled = true
+		else
+			prompt.Enabled = false
+		end
+		rig:PivotTo(props.BaseModel.Entrance:GetPivot() + Vector3.new(10, 0, 5 * props.numberInLine))
+	end, { props.numberInLine, prompt, rig })
 
 	return e(React.Fragment)
 end
@@ -142,14 +118,20 @@ local function Customers(props: {
 
 	local children = {}
 	if player and customers then
+		local numberInLine = 1
 		for _, customer in customers do
 			-- warn(`customer ({customer.id}, {customer.customerId}, {customer.drinkIds})`, customers)
-			children[customer.id] = e(Customer, {
+			local customerProps = {
 				PlayerId = props.PlayerId,
 				Customer = customer,
 				CafeModel = props.CafeModel,
 				BaseModel = props.BaseModel,
-			})
+			}
+			if customer.drinkIds then
+				customerProps.numberInLine = numberInLine
+				numberInLine += 1
+			end
+			children[customer.id] = e(Customer, customerProps)
 		end
 	end
 

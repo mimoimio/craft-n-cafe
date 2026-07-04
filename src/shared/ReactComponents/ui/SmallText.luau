@@ -19,6 +19,7 @@ local SmallText = function(props)
 		Text = props.Text,
 		AnchorPoint = props.AnchorPoint,
 		Position = props.Position,
+		TextWrapped = props.TextWrapped,
 		Size = props.Size,
 		TextScaled = props.TextScaled,
 		Font = props.Font or "FredokaOne",

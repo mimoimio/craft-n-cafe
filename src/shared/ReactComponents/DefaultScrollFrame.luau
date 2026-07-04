@@ -11,7 +11,7 @@ local SoundController = require(game.ReplicatedStorage.Shared.Controllers.SoundC
 local function DefaultScrollFrame(props)
 	return e("ScrollingFrame", {
 		Size = UDim2.new(1, 0, 1, 0),
-		BackgroundTransparency = 1,
+		BackgroundTransparency = props.BackgroundTransparency or 1,
 		BorderSizePixel = 0,
 		ScrollBarThickness = 20,
 		VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar, -- Only inset for the bar that exists
@@ -30,6 +30,7 @@ local function DefaultScrollFrame(props)
 			BackgroundTransparency = 1,
 			ClipsDescendants = true,
 		}, {
+
 			Padding = e("UIPadding", {
 				PaddingTop = UDim.new(0, 0),
 				PaddingBottom = UDim.new(0, 0),

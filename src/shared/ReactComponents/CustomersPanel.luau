@@ -16,8 +16,9 @@ local HStack = require(Primitives.HStack)
 local function CustomersPanel(props: {
 	OnClose: () -> (),
 })
-	local playerId = tostring(Players.LocalPlayer.UserId)
-	local customersState, setCustomersState = React.useState({})
+	local playerId = tostring(Players.LocalPlayer and Players.LocalPlayer.UserId or "")
+	local customersState, setCustomersState =
+		React.useState({ { id = "huh", customerId = "", drinkIds = { "son", "sonion" } } })
 
 	-- Sync locally with the player's Customers state slice
 	React.useEffect(function()
@@ -91,7 +92,10 @@ local function CustomersPanel(props: {
 		Size = UDim2.new(0, 400, 0, 500),
 		OnClose = props.OnClose,
 	}, {
-		Content = e(VStack, { Spacing = UDim.new(0, 10) }, customerElements),
+		Content = e(VStack, {
+			VerticalFlex = Enum.UIFlexAlignment.None,
+			Spacing = UDim.new(0, 10),
+		}, customerElements),
 	})
 end
 
