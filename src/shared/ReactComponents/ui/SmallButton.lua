@@ -76,27 +76,37 @@ local function SmallButton(props)
 	props.children.UIScale = e("UIScale", {
 		Scale = props.Scale,
 	})
-	props.children.TextOverlay = props.KeybindText
+	props.children.Padding = props.Padding
+			and e("UIPadding", {
+				PaddingTop = props.Padding.All or props.Padding.Top or UDim.new(0, 0),
+				PaddingBottom = props.Padding.All or props.Padding.Bottom or UDim.new(0, 0),
+				PaddingLeft = props.Padding.All or props.Padding.Left or UDim.new(0, 0),
+				PaddingRight = props.Padding.All or props.Padding.Right or UDim.new(0, 0),
+			})
+		or nil
+	props.children.TextOverlay = props.OverlayText
 			and e("TextLabel", {
 				TextYAlignment = Enum.TextYAlignment.Bottom,
 				LayoutOrder = 1,
-				Size = UDim2.new(0, 0, 0, 0),
+				Size = UDim2.new(1, 0, 1, 0),
 				AutomaticSize = Enum.AutomaticSize.XY,
-				AnchorPoint = Vector2.new(0.5, 0),
-				Position = UDim2.new(0.5, 0, 0, -4),
+				AnchorPoint = Vector2.new(0, 0),
+				Position = UDim2.new(0, 0, 0, 0),
 				BackgroundTransparency = 1,
-				Text = props.KeybindText,
-				TextSize = props.KeybindTextSize or 20,
-				TextTransparency = props.KeybindTextTransparency or 0.6,
-				TextStrokeTransparency = props.KeybindTextStrokeTransparency or 0,
+				TextXAlignment = Enum.TextXAlignment.Center,
+				Text = props.OverlayText,
+				TextSize = props.OverlayTextSize or 20,
+				TextTransparency = props.OverlayTextTransparency or 0,
+				TextStrokeTransparency = props.OverlayTextStrokeTransparency or 0,
 				Font = props.KeybindFont or Enum.Font.FredokaOne,
+				TextWrapped = props.OverlayTextWrapped,
 				TextColor3 = overlayColor,
 				BorderSizePixel = 0,
 				Active = false,
 			}, {
 				UITextSizeConstraint = e("UITextSizeConstraint", {
-					MaxTextSize = props.TextSize or 18,
-					MinTextSize = props.TextSize or 18,
+					MaxTextSize = props.OverlayTextSize or 18,
+					MinTextSize = props.OverlayTextSize or 18,
 				}),
 				UICorner = e("UICorner", { CornerRadius = UDim.new(0, 8) }),
 			})

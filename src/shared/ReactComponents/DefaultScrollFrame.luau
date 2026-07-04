@@ -10,7 +10,7 @@ local HStack = require(game.ReplicatedStorage.Shared.ReactComponents.ui.HStack)
 local SoundController = require(game.ReplicatedStorage.Shared.Controllers.SoundController)
 local function DefaultScrollFrame(props)
 	return e("ScrollingFrame", {
-		Size = UDim2.new(1, 0, 1, 0),
+		Size = props.Size or UDim2.new(1, 0, 1, 0),
 		BackgroundTransparency = props.BackgroundTransparency or 1,
 		BorderSizePixel = 0,
 		ScrollBarThickness = 20,
@@ -18,7 +18,7 @@ local function DefaultScrollFrame(props)
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 		CanvasSize = UDim2.new(1, 0, 0, 0), -- X scale will override inset. Set to 0
 		ScrollingDirection = Enum.ScrollingDirection.Y,
-		LayoutOrder = 2,
+		LayoutOrder = props.LayoutOrder,
 		ClipsDescendants = true,
 		ref = function(this: ScrollingFrame)
 			-- this.CanvasPosition = Vector2.new(0.1, 1)

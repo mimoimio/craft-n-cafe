@@ -1,7 +1,6 @@
-local HttpService = game:GetService("HttpService")
 --!strict
 -- CustomersService.luau
-
+local HttpService = game:GetService("HttpService")
 local GlobalState = require(game.ReplicatedStorage.Shared.producers.GlobalState)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
 
@@ -90,21 +89,6 @@ function CustomersService.CustomerTakeItems(playerId: string, customerUid: strin
 		drinksDeducted[drink.drinkUid] = 1
 		table.insert(drinkIds, drink.drinkId)
 	end
-	--[[
-	When stock empties, automatically removes in drinksSlice, 
-	but tablesSlice didnt know about it. It only happens if 
-	stock empties, say its 5. then down to 4, 3, 2, 1, then 
-	the take action that makes it zero, on drinksSlice decide
-	it will be deleted, but tableSlice dont see that stock 
-
-	To fix this, we need to pass the information about which
-	drinks have reached zero stock directly into the action 
-	payload. Since Reflex actions can be handled by multiple
-	slices simultaneously, both drinksSlice and tablesSlice
-	can listen to customerTakeItems and update their respective
-	states based on the shared payload.
-	]]
-	-- NEW: Calculate which specific drink UIDs will hit 0 stock
 	local depletedDrinks = {}
 	for i, drink in drinks do
 		local deduct = drinksDeducted[drink.id]
@@ -164,13 +148,16 @@ function CustomersService.initialize()
 				local playerId = tostring(player.UserId)
 				-- will this task cause memory leak if waiting for that once?
 				task.spawn(function()
-					local uid: string? = CustomersService.SpawnCustomer(playerId) -- customer spawned in front of cafe
+					-- customer spawned in front of cafe
+					local uid: string? = CustomersService.SpawnCustomer(playerId)
 					if not uid then
 						return
 					end
 
-					task.wait(5) -- wait for walking into cafe + looking at items
+					-- wait for walking into cafe + looking at items
+					task.wait(5)
 
+					-- take items
 					local success = CustomersService.CustomerTakeItems(playerId, uid)
 					if not success then
 						--  cafe empty, leave
@@ -178,7 +165,7 @@ function CustomersService.initialize()
 						return
 					end
 
-					-- listen to customer's drinkIds being cleared
+					-- listen to customer's drinkIds being cleared (paid)
 					GlobalState:once(function(state: GlobalState.GlobalState)
 						local customers = state.Customers
 						local playerCustomers = customers[playerId]
