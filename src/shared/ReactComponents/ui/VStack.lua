@@ -45,6 +45,7 @@ local function VStack(props)
 		AnchorPoint = props.AnchorPoint,
 		Position = props.Position,
 		Active = props.Active,
+		Visible = props.Visible,
 	}, elements)
 end
 

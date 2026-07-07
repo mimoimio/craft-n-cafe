@@ -57,7 +57,7 @@ function DrinksService.MixDrink(player: Player, drinkId: string, mixer: string)
 		drinkId = drinkId,
 		ingredients = ingredients,
 		mixer = mixer,
-		startTime = tick(),
+		startTime = workspace:GetServerTimeNow(),
 	})
 end
 function DrinksService.PickUpDrink(player: Player, mixer: string)
@@ -82,11 +82,18 @@ function DrinksService.PickUpDrink(player: Player, mixer: string)
 		return
 	end
 
+	local targetMixer = playersMixers[mixer]
+
 	-- ensuring mixer is not empty
-	local mixerDrink = playersMixers[mixer].drinkId
+	local mixerDrink = targetMixer.drinkId
 	local occupied = mixerDrink and mixerDrink ~= "none"
 	if not occupied then
 		warn(`PickUpDrink Failed: {mixer} is not occupied`)
+		return
+	end
+
+	if workspace:GetServerTimeNow() < targetMixer.startTime + CoffeeModule.Config[mixerDrink].Duration then
+		print("not yet")
 		return
 	end
 

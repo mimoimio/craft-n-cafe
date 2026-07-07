@@ -19,7 +19,7 @@ local PROFILE_TEMPLATE: PlayerData = {
 		Sfx = 0.5,
 		Music = 0.5,
 		SecondsPlayed = 0,
-		Cash = 100,
+		Cash = 10000,
 		Level = 1,
 	},
 	Tables = {

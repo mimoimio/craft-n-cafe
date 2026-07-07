@@ -16,6 +16,7 @@ local function SlotComponent(
 		DrinkId: string, -- Extracted directly from table state (e.g., "abc" or "none")
 	}
 )
+
 	local drinkData, setDrinkData = useState(nil)
 
 	-- Hydrate unique ID into actual drink data (e.g., finding out "abc" is a "latte")
@@ -135,12 +136,18 @@ local function TableComponent(
 				clone:PivotTo(placePart.CFrame)
 			end
 
-			clone.Name = "TableModel"
+			clone.Name = props.TableName
 			clone.Parent = props.TableAnchor
+
+			local tag = "Table" .. props.PlayerId
+			props.TableAnchor:AddTag(tag) -- set tag to anchor insteadm cus anchor got Slots:: Model
 
 			setClonedTable(clone)
 
 			return function()
+				if props.TableAnchor then
+					props.TableAnchor:AddTag(tag)
+				end
 				clone:Destroy()
 			end
 		else

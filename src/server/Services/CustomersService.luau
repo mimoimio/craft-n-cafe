@@ -1,19 +1,23 @@
 --!strict
 -- CustomersService.luau
 local HttpService = game:GetService("HttpService")
-local GlobalState = require(game.ReplicatedStorage.Shared.producers.GlobalState)
-local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
+local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 
-local SPAWN_INTERVAL = 2 -- Try to spawn a customer every 10 seconds
-local DRINK_PRICES = {
-	latte = 15,
-	americano = 10,
-}
-
+local SPAWN_INTERVAL = 10 -- Try to spawn a customer every 10 seconds
 local rng = Random.new()
 
-local function getPrice(drinkId: string)
-	-- later do configs
+local function getPrice(drinkId: string): number
+	local config = CoffeeModule.Config[drinkId]
+	if config then
+		local price = 0
+		for i, ing in config.Ingredients do
+			price += CoffeeModule.Config[ing].Price
+		end
+		return price
+	end
 	return 2
 end
 
@@ -146,8 +150,11 @@ function CustomersService.initialize()
 		while task.wait(SPAWN_INTERVAL) do
 			for index, player in game.Players:GetPlayers() do
 				local playerId = tostring(player.UserId)
-				-- will this task cause memory leak if waiting for that once?
-				task.spawn(function()
+				-- will this task cause memory leak if waiting for that once? Yea basically. so
+				--[[
+				
+				]]
+				local son = task.spawn(function()
 					-- customer spawned in front of cafe
 					local uid: string? = CustomersService.SpawnCustomer(playerId)
 					if not uid then
@@ -157,6 +164,50 @@ function CustomersService.initialize()
 					-- wait for walking into cafe + looking at items
 					task.wait(5)
 
+					--[[
+					doing it this way is unreliable. When user leave before
+					the 5 seconds end, the customers cycle is not completed
+					when player joins back, the customers are still there but
+					is doing nothing, cannot even interact.
+
+					customers have two states right now really.
+
+					1. without .drinkIds:: { string }
+					2. with .drinkIds
+
+					without drinkIds, they either:
+						is looking around
+						is leaving
+
+					with drinkIds, they
+						is queuing to pay
+
+					for the fix, I have added a new attribute in a customer entity. "customerAction".
+					therefore we can reduce these to few actions finite state machine,
+					with what to do if start with that exact customerAction state
+
+						- spawnCustomer: customer just entered, and is looking around
+							"entering" customer action. 
+							when rendering, clone and pivot
+							initially at entrance,
+							walk to tables
+
+						- customerTakeItems: queue customer in front of cashier to pay 
+							"queueing" customer action.
+							when rendering, 
+							initially clone and pivot at cashier
+							by queue. 
+							if character model (which is a react state)
+							is already cloned, pivot and set, walk to it's 
+							calculated position.
+
+						- playerReceivePayment: customer paid
+							"paid" initially clone and pivot at position "after" 
+							the position for 1st customer in the queue'd be .
+
+						- removeCustomer: 
+							customer is removed. no entity nor customerAction
+					]]
 					-- take items
 					local success = CustomersService.CustomerTakeItems(playerId, uid)
 					if not success then
@@ -183,7 +234,7 @@ function CustomersService.initialize()
 						end
 						return nil
 					end, function(done: boolean)
-						warn(`player({playerId})'s customer({uid}) is DONE`)
+						-- warn(`player({playerId})'s customer({uid}) is DONE`)
 						GlobalState.removeCustomer(playerId, uid)
 					end)
 				end)

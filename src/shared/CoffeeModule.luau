@@ -25,11 +25,15 @@ end
 local lookupTable: { [string]: CoffeeConfigType } = {}
 
 for i, config in ipairs(CoffeeConfigArray) do
-	config.Duration = i
-	config.Price = i
+	local base = math.round(math.pow(i, 2))
+	config.Duration = math.log(i, 2)
+	config.Price = 5 + base
+	config.SellPrice = 3
 	if not config.Ingredients then
 		continue
 	end
+	config.Price *= #config.Ingredients
+	config.SellPrice *= #config.Ingredients + i
 	local id = CoffeeModule.GetId(config.Ingredients)
 	lookupTable[id] = config
 end

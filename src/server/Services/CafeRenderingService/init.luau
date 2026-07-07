@@ -11,6 +11,7 @@ local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local CafeTypes = require(game.ReplicatedStorage.Shared.CafeTypes) -- = require(script.CafeTypes)
 local Cafe = require(script.Cafe)
 local Drinks = require(script.Drinks)
+local Character = require(script.Character)
 
 local CafeRenderingService = {}
 
@@ -77,8 +78,12 @@ local function BasesManager()
 			BaseModel = base,
 			PlayerId = playerId,
 		})
-		children[playerId .. "Tools"] = e(Drinks, {
+		children[playerId .. "Drinks"] = e(Drinks, {
 			PlayerId = playerId,
+		})
+		children[playerId .. "Character"] = e(Character, {
+			PlayerId = playerId,
+			BaseModel = base,
 		})
 	end
 

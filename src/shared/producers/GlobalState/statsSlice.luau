@@ -38,7 +38,8 @@ local actions = {
 			state,
 			playerId,
 			Merge(playerStats, {
-				Level = Level + 1,
+				Level = payload.level,
+				Cash = playerStats.Cash - payload.cost,
 			})
 		)
 	end,

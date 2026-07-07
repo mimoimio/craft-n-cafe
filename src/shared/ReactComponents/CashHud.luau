@@ -165,19 +165,24 @@ local function CashHud(props: {
 			Padding = UDim.new(0, 5),
 		}),
 
-		text = e(SmallText, {
-			Text = (
-				([[<font family="rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json">%s</font>]]):format(
-					COINICON
-				) .. [[%s]]
-			):format(coins),
-			RichText = true,
-			TextSize = 42,
-			TextColor3 = Color3.new(1, 1, 0),
-			OnMount = props.OnMount,
+		text = e("Frame", {
 			AutomaticSize = Enum.AutomaticSize.XY,
-			Rotation = hudRot,
-			LayoutOrder = 1, -- Force it to stay on top
+			BackgroundTransparency = 1,
+		}, {
+			e(SmallText, {
+				Text = (
+					([[<font family="rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json">%s</font>]]):format(
+						COINICON
+					) .. [[%s]]
+				):format(coins),
+				RichText = true,
+				TextSize = 42,
+				TextColor3 = Color3.new(1, 1, 0),
+				OnMount = props.OnMount,
+				AutomaticSize = Enum.AutomaticSize.XY,
+				Rotation = hudRot,
+				LayoutOrder = 1, -- Force it to stay on top
+			}),
 		}),
 
 		-- Container exclusively for toasts right underneath
@@ -185,6 +190,7 @@ local function CashHud(props: {
 			AutomaticSize = Enum.AutomaticSize.XY,
 			BackgroundTransparency = 1,
 			LayoutOrder = 2,
+			Position = UDim2.new(1, 0, 0, 0),
 		}, toastElements),
 	})
 end

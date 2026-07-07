@@ -1,6 +1,5 @@
--- Shared/ReactComponents/MixerPanel.luau
-
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local GuiService = game:GetService("GuiService")
 local React = require(ReplicatedStorage.Packages.React)
 local e = React.createElement
 local useState = React.useState
@@ -17,17 +16,27 @@ local VStack = require(Primitives.VStack)
 local HStack = require(Primitives.HStack)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 
+-- Point this to your new VFX setup
+local IngredientVFXContainer = require(script.Parent.IngredientVFXContainer)
+
 local player = game.Players.LocalPlayer
-local playerId: string? = player and tostring(player.UserId)
+local playerId: string? = player and tostring(player.UserId) or "0"
 
 local function MixerPanel(props: {
-	State: GlobalState.GlobalState,
+	Ingredients: { [string]: number },
 	MixerId: string,
 	OnClose: () -> (),
 })
 	local currentIngredients, setCurrentIngredients = useState({})
-	local state = props.State or {}
-	local ing = state.Ingredients or {}
+
+	-- NEW: Track ingredients currently flying through the air
+	local pendingIngredients, setPendingIngredients = useState({})
+	local activeTrails, setActiveTrails = useState({})
+
+	-- Reference to the selected ingredients UI to act as the target position
+	local targetRef = React.useRef(nil)
+
+	local ing = props.Ingredients or {}
 	local ingredients = ing[playerId] or {}
 
 	local function removeIngredientAtIndex(index: number)
@@ -38,23 +47,25 @@ local function MixerPanel(props: {
 		end)
 	end
 
-	-- Dynamically fetch the recipe result when state changes
 	local resultConfig = CoffeeModule.Craft(currentIngredients)
 
-	-- Calculate how many of each ingredient are currently in the mixer
+	-- MODIFIED: Calculate used ingredients based on BOTH current AND pending
 	local usedIngredients = {}
 	for _, id in ipairs(currentIngredients) do
 		usedIngredients[id] = (usedIngredients[id] or 0) + 1
 	end
+	for id, count in pairs(pendingIngredients) do
+		usedIngredients[id] = (usedIngredients[id] or 0) + count
+	end
+
+	React.useEffect(function() end, {})
 
 	local ingredientElements = {}
-	-- ingredients.espresso = 1
 	for id, config in pairs(CoffeeModule.IngredientsConfig) do
 		local totalAvailable = ingredients[id] or 0
 		local amountUsed = usedIngredients[id] or 0
 		local amountLeft = totalAvailable - amountUsed
 
-		-- Update transparency based on the remaining amount instead of total amount
 		local transparency = amountLeft <= 0 and 0.4 or 0
 
 		ingredientElements[id] = e(SmallButton, {
@@ -68,13 +79,40 @@ local function MixerPanel(props: {
 			LayoutOrder = config.Price,
 			ImageTransparency = transparency,
 			Padding = { All = UDim.new(0, 4) },
-			[React.Event.Activated] = function()
-				-- Prevent adding if the player has used up their available amount
-				if amountLeft > 0 then
-					setCurrentIngredients(function(prev)
-						local nextState = table.clone(prev)
-						table.insert(nextState, id)
-						return nextState
+
+			-- MODIFIED: Capture AbsolutePosition and initiate the trail
+			[React.Event.Activated] = function(rbx)
+				if amountLeft > 0 and not (table.find(currentIngredients, id) or pendingIngredients[id]) then
+					local inset = GuiService:GetGuiInset()
+
+					-- Capture start position directly from the clicked button
+					local startPos = rbx.AbsolutePosition + (rbx.AbsoluteSize / 2) + inset
+
+					-- Fallback to center screen if ref hasn't mounted
+					local targetPos = targetRef.current
+							and (targetRef.current.AbsolutePosition + (targetRef.current.AbsoluteSize / 2) + inset)
+						or (workspace.CurrentCamera.ViewportSize / 2)
+
+					local uniqueId = tostring(tick()) .. "_" .. id .. "_" .. amountLeft
+
+					-- 1. Add to pending so UI immediately deducts
+					setPendingIngredients(function(prev)
+						local next = table.clone(prev)
+						next[id] = (next[id] or 0) + 1
+						return next
+					end)
+
+					-- 2. Launch the particle (passing image so VFX is decoupled from CoffeeModule)
+					setActiveTrails(function(prev)
+						local next = table.clone(prev)
+						next[uniqueId] = {
+							id = uniqueId,
+							ingredientId = id,
+							image = config.Image,
+							startPos = startPos,
+							targetPos = targetPos,
+						}
+						return next
 					end)
 				end
 			end,
@@ -82,7 +120,7 @@ local function MixerPanel(props: {
 			Count = e(SmallText, {
 				Size = UDim2.new(0, 20, 0, 20),
 				AnchorPoint = Vector2.new(0.25, 0.25),
-				Text = amountLeft, -- Display the dynamically calculated remaining amount
+				Text = amountLeft,
 				TextTransparency = transparency,
 				BackgroundTransparency = transparency,
 				TextXAlignment = Enum.TextXAlignment.Center,
@@ -96,159 +134,255 @@ local function MixerPanel(props: {
 	end
 
 	local selectedIngredientElements = {}
-	for index, id in ipairs(currentIngredients) do
-		local ingredientIndex = index
-		local config = CoffeeModule.Config[id]
-		selectedIngredientElements[index] = e(SmallButton, {
-			OverlayText = config.DisplayName,
+	for i = 1, 9 do -- set limit to 9 ingredients later
+		local id = currentIngredients[i]
+		local config = CoffeeModule.IngredientsConfig[id] -- Adjusted to grab from Config
+		selectedIngredientElements[i] = e(SmallButton, {
+			OverlayText = config and config.DisplayName,
 			OverlayTextSize = 12,
-			LayoutOrder = config.Price,
+			-- LayoutOrder = config and config.Price,
+			LayoutOrder = i,
 			OverlayTextWrapped = true,
 			ButtonClass = "ImageButton",
-			Image = config.Image,
-			Size = UDim2.new(0, 60, 0, 60),
+			AutomaticSize = Enum.AutomaticSize.None,
+			Image = config and config.Image,
+			Size = UDim2.new(0, 50, 0, 50),
 			Padding = { All = UDim.new(0, 4) },
 			BackgroundColor3 = Color3.fromRGB(84, 52, 52),
 			[React.Event.Activated] = function()
-				removeIngredientAtIndex(ingredientIndex)
+				removeIngredientAtIndex(i)
 			end,
 		})
 	end
 
 	local selectionDisplay = table.concat(currentIngredients, " + ")
 
+	React.useEffect(function()
+		setCurrentIngredients({})
+		setPendingIngredients({}) -- Safety clear
+	end, { props.Open })
+
 	return e("Frame", {
 		Size = UDim2.new(1, 0, 1, 0),
 		BackgroundTransparency = 1,
+		Visible = props.Open or false,
+		Position = UDim2.new(0.5, 0, 0.5, 0),
+		AnchorPoint = Vector2.new(0.5, 0.5),
 	}, {
-
-		Padding = e("UIPadding", {
-			PaddingTop = UDim.new(0, 20),
-			-- PaddingBottom = UDim.new(0, 20),
-			-- PaddingLeft = UDim.new(0, 0),
-			PaddingRight = UDim.new(0, 20),
+		UISizeConstraint = e("UISizeConstraint", {
+			MinSize = props.MinSize or Vector2.new(300, 200),
+			MaxSize = props.MaxSize or Vector2.new(500, 500),
 		}),
-		Left = e(VStack, {
-			Size = UDim2.new(0.7, 0, 0.5, 0),
-			AnchorPoint = Vector2.new(0, 0.5),
-			Position = UDim2.new(0, 0, 0.5, 0),
-			Spacing = UDim.new(0, 10),
-			HorizontalAlignment = Enum.HorizontalAlignment.Center,
-			VerticalAlignment = Enum.VerticalAlignment.Center,
-			VerticalFlex = Enum.UIFlexAlignment.None,
+		e(SmallButton, {
+			Text = "X",
+			[React.Event.Activated] = props.OnClose,
+		}),
+		e(VStack, {
+			Size = UDim2.new(1, 0, 1, 0),
+			BackgroundTransparency = 1,
+			BackgroundTransparency = 0.8,
+			Padding = {
+				Top = UDim.new(0, 12),
+				Right = UDim.new(0, 12),
+				Left = UDim.new(0, 12),
+				Bottom = UDim.new(0, 12),
+			},
 		}, {
-			Header = e(SmallText, {
-				Text = "Added Ingredients",
-				Size = UDim2.new(1, 0, 0, 30),
+			-- NEW: Top Level VFX Container for flying ingredients
+			IngredientVFX = e(IngredientVFXContainer, {
+				activeTrails = activeTrails,
+				onTrailComplete = function(uniqueId, ingredientId)
+					-- Clean up trail
+					setActiveTrails(function(prev)
+						local next = table.clone(prev)
+						next[uniqueId] = nil
+						return next
+					end)
+
+					-- Remove from pending
+					setPendingIngredients(function(prev)
+						local next = table.clone(prev)
+						if next[ingredientId] and next[ingredientId] > 0 then
+							next[ingredientId] -= 1
+							if next[ingredientId] <= 0 then
+								next[ingredientId] = nil
+							end
+						end
+						return next
+					end)
+
+					-- Officially insert into selected ingredients
+					setCurrentIngredients(function(prev)
+						local next = table.clone(prev)
+						table.insert(next, ingredientId)
+						return next
+					end)
+				end,
+			}),
+
+			Left = e(HStack, {
+				Size = UDim2.new(0.3, 0, 0.5, 0),
+				AnchorPoint = Vector2.new(0, 0.5),
+				Position = UDim2.new(0, 0, 0.5, 0),
+				Spacing = UDim.new(0, 0),
+				HorizontalAlignment = Enum.HorizontalAlignment.Left,
+				VerticalAlignment = Enum.VerticalAlignment.Top,
+				MinSize = Vector2.new(350, 300),
+				BackgroundTransparency = 1,
+
+				VerticalFlex = Enum.UIFlexAlignment.Fill,
+				HorizontalFlex = Enum.UIFlexAlignment.Fill,
 				LayoutOrder = 1,
-				TextXAlignment = Enum.TextXAlignment.Center,
-			}),
-
-			Divider = e("Frame", {
-				Size = UDim2.new(1, 0, 0, 2),
-				AutomaticSize = Enum.AutomaticSize.None,
-				BackgroundColor3 = Color3.new(1, 1, 1),
-				BackgroundTransparency = 0.5,
-				LayoutOrder = 2,
-			}),
-
-			IngredientList = e(HStack, {
-				Size = UDim2.new(1, 0, 0.5, -40),
-				VerticalFlex = Enum.UIFlexAlignment.None,
-				HorizontalFlex = Enum.UIFlexAlignment.None,
-				-- BackgroundTransparency = 0,
-				LayoutOrder = 3,
-				Spacing = UDim.new(0, 10),
 			}, {
-				EmptyState = #selectedIngredientElements == 0 and e(SmallText, {
-					Text = "No ingredients added",
-					Size = UDim2.new(1, 0, 0, 30),
-					TextXAlignment = Enum.TextXAlignment.Center,
-				}) or nil,
-				Ingredients = e(React.Fragment, {}, selectedIngredientElements),
-			}),
-
-			Controls = e(HStack, {
-				Size = UDim2.new(1, 0, 0.5, -40),
-				Spacing = UDim.new(0, 10),
-				-- BackgroundTransparency = 0,
-				LayoutOrder = 4,
-				AutomaticSize = Enum.AutomaticSize.XY,
-				HorizontalFlex = Enum.UIFlexAlignment.None,
-				HorizontalAlignment = Enum.HorizontalAlignment.Center,
-			}, {
-				CraftButton = e(SmallButton, {
-					Text = "Craft",
-					Size = UDim2.new(0, 100, 0, 40),
-					[React.Event.Activated] = function()
-						if resultConfig and props.MixerId then
-							Remotes.MixDrink:FireServer(resultConfig.Id, props.MixerId)
-							setCurrentIngredients({})
-							if props.OnClose then
-								props.OnClose()
-							end
-						end
-					end,
-				}),
-				PickUpButton = e(SmallButton, {
-					Text = "PickUp",
-					Size = UDim2.new(0, 100, 0, 40),
-					[React.Event.Activated] = function()
-						if props.MixerId then -- Ensure Remotes.PickUpDrink is defined in your Remotes module
-							Remotes.PickUpDrink:FireServer(props.MixerId)
-							if props.OnClose then
-								props.OnClose()
-							end
-						end
-					end,
-				}),
-				ClearButton = e(SmallButton, {
-					Text = "Clear",
-					Size = UDim2.new(0, 100, 0, 40),
-					[React.Event.Activated] = function()
-						setCurrentIngredients({})
-					end,
-				}),
-			}),
-		}),
-		Right = e(DefaultPanel, {
-			Title = "Mixer: " .. tostring(props.MixerId),
-			Size = UDim2.new(0.3, -20, 1, -40),
-			MinSize = Vector2.new(350, 300),
-			AnchorPoint = Vector2.new(1, 0.5),
-			Position = UDim2.new(1, 0, 0.5, 0),
-			BackgroundImageTransparency = 0.9,
-			OnClose = props.OnClose,
-		}, {
-			Content = e(VStack, { Spacing = UDim.new(0, 10) }, {
-				-- Ingredients Grid
-				DefaultScrollFrame = e(DefaultScrollFrame, {
-					LayoutOrder = 1,
-					AutomaticSize = Enum.AutomaticSize.XY,
+				IngredientList = e(HStack, {
+					OnMount = targetRef, -- BIND REF HERE TO ACT AS TARGET POS
+					VerticalFlex = Enum.UIFlexAlignment.None,
+					VeticalAlignment = Enum.VerticalAlignment.Center,
+					HorizontalFlex = Enum.UIFlexAlignment.None,
+					HorizontalAlignment = Enum.HorizontalAlignment.Center,
+					AutomaticSize = Enum.AutomaticSize.None,
+					LayoutOrder = 3,
 				}, {
-					Grid = e(Grid, {
-						Size = UDim2.new(1, 0, 0, 200),
-						CellSize = UDim2.new(0, 60, 0, 150),
-						Padding = { All = UDim.new(0, 4) },
+					e(VStack, {
+						Size = UDim2.new(1, 0, 0, 0),
+						VerticalFlex = Enum.UIFlexAlignment.None,
+						VeticalAlignment = Enum.VerticalAlignment.Bottom,
+						HorizontalFlex = Enum.UIFlexAlignment.None,
+						HorizontalAlignment = Enum.HorizontalAlignment.Center,
+						AutomaticSize = Enum.AutomaticSize.Y,
+						LayoutOrder = 3,
+						Spacing = UDim.new(0, 2),
+					}, {
+						e(HStack, {
+							HorizontalFlex = Enum.UIFlexAlignment.None,
+							HorizontalAlignment = Enum.HorizontalAlignment.Center,
+							Size = UDim2.new(1, 0, 0, 50),
+							AutomaticSize = Enum.AutomaticSize.None,
+							LayoutOrder = 3,
+							Spacing = UDim.new(0, 2),
+						}, {
+							Ingredients = e(React.Fragment, {}, {
+								selectedIngredientElements[1],
+								selectedIngredientElements[2],
+								selectedIngredientElements[3],
+							}),
+						}),
+						e(HStack, {
+							HorizontalFlex = Enum.UIFlexAlignment.None,
+							HorizontalAlignment = Enum.HorizontalAlignment.Center,
+							Size = UDim2.new(1, 0, 0, 50),
+							AutomaticSize = Enum.AutomaticSize.None,
+							LayoutOrder = 3,
+							Spacing = UDim.new(0, 2),
+						}, {
+							Ingredients = e(React.Fragment, {}, {
+								selectedIngredientElements[4],
+								selectedIngredientElements[5],
+								selectedIngredientElements[6],
+							}),
+						}),
+						e(HStack, {
+							Size = UDim2.new(1, 0, 0, 50),
+							AutomaticSize = Enum.AutomaticSize.None,
+							HorizontalFlex = Enum.UIFlexAlignment.None,
+							HorizontalAlignment = Enum.HorizontalAlignment.Center,
+							LayoutOrder = 3,
+							Spacing = UDim.new(0, 2),
+						}, {
+							Ingredients = e(React.Fragment, {}, {
+								selectedIngredientElements[7],
+								selectedIngredientElements[8],
+								selectedIngredientElements[9],
+							}),
+						}),
+					}),
+				}),
+				-- }),
+
+				Controls = e(VStack, {
+					Size = UDim2.new(1, 0, 1, 0),
+					Spacing = UDim.new(0, 10),
+					LayoutOrder = 4,
+					AutomaticSize = Enum.AutomaticSize.None,
+					HorizontalFlex = Enum.UIFlexAlignment.None,
+					HorizontalAlignment = Enum.HorizontalAlignment.Center,
+					-- BackgroundTransparency = 0,
+				}, {
+					Controls = e(HStack, {
+						Size = UDim2.new(0, 0, 0, 0),
+						Spacing = UDim.new(0, 10),
+						LayoutOrder = 4,
 						AutomaticSize = Enum.AutomaticSize.XY,
-					}, ingredientElements),
-				}),
+						VerticalFlex = Enum.UIFlexAlignment.None,
+						HorizontalFlex = Enum.UIFlexAlignment.None,
+						-- BackgroundTransparency = 0,
+						HorizontalAlignment = Enum.HorizontalAlignment.Center,
+					}, {
+						CraftButton = e(SmallButton, {
+							Text = "Craft!",
+							Size = UDim2.new(0, 80, 0, 40),
+							BackgroundColor3 = resultConfig and Color3.new(0.5, 1, 0) or nil,
+							[React.Event.Activated] = function()
+								if resultConfig and props.MixerId then
+									Remotes.MixDrink:FireServer(resultConfig.Id, props.MixerId)
+									setCurrentIngredients({})
+									setPendingIngredients({}) -- Safety clear
+									if props.OnClose then
+										props.OnClose()
+									end
+								end
+							end,
+							LayoutOrder = 2,
+						}),
+						ClearButton = e(SmallButton, {
+							Text = "Clear",
+							Size = UDim2.new(0, 60, 0, 30),
+							[React.Event.Activated] = function()
+								setCurrentIngredients({})
+							end,
+							LayoutOrder = 1,
+						}),
+					}),
 
-				Divider = e("Frame", {
-					Size = UDim2.new(1, 0, 0, 2),
-					BackgroundColor3 = Color3.new(1, 1, 1),
-					BackgroundTransparency = 0.5,
+					ResultFrame = e("Frame", {
+						Size = UDim2.new(1, 0, 0, 100),
+						LayoutOrder = 1,
+						BackgroundTransparency = 1,
+					}, {
+						e("ImageLabel", {
+							Size = UDim2.new(0, 100, 0, 100),
+							Position = UDim2.new(0.5, 0, 0, 0),
+							BackgroundTransparency = 1,
+							AnchorPoint = Vector2.new(0.5, 0),
+							Image = resultConfig and resultConfig.Image,
+						}),
+					}),
 				}),
+			}),
+			Right = e("Frame", {
+				Size = UDim2.new(1, -20, 0.5, 0),
+				AnchorPoint = Vector2.new(1, 0.5),
+				Position = UDim2.new(1, 0, 0.5, 0),
+				BackgroundTransparency = 1,
+				LayoutOrder = 2,
+			}, {
+				Content = e(VStack, { Spacing = UDim.new(0, 10) }, {
+					DefaultScrollFrame = e(DefaultScrollFrame, {
+						LayoutOrder = 1,
+						AutomaticSize = Enum.AutomaticSize.XY,
+					}, {
+						Grid = e(Grid, {
+							Size = UDim2.new(1, 0, 0, 200),
+							CellSize = UDim2.new(0, 60, 0, 150),
+							Padding = { All = UDim.new(0, 4) },
+							AutomaticSize = Enum.AutomaticSize.XY,
+						}, ingredientElements),
+					}),
 
-				-- Status/Selection Text outputs
-				SelectionText = e(SmallText, {
-					Text = "Selection: " .. (selectionDisplay ~= "" and selectionDisplay or "None"),
-					Size = UDim2.new(1, 0, 0, 30),
-				}),
-
-				ResultText = e(SmallText, {
-					Text = "Preview: " .. (resultConfig and resultConfig.DisplayName or "Unknown Recipe"),
-					Size = UDim2.new(1, 0, 0, 30),
+					SelectionText = e(SmallText, {
+						Text = "Ingredients",
+						Size = UDim2.new(1, 0, 0, 30),
+					}),
 				}),
 			}),
 		}),

@@ -78,7 +78,7 @@ local function CoinParticle(props)
 	React.useEffect(function()
 		setTGoal(ReactOtter.spring(1, {
 			dampingRatio = 0.9,
-			frequency = 1.2 - 0.5 * math.random(), -- Slightly lower frequency gives it just a bit more time to breathe
+			frequency = 1.2 - 0.5 * math.random(),
 		}))
 	end, {})
 

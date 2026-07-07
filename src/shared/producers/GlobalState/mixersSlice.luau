@@ -51,6 +51,22 @@ local actions = {
 		newMixer.startTime = nil
 		return Set(state, playerId, Set(playersMixers, mixerId, newMixer))
 	end,
+	levelUp = function(state: MixersState, playerId: string, payload: Types.LevelUpPayload)
+		local playerMixers = state[playerId]
+		if not playerMixers then
+			warn(`player {playerId}'s Mixers not found`)
+			return state
+		end
+
+		local newMixers = {}
+		for i, mixer: string in payload.unlockedMixers do
+			newMixers[mixer] = {
+				drinkId = "none",
+			}
+		end
+
+		return Set(state, playerId, Merge(playerMixers, newMixers))
+	end,
 }
 
 return Reflex.createProducer(initialState, actions)

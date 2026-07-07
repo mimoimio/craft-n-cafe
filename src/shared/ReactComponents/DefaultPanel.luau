@@ -8,7 +8,7 @@ local SmallButton = require(game.ReplicatedStorage.Shared.ReactComponents.ui.Sma
 local VStack = require(game.ReplicatedStorage.Shared.ReactComponents.ui.VStack)
 local HStack = require(game.ReplicatedStorage.Shared.ReactComponents.ui.HStack)
 local SoundController = require(game.ReplicatedStorage.Shared.Controllers.SoundController)
-local PRIMARY_FOREGROUND = Color3.new(0.796078, 0.796078, 1)
+local PRIMARY_FOREGROUND = Color3.new(0.796078, 0.6, 0.2)
 -- local PRIMARY_FOREGROUND = Color3.new(0.435294, 0, 1)
 local function CloseButton(props: {
 	Text: string?,
@@ -44,7 +44,7 @@ local function CloseButton(props: {
 		e("ImageButton", {
 			Size = props.Size or UDim2.new(0, 100, 0, 100),
 			BackgroundTransparency = 1,
-			Image = "rbxassetid://125157965992606",
+			Image = "rbxassetid://135201205917919",
 			Rotation = rot:map(function(n)
 				return n * 5
 			end),
@@ -182,8 +182,8 @@ end
 local function DefaultPanel(props)
 	local children = props.children
 	return e(VStack, {
-		BackgroundTransparency = 1,
-		BackgroundImage = props.BackgroundImage or "rbxassetid://125157965992606",
+		BackgroundTransparency = props.BackgroundTransparency or 1,
+		BackgroundImage = props.BackgroundImage or "rbxassetid://135201205917919",
 		BackgroundImageTransparency = props.BackgroundImageTransparency or 1,
 		ScaleType = props.ScaleType or Enum.ScaleType.Tile,
 		TileSize = props.TileSize or UDim2.new(0, 50, 0, 50),
@@ -192,6 +192,7 @@ local function DefaultPanel(props)
 		AnchorPoint = props.AnchorPoint or Vector2.new(0.5, 0.5),
 		-- AutomaticSize = Enum.AutomaticSize.Y,
 		Rotation = props.Rotation,
+		Visible = props.Open,
 		Spacing = UDim.new(0, 4),
 		Padding = {
 			Top = UDim.new(0, 0),
@@ -205,7 +206,7 @@ local function DefaultPanel(props)
 	}, {
 		UISizeConstraint = e("UISizeConstraint", {
 			MinSize = props.MinSize or Vector2.new(300, 200),
-			-- MaxSize = Vector2.new(600, 1000),
+			MaxSize = props.MaxSize or Vector2.new(400, 400),
 		}),
 		UIStroke = props.Stroke and e("UIStroke", {
 			Thickness = 4,
@@ -219,17 +220,17 @@ local function DefaultPanel(props)
 				}),
 			}),
 		}) or nil,
-		UICorner = e("UICorner", { CornerRadius = UDim.new(0, 4) }),
-		UIGradient = e("UIGradient", {
-			Rotation = 90,
-			Color = ColorSequence.new({
-				ColorSequenceKeypoint.new(0, PRIMARY_FOREGROUND),
-				ColorSequenceKeypoint.new(1, Color3.new(0, 1 - 0.5 * 0, 1 - 0)),
-			}),
-		}),
+		UICorner = e("UICorner", { CornerRadius = UDim.new(0, 12) }),
+		-- UIGradient = e("UIGradient", {
+		-- 	Rotation = 90,
+		-- 	Color = ColorSequence.new({
+		-- 		ColorSequenceKeypoint.new(0, PRIMARY_FOREGROUND),
+		-- 		ColorSequenceKeypoint.new(1, Color3.new(0, 1 - 0.5 * 0, 1 - 0)),
+		-- 	}),
+		-- }),
 		Header = e(HStack, {
 			BackgroundTransparency = 1,
-			BackgroundImage = props.BackgroundImage or "rbxassetid://125157965992606",
+			BackgroundImage = props.BackgroundImage or "rbxassetid://135201205917919",
 			BackgroundImageTransparency = props.BackgroundImageTransparency or 1,
 			ScaleType = props.ScaleType or Enum.ScaleType.Tile,
 			TileSize = UDim2.new(0, 50, 0, 50),
@@ -249,19 +250,6 @@ local function DefaultPanel(props)
 			HorizontalAlignment = Enum.HorizontalAlignment.Left,
 		}, {
 
-			UIStroke = e("UIStroke", {
-				Thickness = 4,
-				Color = Color3.new(1, 1, 1),
-			}, {
-				UIGradient = e("UIGradient", {
-					Rotation = 90,
-					Color = ColorSequence.new({
-						ColorSequenceKeypoint.new(0, PRIMARY_FOREGROUND),
-						ColorSequenceKeypoint.new(1, PRIMARY_FOREGROUND),
-						-- ColorSequenceKeypoint.new(1, Color3.new(1, 1, 1)),
-					}),
-				}),
-			}),
 			UICorner = e("UICorner", { CornerRadius = UDim.new(0, 4) }),
 			UIGradient = e("UIGradient", {
 				Rotation = 90,

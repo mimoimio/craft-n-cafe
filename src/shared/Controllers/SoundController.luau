@@ -18,7 +18,7 @@ local POOL_SIZE = 5 -- Pre-create 5 instances of each sound
 local soundPools = {} -- {SoundName = {available = {Sound}, inUse = {Sound}}}
 
 -- Volume state
-local _sfxVolume = 0.3 -- 0..1
+local _sfxVolume = 0.7 -- 0..1
 local _listeners: { (state: any) -> () } = {}
 
 local function _getState()

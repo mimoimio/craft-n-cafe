@@ -20,6 +20,8 @@ export type GlobalState = {
 	Ingredients: ingredientsSlice.IngredientsState,
 	Mixers: mixersSlice.MixersState,
 	Customers: customersSlice.CustomersState,
+	UnlockedIngredients: {},
+	DiscoveredDrinks: {},
 }
 
 export type Stats = statsSlice.StatsState

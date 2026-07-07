@@ -6,7 +6,7 @@ local ConsoleApp = require(game.ReplicatedStorage.Shared.ReactComponents.Console
 -- local Main = require(game.ReplicatedStorage.Shared.ReactComponents.Main)
 local DrinksPanel = require(game.ReplicatedStorage.Shared.ReactComponents.DrinksPanel)
 local IngredientShopPanel = require(game.ReplicatedStorage.Shared.ReactComponents.IngredientShopPanel)
-local RecipePanel = require(game.ReplicatedStorage.Shared.ReactComponents.RecipePanel)
+local CustomersPanel = require(game.ReplicatedStorage.Shared.ReactComponents.CustomersPanel)
 local function App(props)
 	local drinks, setDrinks = useState({
 		{
@@ -27,7 +27,7 @@ end
 
 local function story(frame: Frame)
 	local root = ReactRoblox.createRoot(frame)
-	root:render(e(RecipePanel, { visible = true }))
+	root:render(e(IngredientShopPanel))
 	return function()
 		root:unmount()
 	end

@@ -14,8 +14,8 @@ export type PlayerData = {
 -- Stats
 export type StatsEntity = {
 	Cash: number,
-	sfx: number,
-	music: number,
+	Sfx: number,
+	Music: number,
 	SecondsPlayed: number,
 	Level: number,
 }
@@ -65,6 +65,7 @@ export type CustomerEntity = {
 	id: string,
 	customerId: string?,
 	drinkIds: { string },
+	customerAction: string,
 }
 export type CustomersState = {
 	[string]: {
@@ -82,6 +83,12 @@ export type MixDrinkPayload = {
 	ingredients: { string },
 	mixer: string,
 	startTime: number,
+}
+export type LevelUpPayload = {
+	level: number,
+	cost: number,
+	unlockedTables: { string },
+	unlockedIngredients: { number },
 }
 export type BuyIngredientBulkPayload = {
 	ingredients: { [string]: number },
@@ -146,7 +153,7 @@ export type CombinedActions = {
 	removeCustomer: (playerId: string, uid: string) -> (),
 }
 
---Coffee Modules
+--Coffee Module
 export type CoffeeModule = {
 	IngredientsConfig: { [string]: CoffeeConfigType },
 	Config: { [string]: CoffeeConfigType },

@@ -1,39 +1,30 @@
 -- Shared/ReactComponents/Main.luau
-local CollectionService = game:GetService("CollectionService")
 local GuiService = game:GetService("GuiService")
-local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local COINICON = "robux"
-local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local React = require(ReplicatedStorage.Packages.React)
-local ReactFlow = require(ReplicatedStorage.Packages.ReactFlow)
-
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
+local Remotes = require(ReplicatedStorage.Shared.Remotes)
 
+local SoundController = require(ReplicatedStorage.Shared.Controllers.SoundController)
 local Primitives = ReplicatedStorage.Shared.ReactComponents.ui
-local VStack = require(Primitives.VStack)
 local HStack = require(Primitives.HStack)
 local SmallButton = require(Primitives.SmallButton)
-local SmallText = require(Primitives.SmallText)
 
 local e = React.createElement
 local useState = React.useState
-local useSpring = ReactFlow.useSpring
 local useEffect = React.useEffect
 
-local ConsoleApp = require(script.Parent.ConsoleApp)
 local CashHud = require(script.Parent.CashHud)
-local DefaultPanel = require(script.Parent.DefaultPanel)
 local MixerPanel = require(script.Parent.MixerPanel)
 local IngredientShopPanel = require(script.Parent.IngredientShopPanel)
 local CustomersPanel = require(script.Parent.CustomersPanel)
 local CoinVFXContainer = require(script.Parent.CoinVFXContainer)
-
-local function DrinksPanel(props)
-	return e(DefaultPanel, {}, {})
-end
+local RecipePanel = require(script.Parent.RecipePanel)
+local CafePanel = require(script.Parent.CafePanel)
+local MixerManager = require(script.Parent.MixerManager) -- Injected manager
+local TableManager = require(script.Parent.TableManager) -- Injected manager
 
 local getStats = function(state: GlobalState.GlobalState): {}?
 	if not state then
@@ -42,20 +33,20 @@ local getStats = function(state: GlobalState.GlobalState): {}?
 	local stats = state.Stats
 	local player = game.Players.LocalPlayer
 	local playerId = player and tostring(player.UserId)
-	local playersStats = stats[playerId]
-	return playersStats
+	return stats[playerId]
 end
 
 local function Main(props)
 	local state, setState = useState(nil)
-	local activePanel, setActivePanel = useState(nil) -- "Mixer", "Shop", or nil
-	local activeMixerId, setActiveMixerId = useState(nil) -- Tracks the specific Mixer string
-	local activeCoins, setActiveCoins = React.useState({})
+	local activePanel, setActivePanel = useState(nil) -- "Shop", "Customers", or nil
+	local activeMixerId, setActiveMixerId = useState(nil)
+	local activeCoins, setActiveCoins = useState({})
 	local coins, setCoins = useState(0)
-	local textRef = React.useRef(nil)
-	local coinsRef = React.useRef(0)
 
-	local stats: { cash: number }? = getStats(state)
+	local textRef = React.useRef(nil)
+	local cashRef = React.useRef(nil)
+
+	local stats = getStats(state)
 
 	-- Keep global state in sync
 	useEffect(function()
@@ -70,100 +61,27 @@ local function Main(props)
 		end
 	end, {})
 
-	-- CollectionService triggers for Mixers
-	-- Why thefuck does this depend on state,
-	-- it's going to be rendered every second.
-	-- TODO: Just listen when player's mixers change.
-	-- TODO: refactor later to do this in its own component.
-	-- TODO: in the component, listen to the mixers.
-	-- if a mixer is occupied, triggering will
-	-- fireserver for PickupDrink instead of opening.
-	-- and also when occupied show progressbar on
-	-- a react state of: Model, to set the model as adornee
-	-- from the component. The proximityprompt
-
-	--#region
-	useEffect(function()
-		if not state then
-			return
-		end
-
-		local playerId = tostring(Players.LocalPlayer.UserId)
-		local connections = {}
-
-		local function bindMixerPrompt(mixerInstance, mixerName)
-			local prompt = mixerInstance:FindFirstChildWhichIsA("ProximityPrompt", true)
-			if prompt then
-				local conn = prompt.Triggered:Connect(function(player)
-					if player == Players.LocalPlayer then
-						setActiveMixerId(function(prev)
-							-- Toggle off if clicking the same mixer, otherwise open this mixer
-							return prev == mixerName and nil or mixerName
-						end)
-						setActivePanel(nil) -- Close shop if it was open
-					end
-				end)
-				table.insert(connections, conn)
-			end
-		end
-
-		local mixersData = state.Mixers and state.Mixers[playerId] or {}
-
-		for mixerName, _ in pairs(mixersData) do
-			local tag = mixerName .. playerId
-
-			for _, inst in ipairs(CollectionService:GetTagged(tag)) do
-				bindMixerPrompt(inst, mixerName) -- Pass mixerName here
-			end
-
-			local addedConn = CollectionService:GetInstanceAddedSignal(tag):Connect(function(inst)
-				bindMixerPrompt(inst, mixerName)
-			end)
-			table.insert(connections, addedConn)
-		end
-
-		return function()
-			for _, conn in ipairs(connections) do
-				conn:Disconnect()
-			end
-		end
-	end, { state })
-	--#endregion
-
-	local function toggleShop()
-		setActivePanel(activePanel == "Shop" and nil or "Shop")
-		setActiveMixerId(nil) -- Ensure mixer closes when opening shop
-	end
-	local function toggleCustomers()
-		setActivePanel(activePanel == "Customers" and nil or "Customers")
-		setActiveMixerId(nil)
-	end
-	local function closePanel()
-		setActivePanel(nil)
-	end
-	local cashRef: { current: number? } = React.useRef(nil)
+	-- Handle Cash & VFX updates
 	useEffect(function()
 		if not (stats and stats.Cash) then
-			warn(`failed: stats({stats}), stats.Cash({stats and stats.Cash})`)
 			return
 		end
+
 		if not cashRef.current then
-			warn(`initializing: stats({stats}), stats.Cash({stats and stats.Cash})`)
 			cashRef.current = stats.Cash
 			setCoins(stats.Cash)
 			return
 		end
+
 		local id = tostring(tick())
 		local diff = stats.Cash - cashRef.current
 
-		-- if negative then no need for coin vfx
 		if diff <= 0 then
 			setCoins(stats.Cash)
 			cashRef.current = stats.Cash
 			return
 		end
 
-		-- coin vfx
 		setActiveCoins(function(prevCoins)
 			local nextCoins = table.clone(prevCoins)
 			local done
@@ -182,47 +100,67 @@ local function Main(props)
 			cashRef.current = stats.Cash
 			return nextCoins
 		end)
-		return
 	end, { stats and stats.Cash })
 
-	useEffect(function()
-		warn(activePanel)
-	end, { activePanel })
-
+	local toggle = React.useCallback(function(panel: string)
+		setActivePanel(function(prev)
+			if prev == panel then
+				return "none"
+			end
+			return panel
+		end)
+	end, {})
+	local closeAllPanels = React.useCallback(function()
+		setActivePanel("none")
+		setActiveMixerId(nil)
+	end, {})
+	local toggleMixerInteract = React.useCallback(function(mixerName)
+		setActivePanel("mixer")
+		setActiveMixerId(mixerName)
+	end, {})
 	return e("Frame", {
 		Transparency = 1,
 		Size = UDim2.new(1, 0, 1, 0),
 	}, {
+		-- Background Manager mapping to the 3D world (Invisible)
+		MixerManager = e(MixerManager, {
+			onInteract = toggleMixerInteract,
+		}),
+
 		-- Active Panel Overlay
-		ActiveOverlay = (activePanel or activeMixerId) and e("Frame", {
+		ActiveOverlay = e("Frame", {
 			Size = UDim2.new(1, 0, 1, 0),
 			BackgroundTransparency = 1,
 		}, {
-			Shop = activePanel == "Shop" and e(IngredientShopPanel, {
-				OnClose = function()
-					setActivePanel(nil)
-				end,
+			Shop = e(IngredientShopPanel, {
+				Open = activePanel == "Shop",
+				OnClose = closeAllPanels,
 			}),
-			Customers = activePanel == "Customers" and e(CustomersPanel, {
-				OnClose = function()
-					setActivePanel(nil)
-				end,
+			Customers = e(CustomersPanel, {
+				Open = activePanel == "Customers",
+				OnClose = closeAllPanels,
 			}),
-			Mixer = activeMixerId and e(MixerPanel, {
+			Mixer = e(MixerPanel, {
+				Open = activePanel == "mixer",
 				MixerId = activeMixerId,
-				State = state,
-				OnClose = function()
-					setActiveMixerId(nil)
-				end,
+				Ingredients = state and state.Ingredients,
+				OnClose = closeAllPanels,
+			}),
+			Recipes = e(RecipePanel, {
+				visible = activePanel == "recipe",
+				OnClose = closeAllPanels,
+			}),
+			CafePanel = e(CafePanel, {
+				Open = activePanel == "cafe",
+				OnClose = closeAllPanels,
 			}),
 		}),
-		-- HUD Buttons
+
+		Tables = e(TableManager),
+		-- HUD Elements
 		Cash = e(CashHud, {
-			OnMount = function(rbx: TextLabel)
+			OnMount = function(rbx)
 				textRef.current = rbx
-				if not rbx then
-					return
-				end
 			end,
 			coins = coins,
 		}),
@@ -236,35 +174,50 @@ local function Main(props)
 			CustomersButton = e(SmallButton, {
 				Text = "Customers",
 				Size = UDim2.new(0, 150, 0, 50),
-				[React.Event.Activated] = toggleCustomers,
+				[React.Event.Activated] = function()
+					toggle("Customers")
+				end,
 				LayoutOrder = 1,
 			}),
 			ShopButton = e(SmallButton, {
 				Text = "Ingredient Shop",
 				Size = UDim2.new(0, 150, 0, 50),
-				[React.Event.Activated] = toggleShop,
+				[React.Event.Activated] = function()
+					toggle("Shop")
+				end,
+				LayoutOrder = 2,
 			}),
 			CoinVFXContainer = e(CoinVFXContainer, {
 				activeCoins = activeCoins,
 				hudPos = Vector2.new(100, 50),
 				onCoinComplete = function(completedId)
-					-- Clean up the state when the particle finishes its animation
 					setActiveCoins(function(prevCoins)
 						local nextCoins = table.clone(prevCoins)
 						local coin = nextCoins[completedId]
 						if not coin then
 							return prevCoins
 						end
+
 						setCoins(function(prev)
+							SoundController.Sound("handleCoins")
 							return prev + (coin.amount or 0)
 						end)
+
 						nextCoins[completedId] = nil
+						-- SoundController
 						return nextCoins
 					end)
-					-- SoundController.Sound("Chik")
 				end,
 			}),
 		}),
+
+		e(SmallButton, {
+			Text = "Cafe",
+			[React.Event.Activated] = function()
+				toggle("cafe")
+			end,
+		}),
+		e(require(script.Parent.ConsoleApp), { state = state }),
 	})
 end
 

@@ -14,6 +14,7 @@ local VStack = require(Primitives.VStack)
 local HStack = require(Primitives.HStack)
 
 local function CustomersPanel(props: {
+	Open: boolean,
 	OnClose: () -> (),
 })
 	local playerId = tostring(Players.LocalPlayer and Players.LocalPlayer.UserId or "")
@@ -91,6 +92,7 @@ local function CustomersPanel(props: {
 		Title = "Active Customers",
 		Size = UDim2.new(0, 400, 0, 500),
 		OnClose = props.OnClose,
+		Open = props.Open,
 	}, {
 		Content = e(VStack, {
 			VerticalFlex = Enum.UIFlexAlignment.None,

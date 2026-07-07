@@ -10,8 +10,11 @@ local function HStack(props)
 			VerticalAlignment = props.VerticalAlignment or Enum.VerticalAlignment.Center,
 			SortOrder = Enum.SortOrder.LayoutOrder,
 			Padding = props.Spacing or UDim.new(0, 0),
+			Wraps = props.Wraps,
+			VerticalFlex = Enum.UIFlexAlignment.None,
 			HorizontalFlex = props.HorizontalFlex, -- Crucial for tabs!
 		}),
+
 		Padding = props.Padding and e("UIPadding", {
 			PaddingTop = props.Padding.All or props.Padding.Top or UDim.new(0, 0),
 			PaddingBottom = props.Padding.All or props.Padding.Bottom or UDim.new(0, 0),
@@ -40,6 +43,7 @@ local function HStack(props)
 		BackgroundColor3 = props.BackgroundColor3,
 		LayoutOrder = props.LayoutOrder,
 		ZIndex = props.ZIndex,
+		ref = props.OnMount,
 	}, elements)
 end
 

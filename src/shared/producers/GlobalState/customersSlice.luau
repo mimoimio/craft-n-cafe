@@ -43,6 +43,7 @@ local actions = {
 			Insert(playersCustomers, #playersCustomers + 1, {
 				id = payload.customerUid,
 				customerId = payload.customerId,
+				customerAction = "entering",
 			})
 		)
 		return new
@@ -66,6 +67,7 @@ local actions = {
 			Update(playersCustomers, index, function(customer: Types.CustomerEntity, i)
 				local new = table.clone(customer)
 				new.drinkIds = payload.drinkIds
+				new.customerAction = "queuing"
 				return new
 			end)
 		)
@@ -96,6 +98,7 @@ local actions = {
 			Update(playersCustomers, index, function(customer: Types.CustomerEntity, i)
 				local new = table.clone(customer)
 				new.drinkIds = nil
+				new.customerAction = "paid"
 				return new
 			end)
 		)

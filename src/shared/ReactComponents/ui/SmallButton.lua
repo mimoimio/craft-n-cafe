@@ -22,6 +22,7 @@ local function SmallButton(props)
 		LayoutOrder = props.LayoutOrder,
 		Size = props.Size or UDim2.new(0, 48, 0, 48),
 		Rotation = props.Rotation,
+		Visible = props.Visible,
 		Position = props.Position,
 		AnchorPoint = props.AnchorPoint,
 		BackgroundColor3 = props.BackgroundColor3,
@@ -30,17 +31,18 @@ local function SmallButton(props)
 		AutomaticSize = props.AutomaticSize or Enum.AutomaticSize.XY,
 		ZIndex = props.ZIndex or 11,
 		AutoButtonColor = props.AutoButtonColor,
-		[React.Event.Activated] = props[React.Event.Activated] and function()
-			props[React.Event.Activated]()
-			SoundController.Sound("Click")
+		[React.Event.Activated] = props[React.Event.Activated] and function(rbx)
+			props[React.Event.Activated](rbx)
+			SoundController.Sound("drop_001")
+			-- SoundController.Sound("Click")
 		end or nil,
 		[React.Event.MouseEnter] = function()
 			setScale(1.05)
-			SoundController.Sound("Plink")
+			-- SoundController.Sound("Plink")
 		end,
 		[React.Event.MouseLeave] = function()
 			setScale(1)
-			-- SoundController.Sound("Plink")
+			-- SoundController.Sound("drop_001")
 		end,
 	}
 
@@ -53,6 +55,7 @@ local function SmallButton(props)
 		buttonProps.ScaleType = props.ScaleType or Enum.ScaleType.Fit
 	else
 		buttonProps.Text = props.Text or ""
+		buttonProps.RichText = props.RichText
 		buttonProps.TextWrapped = (props.TextWrapped == nil or props.TextWrapped == true) and true or false
 		buttonProps.TextSize = props.TextSize or 16
 		buttonProps.TextStrokeTransparency = props.TextStrokeTransparency or 1
