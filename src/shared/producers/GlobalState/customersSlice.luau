@@ -1,5 +1,4 @@
---!strict
--- customersSlice.luau
+-- Shared/producers/customersSlice.luau
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Reflex = require(ReplicatedStorage.Packages.Reflex)
@@ -14,17 +13,12 @@ local Merge = Dictionary.merge
 local Set = Dictionary.set
 local RemoveKey = Dictionary.removeKey
 
--- /// TYPES ///
 type PlayerData = Types.PlayerData
 export type CustomerEntity = Types.CustomerEntity
 export type CustomersState = Types.CustomersState
 
-export type StatsActions = {}
-
--- /// INITIALIZATION ///
 local initialState: CustomersState = {}
 
--- /// REDUCERS ///
 local actions = {
 	startPlayerSession = function(state: CustomersState, playerId: string, data: PlayerData)
 		return Set(state, playerId, data.Customers)
@@ -37,16 +31,17 @@ local actions = {
 		if not playersCustomers then
 			return state
 		end
-		local new = Set(
+
+		return Set(
 			state,
 			playerId,
 			Insert(playersCustomers, #playersCustomers + 1, {
 				id = payload.customerUid,
 				customerId = payload.customerId,
 				customerAction = "entering",
+				actionStartTime = payload.timestamp,
 			})
 		)
-		return new
 	end,
 	customerTakeItems = function(state: CustomersState, playerId: string, payload: Types.CustomerItemPayload)
 		local playersCustomers = state[playerId]
@@ -61,30 +56,32 @@ local actions = {
 				break
 			end
 		end
-		local new = Set(
+		if not index then
+			return state
+		end
+
+		return Set(
 			state,
 			playerId,
-			Update(playersCustomers, index, function(customer: Types.CustomerEntity, i)
+			Update(playersCustomers, index, function(customer: Types.CustomerEntity)
 				local new = table.clone(customer)
 				new.drinkIds = payload.drinkIds
 				new.customerAction = "queuing"
+				new.actionStartTime = payload.timestamp
 				return new
 			end)
 		)
-		return new
 	end,
 	playerReceivePayment = function(
 		state: CustomersState,
 		playerId: string,
-		payload: {
-			customerUid: string,
-			Cash: number,
-		}
+		payload: { customerUid: string, Cash: number, timestamp: number }
 	)
 		local playersCustomers = state[playerId]
 		if not playersCustomers then
 			return state
 		end
+
 		local index
 		for i, customer in playersCustomers do
 			if customer.id == payload.customerUid then
@@ -92,13 +89,18 @@ local actions = {
 				break
 			end
 		end
+		if not index then
+			return state
+		end
+
 		return Set(
 			state,
 			playerId,
-			Update(playersCustomers, index, function(customer: Types.CustomerEntity, i)
+			Update(playersCustomers, index, function(customer: Types.CustomerEntity)
 				local new = table.clone(customer)
 				new.drinkIds = nil
 				new.customerAction = "paid"
+				new.actionStartTime = payload.timestamp
 				return new
 			end)
 		)
@@ -108,6 +110,7 @@ local actions = {
 		if not playersCustomers then
 			return state
 		end
+
 		local index
 		for i, customer in playersCustomers do
 			if customer.id == uid then
@@ -115,7 +118,11 @@ local actions = {
 				break
 			end
 		end
-		return Set(state, playerId, Array.removeIndex(playersCustomers, index))
+
+		if index then
+			return Set(state, playerId, Array.removeIndex(playersCustomers, index))
+		end
+		return state
 	end,
 }
 

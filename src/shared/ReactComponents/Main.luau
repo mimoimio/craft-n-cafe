@@ -24,6 +24,7 @@ local CoinVFXContainer = require(script.Parent.CoinVFXContainer)
 local RecipePanel = require(script.Parent.RecipePanel)
 local CafePanel = require(script.Parent.CafePanel)
 local MixerManager = require(script.Parent.MixerManager) -- Injected manager
+local CustomerManager = require(script.Parent.CustomerManager) -- Injected manager
 local TableManager = require(script.Parent.TableManager) -- Injected manager
 
 local getStats = function(state: GlobalState.GlobalState): {}?
@@ -126,6 +127,7 @@ local function Main(props)
 		MixerManager = e(MixerManager, {
 			onInteract = toggleMixerInteract,
 		}),
+		CustomerManager = e(CustomerManager),
 
 		-- Active Panel Overlay
 		ActiveOverlay = e("Frame", {
@@ -217,7 +219,7 @@ local function Main(props)
 				toggle("cafe")
 			end,
 		}),
-		e(require(script.Parent.ConsoleApp), { state = state }),
+		-- e(require(script.Parent.ConsoleApp), { state = state }),
 	})
 end
 

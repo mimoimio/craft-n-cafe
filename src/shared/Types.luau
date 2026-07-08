@@ -1,4 +1,3 @@
---!strict
 -- Shared/Types.luau
 --v1
 export type PlayerData = {
@@ -18,6 +17,7 @@ export type StatsEntity = {
 	Music: number,
 	SecondsPlayed: number,
 	Level: number,
+	CustomerSpawningEnabled: boolean, -- New Toggle for Tutorial
 }
 
 -- Tables
@@ -64,8 +64,9 @@ export type MixersState = {
 export type CustomerEntity = {
 	id: string,
 	customerId: string?,
-	drinkIds: { string },
+	drinkIds: { string }?,
 	customerAction: string,
+	actionStartTime: number, -- FSM Timestamp tracker
 }
 export type CustomersState = {
 	[string]: {
@@ -101,17 +102,18 @@ export type PickUpPayload = {
 	mixer: string,
 }
 export type CustomerItemPayload = {
-	customerUid: string, --uid
+	customerUid: string,
 	drinksDeducted: {
 		[string]: number,
-		--[drink uid]: stock
 	},
 	drinkIds: { string },
-	depletedDrinks: { [string]: boolean }, -- Add this type
+	depletedDrinks: { [string]: boolean },
+	timestamp: number, -- Added to pass workspace:GetServerTimeNow() purely
 }
 export type SpawnCustomerPayload = {
-	customerUid: string, -- uid
+	customerUid: string,
 	customerId: string,
+	timestamp: number, -- Added
 }
 export type PlaceDrinkPayload = {
 	tableUid: string,
@@ -141,19 +143,25 @@ export type CombinedActions = {
 		Level: number,
 	}) -> (),
 
+	-- Added toggle action for your tutorial
+	toggleCustomerSpawning: (playerId: string, enabled: boolean) -> (),
+
 	spawnCustomer: (playerId: string, payload: SpawnCustomerPayload) -> (),
-	-- set the customer's items to buy
 	customerTakeItems: (playerId: string, payload: CustomerItemPayload) -> (),
 
-	playerReceivePayment: (playerId: string, payload: {
-		customerUid: string,
-		Cash: number,
-	}) -> (),
+	playerReceivePayment: (
+		playerId: string,
+		payload: {
+			customerUid: string,
+			Cash: number,
+			timestamp: number, -- Added
+		}
+	) -> (),
 
 	removeCustomer: (playerId: string, uid: string) -> (),
 }
 
---Coffee Module
+--Coffee Modules
 export type CoffeeModule = {
 	IngredientsConfig: { [string]: CoffeeConfigType },
 	Config: { [string]: CoffeeConfigType },

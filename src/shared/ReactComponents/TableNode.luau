@@ -20,6 +20,7 @@ local function TableNode(props: {
 	-- warn("props.Instance", props.Instance)
 	-- warn("slotsFolder", slotsFolder)
 	-- warn("props.TableData.Slots", props.TableData.Slots)
+
 	if slotsFolder then
 		for slotName, drinkUid in pairs(props.TableData.Slots) do
 			local slotInstance = slotsFolder:FindFirstChild(slotName)
@@ -29,6 +30,7 @@ local function TableNode(props: {
 					SlotName = slotName,
 					DrinkUid = drinkUid,
 					Instance = slotInstance,
+					Drinks = props.Drinks,
 				})
 			end
 		end

@@ -32,10 +32,10 @@ return {
 		ItemTip = [[Rich cocoa powder for a sweet, chocolaty kick.]],
 	},
 	{
-		Id = "icecream",
-		DisplayName = "Ice Cream",
-		Ingredients = { "icecream" },
-		ItemTip = [[Sweet, creamy, and frozen vanilla goodness.]],
+		Id = "ice",
+		DisplayName = "Ice",
+		Ingredients = { "ice" },
+		ItemTip = [[Frozen water cubes to chill your beverages.]],
 	},
 	{
 		Id = "teabag",
@@ -43,10 +43,22 @@ return {
 		ItemTip = [[A carefully measured pouch of dried tea leaves.]],
 	},
 	{
+		Id = "icecream",
+		DisplayName = "Ice Cream",
+		Ingredients = { "icecream" },
+		ItemTip = [[Sweet, creamy, and frozen vanilla goodness.]],
+	},
+	{
 		Id = "matchapowder",
 		DisplayName = "Matcha Powder",
 		Ingredients = { "matchapowder" },
 		ItemTip = [[Finely ground powder of specially grown green tea leaves.]],
+	},
+	{
+		Id = "lemon",
+		DisplayName = "Lemon Slice",
+		Ingredients = { "lemon" },
+		ItemTip = [[A freshly cut slice of zesty citrus.]],
 	},
 	{
 		Id = "boba",
@@ -57,18 +69,6 @@ return {
 		Id = "carbonator",
 		DisplayName = "Carbonator",
 		ItemTip = [[Adds bubbly carbonation to any liquid.]],
-	},
-	{
-		Id = "lemon",
-		DisplayName = "Lemon Slice",
-		Ingredients = { "lemon" },
-		ItemTip = [[A freshly cut slice of zesty citrus.]],
-	},
-	{
-		Id = "ice",
-		DisplayName = "Ice",
-		Ingredients = { "ice" },
-		ItemTip = [[Frozen water cubes to chill your beverages.]],
 	},
 	{
 		Id = "cookies",

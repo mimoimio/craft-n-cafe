@@ -1,49 +1,37 @@
--- Shared/ReactComponents/TableManager.luau
+-- Shared/ReactComponents/CustomerManager.luau
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 
-local TableNode = require(script.Parent.TableNode)
+local CustomerNode = require(script.Parent.CustomerNode)
 local e = React.createElement
 
 local function TableManager(props)
 	local playerId = tostring(Players.LocalPlayer.UserId)
-	local tablesState, setTablesState = React.useState({})
-	local drinks, setDrinks = React.useState({})
-	local tableInstances, setTableInstances = React.useState({})
+	local customersState, setCustomersState = React.useState({})
+	local customerInstances, setCustomerInstances = React.useState({})
 
-	-- 1. Subscribe strictly to the Tables state slice
+	-- 1. Subscribe strictly to the Customers state slice
 	React.useEffect(function()
 		local unsub = GlobalState:subscribe(function(state)
-			return state.Tables[playerId]
-		end, function(newTables)
-			setTablesState(newTables or {})
-		end)
-		local unsub2 = GlobalState:subscribe(function(state)
-			return state.Drinks[playerId]
-		end, function(newDrinks)
-			setDrinks(newDrinks or {})
+			return state.Customers[playerId]
+		end, function(newCustomers)
+			setCustomersState(newCustomers or {})
 		end)
 
 		local state = GlobalState:getState()
-		if state.Tables and state.Tables[playerId] then
-			setTablesState(state.Tables[playerId])
-		end
-		if state.Drinks and state.Drinks[playerId] then
-			setDrinks(state.Drinks[playerId])
+		if state.Customers and state.Customers[playerId] then
+			setCustomersState(state.Customers[playerId])
 		end
 
-		return function()
-			unsub()
-			unsub2()
-		end
+		return unsub
 	end, { playerId })
 
 	-- 2. Sync Table instances from CollectionService generically
 	React.useEffect(function()
-		local tag = "Table" .. playerId
+		local tag = "Customer" .. playerId
 
 		local function syncInstances()
 			local currentInstances = {}
@@ -51,7 +39,7 @@ local function TableManager(props)
 				-- Discern specific table via its Name property (e.g. Table1, Table2)
 				currentInstances[inst.Name] = inst
 			end
-			setTableInstances(currentInstances)
+			setCustomerInstances(currentInstances)
 		end
 
 		syncInstances()
@@ -67,12 +55,12 @@ local function TableManager(props)
 
 	local children = {}
 
-	for tableId, tableData in pairs(tablesState) do
-		children[tableId] = e(TableNode, {
-			TableId = tableId,
-			TableData = tableData,
-			Instance = tableInstances[tableId],
-			Drinks = drinks,
+	for i, customerData in pairs(customersState) do
+		-- warn(i, customerData)
+		children[customerData.id] = e(CustomerNode, {
+			CustomerUid = customerData.id,
+			CustomerData = customerData,
+			Instance = customerInstances[customerData.id],
 		})
 	end
 

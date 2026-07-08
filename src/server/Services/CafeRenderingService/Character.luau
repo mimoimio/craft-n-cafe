@@ -45,10 +45,14 @@ local function Character(props: {
 	end, { props.PlayerId })
 	useEffect(function()
 		if not (character and props.BaseModel) then
-			warn(`not character ({character}) and props.BaseModel ({props.BaseModel})`)
+			-- warn(`not character ({character}) and props.BaseModel ({props.BaseModel})`)
 			return
 		end
-		warn(`succs`)
+		for i, d in character:GetDescendants() do
+			if d:IsA("BasePart") then
+				d.CollisionGroup = "Characters"
+			end
+		end
 		character:PivotTo(props.BaseModel:GetPivot() + Vector3.new(0, 10, 0))
 		return function() end
 	end, { character, props.BaseModel })

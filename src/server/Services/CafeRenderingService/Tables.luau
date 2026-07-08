@@ -16,7 +16,6 @@ local function SlotComponent(
 		DrinkId: string, -- Extracted directly from table state (e.g., "abc" or "none")
 	}
 )
-
 	local drinkData, setDrinkData = useState(nil)
 
 	-- Hydrate unique ID into actual drink data (e.g., finding out "abc" is a "latte")

@@ -35,7 +35,7 @@ local function MixerProgressBar(props: {
 						continue
 					end
 					finishRangRef.current = true
-					SoundController.Sound("maximize_006")
+					SoundController.Sound("Success")
 				else
 					local str = string.format("%s (%dm %ds)", props.DrinkName, timeLeft // 60, timeLeft % 60)
 					setText(str)

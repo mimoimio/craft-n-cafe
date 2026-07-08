@@ -58,7 +58,7 @@ local function MixerNode(props: {
 			return
 		end
 		if isOccupied then
-			SoundController.Sound("Success")
+			SoundController.Sound("maximize_006")
 		else
 			SoundController.Sound("drop_001")
 		end
