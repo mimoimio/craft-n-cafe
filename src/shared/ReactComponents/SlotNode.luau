@@ -1,5 +1,6 @@
 -- Shared/ReactComponents/SlotNode.luau
 local Players = game:GetService("Players")
+local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
@@ -40,7 +41,9 @@ local function SlotNode(props: {
 			setPromptText("")
 		end)
 		return function()
-			props.Instance.PlacePart.TriggerPrompt.Style = Enum.ProximityPromptStyle.Default
+			if props.Instance and props.Instance.Parent then
+				props.Instance.PlacePart.TriggerPrompt.Style = Enum.ProximityPromptStyle.Default
+			end
 			conn:Disconnect()
 			conn2:Disconnect()
 		end
@@ -99,6 +102,32 @@ local function SlotNode(props: {
 		prevDrinkUid.current = props.DrinkUid
 	end, { props.DrinkUid })
 
+	local Label = e("ImageButton", {
+		Size = UDim2.new(1, 0, 1, 0),
+		[React.Event.MouseButton1Down] = function()
+			(props.Instance.PlacePart.TriggerPrompt :: ProximityPrompt):InputHoldBegin()
+		end,
+		[React.Event.MouseButton1Up] = function()
+			(props.Instance.PlacePart.TriggerPrompt :: ProximityPrompt):InputHoldEnd()
+		end,
+	}, {
+		UICorner = e("UICorner", {
+			CornerRadius = UDim.new(0, 8),
+		}),
+		SmallText = e(SmallText, {
+			Size = UDim2.new(1, 0, 1, 0),
+			TextXAlignment = Enum.TextXAlignment.Center,
+			-- BackgroundTransparency = 0,
+			Text = `{promptText} {drink and "Pickup" or "Place"}`,
+			TextColor3 = Color3.new(1, 1, 1),
+			TextStrokeTransparency = 0,
+			TextStrokeColor3 = Color3.new(0, 0, 0),
+			Font = Enum.Font.FredokaOne,
+			TextScaled = true,
+			Active = false,
+		}),
+	})
+
 	-- 3. Render BillboardGui
 	if drink and drink.stock > 0 and props.Instance then
 		-- Fall back to the PlacedItem if it exists for precise offset, otherwise track the Slot model
@@ -119,6 +148,7 @@ local function SlotNode(props: {
 				FillTransparency = 0.7,
 			}),
 			BBGui = e("BillboardGui", {
+				Active = true,
 				Adornee = adornee,
 				Size = UDim2.new(0, 60, 0, 30),
 				StudsOffset = Vector3.new(0, 1.5, 0),
@@ -137,27 +167,14 @@ local function SlotNode(props: {
 				}),
 			}),
 			custom = e("BillboardGui", {
+				Active = true,
 				Adornee = adornee,
 				Size = UDim2.new(0, 60, 0, 30),
 				StudsOffset = Vector3.new(0, -1.5, 0),
 				AlwaysOnTop = true,
 				MaxDistance = 20,
 			}, {
-				Label = on and e(SmallText, {
-					TextXAlignment = Enum.TextXAlignment.Center,
-					Size = UDim2.new(1, 0, 1, 0),
-					BackgroundTransparency = 0,
-					Text = `{promptText} {drink and "Pickup" or "Place"}`,
-					TextColor3 = Color3.new(1, 1, 1),
-					TextStrokeTransparency = 0,
-					TextStrokeColor3 = Color3.new(0, 0, 0),
-					Font = Enum.Font.FredokaOne,
-					TextScaled = true,
-				}, {
-					UICorner = e("UICorner", {
-						CornerRadius = UDim.new(0, 8),
-					}),
-				}),
+				Label = on and Label,
 			}),
 		})
 	end
@@ -165,31 +182,18 @@ local function SlotNode(props: {
 	local adornee = props.Instance:FindFirstChild("PlacedItem") or props.Instance
 	return on
 		and e("BillboardGui", {
+			Active = true,
 			Adornee = adornee,
 			Size = UDim2.new(0, 60, 0, 30),
 			StudsOffset = Vector3.new(0, -1.5, 0),
 			AlwaysOnTop = true,
 			MaxDistance = 20,
 		}, {
+			Label = on and Label,
 			Highlihgt = e("Highlight", {
 				Adornee = props.Instance.PlacePart,
 				FillColor = Color3.new(1, 1, 1),
 				FillTransparency = 0.7,
-			}),
-			Label = e(SmallText, {
-				Size = UDim2.new(1, 0, 1, 0),
-				TextXAlignment = Enum.TextXAlignment.Center,
-				BackgroundTransparency = 0,
-				Text = `{promptText} {drink and "Pickup" or "Place"}`,
-				TextColor3 = Color3.new(1, 1, 1),
-				TextStrokeTransparency = 0,
-				TextStrokeColor3 = Color3.new(0, 0, 0),
-				Font = Enum.Font.FredokaOne,
-				TextScaled = true,
-			}, {
-				UICorner = e("UICorner", {
-					CornerRadius = UDim.new(0, 8),
-				}),
 			}),
 		})
 end

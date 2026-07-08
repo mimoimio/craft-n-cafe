@@ -28,6 +28,7 @@ local SmallText = function(props)
 		ZIndex = props.ZIndex,
 		RichText = props.RichText,
 		ref = props.OnMount,
+		Active = props.Active,
 	}, children)
 end
 return SmallText
