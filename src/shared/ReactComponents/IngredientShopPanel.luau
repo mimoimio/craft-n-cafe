@@ -12,12 +12,12 @@ local DefaultPanel = require(script.Parent.DefaultPanel)
 local DefaultScrollFrame = require(script.Parent.DefaultScrollFrame)
 local SmallButton = require(Primitives.SmallButton)
 local SmallText = require(Primitives.SmallText)
-local Grid = require(Primitives.Grid)
 local VStack = require(Primitives.VStack)
 local HStack = require(Primitives.HStack)
 
 local function IngredientShopPanel(props: {
 	Open: boolean,
+	OnClose: () -> (),
 })
 	local shopItems = {}
 	local selected, setSelected = useBinding(nil)
@@ -25,14 +25,15 @@ local function IngredientShopPanel(props: {
 		setSelected(nil)
 	end, { props.Open })
 
-	for id, config in pairs(CoffeeModule.IngredientsConfig) do
+	for i, config in pairs(CoffeeModule.IngredientConfigs) do
+		local id = config.Id
 		shopItems[id] = e("ImageButton", {
 			AutomaticSize = Enum.AutomaticSize.XY,
 			[React.Event.Activated] = function()
 				setSelected(id)
 			end,
 			Image = "rbxassetid://135201205917919",
-			LayoutOrder = config.Price,
+			LayoutOrder = i,
 			ImageColor3 = Color3.new(1, 0, 0),
 		}, {
 			UICorner = e("UICorner", {
@@ -102,7 +103,7 @@ local function IngredientShopPanel(props: {
 						TextXAlignment = Enum.TextXAlignment.Left,
 					}),
 					Price = e(SmallText, {
-						Text = `({config.Price} $)`,
+						Text = `({config.Cost} $)`,
 						Size = UDim2.new(0, 200, 0, 0),
 						LayoutOrder = 2,
 						TextSize = 16,

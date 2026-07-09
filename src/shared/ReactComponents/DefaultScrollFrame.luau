@@ -15,8 +15,8 @@ local function DefaultScrollFrame(props)
 		BorderSizePixel = 0,
 		ScrollBarThickness = 20,
 		VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar, -- Only inset for the bar that exists
-		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		CanvasSize = UDim2.new(1, 0, 0, 0), -- X scale will override inset. Set to 0
+		AutomaticCanvasSize = Enum.AutomaticSize.XY,
+		CanvasSize = UDim2.new(1, 0, 1, 0), -- X scale will override inset. Set to 0
 		ScrollingDirection = Enum.ScrollingDirection.Y,
 		LayoutOrder = props.LayoutOrder,
 		ClipsDescendants = true,
@@ -25,7 +25,12 @@ local function DefaultScrollFrame(props)
 		end,
 	}, {
 		InsetWrapper = e("Frame", {
-			Size = UDim2.new(1, 0, 0, 0),
+			Size = UDim2.new(
+				1,
+				0,
+				props.Vertical and props.Vertical.Scale or 1,
+				props.Vertical and props.Vertical.Offset or 0
+			),
 			AutomaticSize = Enum.AutomaticSize.Y,
 			BackgroundTransparency = 1,
 			ClipsDescendants = true,

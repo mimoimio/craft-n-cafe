@@ -5,11 +5,10 @@ export type PlayerData = {
 	Tables: { [string]: TableEntity },
 	Drinks: { DrinkEntity },
 	Mixers: { [string]: MixerEntity },
-	Ingredients: {},
-	Cup: { string },
-	Customers: {},
+	Ingredients: { [string]: number },
+	Customers: { CustomerEntity },
 }
-
+export type PlayerId = string
 -- Stats
 export type StatsEntity = {
 	Cash: number,
@@ -18,6 +17,8 @@ export type StatsEntity = {
 	SecondsPlayed: number,
 	Level: number,
 	CustomerSpawningEnabled: boolean, -- New Toggle for Tutorial
+	UnlockedIngredients: { string },
+	DiscoveredDrinks: { [string]: string },
 }
 
 -- Tables
@@ -39,12 +40,41 @@ export type DrinkEntity = {
 }
 export type DrinksState = { [string]: { DrinkEntity } }
 
--- Cup
-export type CupState = { string }
+-- Unlocked Ingredients
+export type UnlockedIngredientsState = {
+	[PlayerId]: { string },
+}
 
+-- Shop
+export type ShopCycle = {
+	seed: string,
+	position: string,
+	isSpecial: string,
+	timeLeft: string,
+	timeToSpecial: string,
+}
+export type Seed = string
+export type ShopEntity = {
+	[string]: number,
+}
+export type ShopState = {
+	[PlayerId]: {
+		currentSeed: string,
+		shops: {
+			[Seed]: ShopEntity,
+		},
+	},
+}
+
+-- DiscoveredDrinksState
+export type DiscoveredDrinksState = {
+	[PlayerId]: {
+		[string]: true,
+	},
+}
 -- Ingredients
 export type IngredientsState = {
-	[string]: {
+	[PlayerId]: {
 		[string]: number,
 	},
 }
@@ -55,7 +85,7 @@ export type MixerEntity = {
 	startTime: number?,
 }
 export type MixersState = {
-	[string]: {
+	[PlayerId]: {
 		[string]: MixerEntity,
 	},
 }
@@ -69,7 +99,7 @@ export type CustomerEntity = {
 	actionStartTime: number, -- FSM Timestamp tracker
 }
 export type CustomersState = {
-	[string]: {
+	[PlayerId]: {
 		[string]: CustomerEntity,
 	},
 }
@@ -89,7 +119,8 @@ export type LevelUpPayload = {
 	level: number,
 	cost: number,
 	unlockedTables: { string },
-	unlockedIngredients: { number },
+	unlockedIngredients: { string },
+	unlockedMixers: { string },
 }
 export type BuyIngredientBulkPayload = {
 	ingredients: { [string]: number },
@@ -120,18 +151,31 @@ export type PlaceDrinkPayload = {
 	slot: string,
 	drinkUid: string,
 }
-
+export type StartPlayerSessionPayload = {
+	newestShop: ShopEntity,
+	newestSeed: string,
+}
+export type RefreshShopPayload = {
+	newestShop: ShopEntity,
+	newestSeed: string,
+}
+export type BuyIngredientPayload = {
+	ingredientId: string,
+	amount: number,
+	cost: number,
+	seed: string,
+}
 export type CombinedActions = {
-	startPlayerSession: (playerId: string, data: PlayerData) -> (),
-	endPlayerSession: (playerId: string) -> (),
-	mixDrink: (playerId: string, payload: MixDrinkPayload) -> (),
-	buyIngredient: (playerId: string, ingredientId: string, amount: number, cost: number) -> (),
-	buyIngredientBulk: (playerId: string, payload: BuyIngredientBulkPayload) -> (),
-
-	pickUpDrinkFromMixer: (playerId: string, payload: PickUpPayload) -> (),
+	startPlayerSession: (playerId: PlayerId, data: PlayerData, payload: StartPlayerSessionPayload) -> (),
+	endPlayerSession: (playerId: PlayerId) -> (),
+	mixDrink: (playerId: PlayerId, payload: MixDrinkPayload) -> (),
+	buyIngredient: (playerId: PlayerId, payload: BuyIngredientPayload) -> (),
+	buyIngredientBulk: (playerId: PlayerId, payload: BuyIngredientBulkPayload) -> (),
+	refreshShop: (playerId: PlayerId, payload: RefreshShopPayload) -> (),
+	pickUpDrinkFromMixer: (playerId: PlayerId, payload: PickUpPayload) -> (),
 
 	placeDrinkToTableSlot: (
-		playerId: string,
+		playerId: PlayerId,
 		payload: {
 			drinkUid: string?,
 			table: string,
@@ -139,18 +183,18 @@ export type CombinedActions = {
 		}
 	) -> (),
 
-	levelUp: (playerId: string, payload: {
+	levelUp: (playerId: PlayerId, payload: {
 		Level: number,
 	}) -> (),
 
 	-- Added toggle action for your tutorial
-	toggleCustomerSpawning: (playerId: string, enabled: boolean) -> (),
+	toggleCustomerSpawning: (playerId: PlayerId, enabled: boolean) -> (),
 
-	spawnCustomer: (playerId: string, payload: SpawnCustomerPayload) -> (),
-	customerTakeItems: (playerId: string, payload: CustomerItemPayload) -> (),
+	spawnCustomer: (playerId: PlayerId, payload: SpawnCustomerPayload) -> (),
+	customerTakeItems: (playerId: PlayerId, payload: CustomerItemPayload) -> (),
 
 	playerReceivePayment: (
-		playerId: string,
+		playerId: PlayerId,
 		payload: {
 			customerUid: string,
 			Cash: number,
@@ -158,26 +202,37 @@ export type CombinedActions = {
 		}
 	) -> (),
 
-	removeCustomer: (playerId: string, uid: string) -> (),
+	removeCustomer: (playerId: PlayerId, uid: string) -> (),
 }
 
 --Coffee Modules
 export type CoffeeModule = {
-	IngredientsConfig: { [string]: CoffeeConfigType },
+	IngredientLookup: { [string]: IngredientConfig },
+	IngredientConfigs: { IngredientConfig },
 	Config: { [string]: CoffeeConfigType },
 	Array: { CoffeeConfigType },
-	Craft: ({ string }) -> CoffeeConfigType,
+
+	Craft: ({ string }) -> CoffeeConfigType?,
 	GetId: ({ string }) -> string,
 }
 export type CoffeeConfigType = {
 	Id: string,
 	DisplayName: string,
+	Cost: number, -- to buy the ingredient
 	Ingredients: { string }?,
 	RecipePath: { string }?, -- sorted at config initialization
 	Instruction: string?, -- Readable
 	Image: string?,
-	Price: number,
+	Price: number, -- when selling
 	Duration: number,
+	InitialStock: number,
+}
+export type IngredientConfig = {
+	Id: string,
+	DisplayName: string,
+	Cost: number,
+	ItemTip: string,
+	Image: string?,
 }
 
 return {}

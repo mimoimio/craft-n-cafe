@@ -14,9 +14,9 @@ function ShopService.BuyIngredient(player: Player, ingredientId: string)
 
 	-- ensure ingredient
 	local playerId = tostring(player.UserId)
-	local config = CoffeeModule.Config[ingredientId]
+	local config = CoffeeModule.IngredientLookup[ingredientId]
 	if not config then
-		warn(`BuyIngredient Failed: {ingredientId} is not a valid drink`)
+		warn(`BuyIngredient Failed: {ingredientId} is not a valid ingredient`)
 		return
 	end
 	if config.Ingredients and #config.Ingredients > 1 then
@@ -38,7 +38,7 @@ function ShopService.BuyIngredient(player: Player, ingredientId: string)
 	end
 
 	local cash = playersStats.Cash
-	local cost = config.Price
+	local cost = config.Cost
 
 	if cash - cost < 0 then
 		print("not enough")

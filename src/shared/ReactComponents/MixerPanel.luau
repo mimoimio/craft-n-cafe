@@ -7,14 +7,12 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 
 local Primitives = ReplicatedStorage.Shared.ReactComponents.ui
-local DefaultPanel = require(script.Parent.DefaultPanel)
 local DefaultScrollFrame = require(script.Parent.DefaultScrollFrame)
 local SmallButton = require(Primitives.SmallButton)
 local SmallText = require(Primitives.SmallText)
 local Grid = require(Primitives.Grid)
 local VStack = require(Primitives.VStack)
 local HStack = require(Primitives.HStack)
-local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 
 -- Point this to your new VFX setup
 local IngredientVFXContainer = require(script.Parent.IngredientVFXContainer)
@@ -25,6 +23,7 @@ local playerId: string? = player and tostring(player.UserId) or "0"
 local function MixerPanel(props: {
 	Ingredients: { [string]: number },
 	MixerId: string,
+	Open: boolean,
 	OnClose: () -> (),
 })
 	local currentIngredients, setCurrentIngredients = useState({})
@@ -61,7 +60,8 @@ local function MixerPanel(props: {
 	React.useEffect(function() end, {})
 
 	local ingredientElements = {}
-	for id, config in pairs(CoffeeModule.IngredientsConfig) do
+	for i, config in ipairs(CoffeeModule.IngredientConfigs) do
+		local id = config.Id
 		local totalAvailable = ingredients[id] or 0
 		local amountUsed = usedIngredients[id] or 0
 		local amountLeft = totalAvailable - amountUsed
@@ -76,7 +76,7 @@ local function MixerPanel(props: {
 			Image = config.Image,
 			OverlayTextTransparency = transparency,
 			BackgroundTransparency = transparency,
-			LayoutOrder = config.Price,
+			LayoutOrder = i,
 			ImageTransparency = transparency,
 			Padding = { All = UDim.new(0, 4) },
 
@@ -136,7 +136,7 @@ local function MixerPanel(props: {
 	local selectedIngredientElements = {}
 	for i = 1, 9 do -- set limit to 9 ingredients later
 		local id = currentIngredients[i]
-		local config = CoffeeModule.IngredientsConfig[id] -- Adjusted to grab from Config
+		local config = CoffeeModule.IngredientLookup[id] -- Adjusted to grab from Config
 		selectedIngredientElements[i] = e(SmallButton, {
 			OverlayText = config and config.DisplayName,
 			OverlayTextSize = 12,
@@ -155,8 +155,6 @@ local function MixerPanel(props: {
 		})
 	end
 
-	local selectionDisplay = table.concat(currentIngredients, " + ")
-
 	React.useEffect(function()
 		setCurrentIngredients({})
 		setPendingIngredients({}) -- Safety clear
@@ -170,8 +168,8 @@ local function MixerPanel(props: {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 	}, {
 		UISizeConstraint = e("UISizeConstraint", {
-			MinSize = props.MinSize or Vector2.new(300, 200),
-			MaxSize = props.MaxSize or Vector2.new(500, 500),
+			MinSize = Vector2.new(300, 200),
+			MaxSize = Vector2.new(500, 500),
 		}),
 		e(SmallButton, {
 			Text = "X",
@@ -179,7 +177,6 @@ local function MixerPanel(props: {
 		}),
 		e(VStack, {
 			Size = UDim2.new(1, 0, 1, 0),
-			BackgroundTransparency = 1,
 			BackgroundTransparency = 0.8,
 			Padding = {
 				Top = UDim.new(0, 12),
@@ -349,12 +346,40 @@ local function MixerPanel(props: {
 						LayoutOrder = 1,
 						BackgroundTransparency = 1,
 					}, {
-						e("ImageLabel", {
+						config = e("ImageLabel", {
 							Size = UDim2.new(0, 100, 0, 100),
 							Position = UDim2.new(0.5, 0, 0, 0),
 							BackgroundTransparency = 1,
 							AnchorPoint = Vector2.new(0.5, 0),
 							Image = resultConfig and resultConfig.Image,
+						}, {
+							Duration = resultConfig and e(SmallText, {
+								Text = string.format(
+									"Duration: (%dm %ds)\nInitialStock: (%d)",
+									resultConfig.Duration // 60,
+									resultConfig.Duration % 60,
+									resultConfig.InitialStock
+								),
+								Size = UDim2.new(1, 0, 0, 50),
+								Position = UDim2.new(0, 0, 1, 0),
+								AnchorPoint = Vector2.new(0, 0),
+								LayoutOrder = 1,
+							}),
+
+							Count = e(SmallText, {
+								Visible = resultConfig and true or false,
+								Size = UDim2.new(0, 30, 0, 30),
+								AnchorPoint = Vector2.new(0.25, 0.25),
+								Text = resultConfig and `{resultConfig.InitialStock}x` or "",
+								-- TextTransparency = transparency,
+								BackgroundTransparency = 0,
+								TextXAlignment = Enum.TextXAlignment.Center,
+								BackgroundColor3 = Color3.new(1, 0, 0),
+							}, {
+								UICorner = e("UICorner", {
+									CornerRadius = UDim.new(0, 4),
+								}),
+							}),
 						}),
 					}),
 				}),
@@ -373,8 +398,9 @@ local function MixerPanel(props: {
 					}, {
 						Grid = e(Grid, {
 							Size = UDim2.new(1, 0, 0, 200),
-							CellSize = UDim2.new(0, 60, 0, 150),
+							CellSize = UDim2.new(0, 80, 0, 80), -- cellsize mandatory or will not work
 							Padding = { All = UDim.new(0, 4) },
+							CellPadding = UDim2.new(0, 2, 0, 2),
 							AutomaticSize = Enum.AutomaticSize.XY,
 						}, ingredientElements),
 					}),

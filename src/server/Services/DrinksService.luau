@@ -92,7 +92,8 @@ function DrinksService.PickUpDrink(player: Player, mixer: string)
 		return
 	end
 
-	if workspace:GetServerTimeNow() < targetMixer.startTime + CoffeeModule.Config[mixerDrink].Duration then
+	local config = CoffeeModule.Config[mixerDrink]
+	if workspace:GetServerTimeNow() < targetMixer.startTime + config.Duration then
 		print("not yet")
 		return
 	end
@@ -100,7 +101,7 @@ function DrinksService.PickUpDrink(player: Player, mixer: string)
 	GlobalState.pickUpDrinkFromMixer(playerId, {
 		id = HttpService:GenerateGUID(),
 		drinkId = mixerDrink,
-		stock = 5,
+		stock = config.InitialStock,
 		mixer = mixer,
 	})
 end

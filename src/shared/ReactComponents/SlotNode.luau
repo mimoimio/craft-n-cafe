@@ -1,8 +1,8 @@
 -- Shared/ReactComponents/SlotNode.luau
 local Players = game:GetService("Players")
-local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
+local Promise = require(ReplicatedStorage.Packages.Promise) -- Added Promise
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local SoundController = require(ReplicatedStorage.Shared.Controllers.SoundController)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
@@ -11,7 +11,7 @@ local SmallText = require(script.Parent.ui.SmallText)
 local e = React.createElement
 local useState = React.useState
 local useEffect = React.useEffect
-local useRef = React.useRef
+
 local function SlotNode(props: {
 	SlotName: string,
 	DrinkUid: string,
@@ -20,35 +20,77 @@ local function SlotNode(props: {
 	local playerId = tostring(Players.LocalPlayer.UserId)
 	local drink, setDrink = useState(nil)
 	local on, setOn = useState(false)
-	local model, setModel = useState(nil)
 	local promptText, setPromptText = useState("")
 
+	-- State to hold our asynchronously resolved instances
+	local prompt, setPrompt = useState(nil)
+	local placePart, setPlacePart = useState(nil)
+
+	-- 1. Asynchronously resolve descendants using Promise to avoid yielding React
 	useEffect(function()
 		if not props.Instance then
 			return
 		end
-		props.Instance.PlacePart.TriggerPrompt.Style = Enum.ProximityPromptStyle.Custom
 
-		local conn = props.Instance.PlacePart.TriggerPrompt.PromptShown:Connect(
-			function(inputType: Enum.ProximityPromptInputType)
-				setOn(true)
-				local mobile = Enum.ProximityPromptInputType == Enum.ProximityPromptInputType.Touch
-				setPromptText(mobile and "" or `[E]`)
+		local promise = Promise.defer(function(resolve, reject)
+			local resolvedPlacePart = props.Instance:WaitForChild("PlacePart", 5)
+			if not resolvedPlacePart then
+				return reject("PlacePart replication timeout")
 			end
-		)
-		local conn2 = props.Instance.PlacePart.TriggerPrompt.PromptHidden:Connect(function()
+
+			local resolvedPrompt = resolvedPlacePart:WaitForChild("TriggerPrompt", 5)
+			if not resolvedPrompt then
+				return reject("TriggerPrompt replication timeout")
+			end
+
+			resolve({
+				placePart = resolvedPlacePart,
+				prompt = resolvedPrompt,
+			})
+		end)
+
+		promise
+			:andThen(function(resolved)
+				setPlacePart(resolved.placePart)
+				setPrompt(resolved.prompt)
+			end)
+			:catch(function(err)
+				warn(`[SlotNode] Failed to resolve descendants for {props.SlotName}: {err}`)
+			end)
+
+		return function()
+			-- If the component unmounts before WaitForChild finishes, cancel the Promise
+			-- so it stops executing and doesn't attempt to update unmounted state.
+			promise:cancel()
+		end
+	end, { props.Instance })
+
+	-- 2. Handle Proximity Prompt events (only runs once the prompt is actually found)
+	useEffect(function()
+		if not prompt then
+			return
+		end
+
+		prompt.Style = Enum.ProximityPromptStyle.Custom
+
+		local conn1 = prompt.PromptShown:Connect(function(inputType: Enum.ProximityPromptInputType)
+			setOn(true)
+			local mobile = inputType == Enum.ProximityPromptInputType.Touch
+			setPromptText(mobile and "" or `[E]`)
+		end)
+		local conn2 = prompt.PromptHidden:Connect(function()
 			setOn(false)
 			setPromptText("")
 		end)
+
 		return function()
-			if props.Instance and props.Instance.Parent then
-				props.Instance.PlacePart.TriggerPrompt.Style = Enum.ProximityPromptStyle.Default
-			end
-			conn:Disconnect()
+			prompt.Style = Enum.ProximityPromptStyle.Default
+			conn1:Disconnect()
 			conn2:Disconnect()
 		end
-	end, { props.Instance })
-	-- 1. Granular state subscription to prevent unnecessary rerenders
+	end, { prompt })
+
+	-- 3. Granular state subscription to prevent unnecessary rerenders
 	useEffect(function()
 		if not props.DrinkUid or props.DrinkUid == "none" then
 			setDrink(nil)
@@ -61,7 +103,6 @@ local function SlotNode(props: {
 				return nil
 			end
 
-			-- Accommodate array iteration structure based on CustomersService logic
 			for _, d in pairs(playerDrinks) do
 				if d.id == props.DrinkUid then
 					return d
@@ -82,21 +123,16 @@ local function SlotNode(props: {
 	local isMounted = React.useRef(false)
 	local prevDrinkUid = React.useRef(props.DrinkUid)
 
-	-- 2. Handle Sound on Drink Placement
+	-- 4. Handle Sound on Drink Placement
 	useEffect(function()
 		if not isMounted.current then
 			isMounted.current = true
 			prevDrinkUid.current = props.DrinkUid
-			-- warn(`isMounted.current: ({isMounted.current})`)
 			return
 		end
 
-		-- Play sound only when transitioning to a new valid drink
 		if props.DrinkUid ~= "none" and props.DrinkUid ~= prevDrinkUid.current then
-			-- warn(`[success] props.DrinkUid: ({props.DrinkUid}) prevDrinkUid.current: ({prevDrinkUid.current})`)
 			SoundController.Sound("select_005")
-		else
-			-- warn(`[failed] props.DrinkUid: ({props.DrinkUid}) prevDrinkUid.current: ({prevDrinkUid.current})`)
 		end
 
 		prevDrinkUid.current = props.DrinkUid
@@ -105,10 +141,14 @@ local function SlotNode(props: {
 	local Label = e("ImageButton", {
 		Size = UDim2.new(1, 0, 1, 0),
 		[React.Event.MouseButton1Down] = function()
-			(props.Instance.PlacePart.TriggerPrompt :: ProximityPrompt):InputHoldBegin()
+			if prompt then
+				(prompt :: ProximityPrompt):InputHoldBegin()
+			end
 		end,
 		[React.Event.MouseButton1Up] = function()
-			(props.Instance.PlacePart.TriggerPrompt :: ProximityPrompt):InputHoldEnd()
+			if prompt then
+				(prompt :: ProximityPrompt):InputHoldEnd()
+			end
 		end,
 	}, {
 		UICorner = e("UICorner", {
@@ -117,20 +157,18 @@ local function SlotNode(props: {
 		SmallText = e(SmallText, {
 			Size = UDim2.new(1, 0, 1, 0),
 			TextXAlignment = Enum.TextXAlignment.Center,
-			-- BackgroundTransparency = 0,
 			Text = `{promptText} {drink and "Pickup" or "Place"}`,
 			TextColor3 = Color3.new(1, 1, 1),
 			TextStrokeTransparency = 0,
 			TextStrokeColor3 = Color3.new(0, 0, 0),
 			Font = Enum.Font.FredokaOne,
-			TextScaled = true,
+			-- TextScaled = true,
 			Active = false,
 		}),
 	})
 
-	-- 3. Render BillboardGui
+	-- 5. Render BillboardGui
 	if drink and drink.stock > 0 and props.Instance then
-		-- Fall back to the PlacedItem if it exists for precise offset, otherwise track the Slot model
 		local adornee = props.Instance:FindFirstChild("PlacedItem") or props.Instance
 		local config = CoffeeModule.Config[drink.drinkId]
 		local displayname = config and config.DisplayName
@@ -151,7 +189,7 @@ local function SlotNode(props: {
 				Active = true,
 				Adornee = adornee,
 				Size = UDim2.new(0, 60, 0, 30),
-				StudsOffset = Vector3.new(0, 1.5, 0),
+				StudsOffsetWorldSpace = Vector3.new(0, 1.5, 0),
 				AlwaysOnTop = true,
 				MaxDistance = 20,
 			}, {
@@ -163,14 +201,14 @@ local function SlotNode(props: {
 					TextColor3 = Color3.new(1, 1, 1),
 					TextStrokeTransparency = 0,
 					TextStrokeColor3 = Color3.new(0, 0, 0),
-					TextScaled = true,
+					-- TextScaled = true,
 				}),
 			}),
 			custom = e("BillboardGui", {
 				Active = true,
 				Adornee = adornee,
 				Size = UDim2.new(0, 60, 0, 30),
-				StudsOffset = Vector3.new(0, -1.5, 0),
+				StudsOffsetWorldSpace = Vector3.new(0, -1.5, 0),
 				AlwaysOnTop = true,
 				MaxDistance = 20,
 			}, {
@@ -185,13 +223,13 @@ local function SlotNode(props: {
 			Active = true,
 			Adornee = adornee,
 			Size = UDim2.new(0, 60, 0, 30),
-			StudsOffset = Vector3.new(0, -1.5, 0),
 			AlwaysOnTop = true,
+			StudsOffsetWorldSpace = Vector3.new(0, -1.5, 0),
 			MaxDistance = 20,
 		}, {
 			Label = on and Label,
 			Highlihgt = e("Highlight", {
-				Adornee = props.Instance.PlacePart,
+				Adornee = placePart or props.Instance, -- Fallback to props.Instance if placePart isn't resolved yet
 				FillColor = Color3.new(1, 1, 1),
 				FillTransparency = 0.7,
 			}),

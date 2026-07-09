@@ -31,6 +31,12 @@ local function CustomerNode(props: {
 			SoundController.Sound("glass_005")
 		end
 	end, { props.CustomerData and props.CustomerData.customerAction })
+	useEffect(function()
+		if not (props.CustomerData and props.CustomerData.id) then
+			return
+		end
+		SoundController.Sound("phaserUp6")
+	end, { props.CustomerData and props.CustomerData.id })
 
 	return nil
 end

@@ -6,7 +6,8 @@ local function Grid(props)
 	local children = props.children or {}
 	local elements = {
 		Layout = e("UIGridLayout", {
-			CellSize = props.CellSize or UDim2.new(0.3, 0, 0.3, 0),
+			CellSize = props.CellSize, -- somehow putting CellSize makes the UIGridLayout + AutomaticSize consistent. So it's mandatory
+			-- CellSize = props.CellSize or UDim2.new(0, 100, 0, 100),
 			CellPadding = props.CellPadding or UDim2.new(0, 6, 0, 6),
 			FillDirection = props.FillDirection or Enum.FillDirection.Horizontal,
 			FillDirectionMaxCells = props.FillDirectionMaxCells or 0,
@@ -17,7 +18,7 @@ local function Grid(props)
 		}, {
 			_UISizeConstraint = e("UISizeConstraint", {
 				MinSize = Vector2.new(30, 30),
-				MaxSize = Vector2.new(100, 100),
+				-- MaxSize = Vector2.new(100, 100),
 			}),
 		}),
 		Padding = props.Padding and e("UIPadding", {

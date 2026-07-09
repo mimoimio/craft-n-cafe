@@ -10,6 +10,7 @@ local Sift = require(game.ReplicatedStorage.Packages.Sift)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local Types = require(ReplicatedStorage.Shared.Types)
 local Signal = require(game.ReplicatedStorage.Packages.Signal)
+local ShopCycle = require(game.ReplicatedStorage.Shared.ShopCycle)
 
 type PlayerData = Types.PlayerData
 type Profile = ProfileStoreModule.Profile<PlayerData> -- Typed Profile object
@@ -182,21 +183,25 @@ local broadcaster = Reflex.createBroadcaster({
 	producers = {
 		GlobalState = GlobalState,
 	},
-	-- beforeHydrate = function(
-	-- 	player --[[,state]]
-	-- )
-	-- 	local state = GlobalState:getState()
-	-- 	local playerId = tostring(player.UserId)
-	-- 	return {
-	-- 		players = { [playerId] = state.players[playerId] },
-	-- 		CurrentRound = state.CurrentRound,
-	-- 	}
-	-- end,
+	beforeHydrate = function(
+		player --[[,state]]
+	) -- somehow state here is an empty table
+		local state = GlobalState:getState()
+		local playerId = tostring(player.UserId)
+		warn("before hydrate", s, state)
+
+		-- filter later
+		return state
+	end,
 	dispatch = function(player, actions)
 		local playerId = tostring(player.UserId)
+
 		local relevantActions = {}
 		for _, action in actions do
 			-- just add all for now
+			if action.name == `__hydrate__` then
+				warn("dispatched", action.name, action.arguments)
+			end
 			table.insert(relevantActions, action)
 		end
 
@@ -225,7 +230,17 @@ Remotes.start.OnServerEvent:Connect(function(player)
 	until profile
 
 	local playerId = tostring(player.UserId)
-	GlobalState.startPlayerSession(playerId, profile.Data)
+	local state = GlobalState:getState()
+	if state.Stats[playerId] then
+		warn(`player({playerId}) already started`)
+		return
+	end
+	local playersShop = state.Shop
+
+	GlobalState.startPlayerSession(playerId, profile.Data, {
+		newestShop = shop,
+		newestSeed = seed,
+	})
 	player:RequestStreamAroundAsync(Vector3.new())
 
 	local unsubscribe = GlobalState:subscribe(function(state, prevData)

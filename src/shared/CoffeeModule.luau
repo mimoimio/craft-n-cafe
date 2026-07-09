@@ -1,9 +1,11 @@
 local CoffeeConfigArray: { CoffeeConfigType } = require(game.ReplicatedStorage.Shared.Configs.CoffeeConfig)
+local IngredientConfigs: { IngredientConfig } = require(game.ReplicatedStorage.Shared.Configs.IngredientsConfig)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Types = require(ReplicatedStorage.Shared.Types)
 
 export type CoffeeConfigType = Types.CoffeeConfigType
-local CoffeeModule: Types.CoffeeModule = {}
+export type IngredientConfig = Types.IngredientConfig
+local CoffeeModule = {}
 
 -- Build lookup by Id and track config order for ingredient priority
 local CoffeeConfig: { [string]: CoffeeConfigType } = {}
@@ -25,13 +27,6 @@ end
 local lookupTable: { [string]: CoffeeConfigType } = {}
 
 for i, config in ipairs(CoffeeConfigArray) do
-	local base = math.round(math.pow(i // 2, 2))
-	config.Duration = math.log(i, 2)
-	config.Price = 5 + base
-	if not config.Ingredients then
-		continue
-	end
-	config.Price = config.Price * #config.Ingredients + i
 	local id = CoffeeModule.GetId(config.Ingredients)
 	lookupTable[id] = config
 end
@@ -153,18 +148,24 @@ for _, config in ipairs(CoffeeConfigArray) do
 		end
 	end
 end
+for _, config in ipairs(IngredientConfigs) do
+	local model = ReplicatedStorage.Shared.Models:FindFirstChild(config.Id)
+	if model then
+		local ingredientPackageLink = model:FindFirstChildWhichIsA("PackageLink")
+		if ingredientPackageLink then
+			local numericId = string.match(tostring(ingredientPackageLink.PackageId), "%d+")
+			config.Image = string.format("rbxthumb://type=Asset&id=%s&w=150&h=150", numericId)
+		end
+	end
+end
 
 -- Export the keyed config for external use
 CoffeeModule.Config = CoffeeConfig
 CoffeeModule.Array = CoffeeConfigArray
-CoffeeModule.IngredientsConfig = {}
-for i, config in CoffeeConfigArray do
-	if not config.Ingredients then
-		CoffeeModule.IngredientsConfig[config.Id] = config
-	end
-	if config.Ingredients and type(config.Ingredients) == "table" and #config.Ingredients <= 1 then
-		CoffeeModule.IngredientsConfig[config.Id] = config
-	end
+CoffeeModule.IngredientConfigs = IngredientConfigs
+CoffeeModule.IngredientLookup = {}
+for i, config in IngredientConfigs do
+	CoffeeModule.IngredientLookup[config.Id] = config
 end
 function CoffeeModule.Craft(ingredients: { string }): CoffeeConfigType?
 	-- Support any number of items
@@ -177,4 +178,4 @@ function CoffeeModule.Craft(ingredients: { string }): CoffeeConfigType?
 	return lookupTable[resultId]
 end
 
-return CoffeeModule
+return CoffeeModule :: Types.CoffeeModule

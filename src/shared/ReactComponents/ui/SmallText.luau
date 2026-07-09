@@ -29,6 +29,7 @@ local SmallText = function(props)
 		RichText = props.RichText,
 		ref = props.OnMount,
 		Active = props.Active,
+		Visible = props.Visible,
 	}, children)
 end
 return SmallText
