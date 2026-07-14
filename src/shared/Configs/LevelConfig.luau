@@ -43,30 +43,38 @@ local ingredients = {
 		"milk",
 	},
 	[2] = {
+		"ice",
 		"foam",
 	},
 	[3] = {
-		"ice",
 		"chocolate",
+		"teabag",
 	},
 	[4] = {
-		"teabag",
+		"icecream",
+		"matchapowder",
 	},
 	[5] = {
 		"lemon",
+		"boba",
 	},
 	[6] = {
 		"carbonator",
+		"cookies",
 	},
 	[7] = {
-		"icecream",
+		"daybloom",
+		"blinkroot",
+		"luckyclover",
 	},
 	[8] = {
-		"matcha",
-		"boba",
+		"moonglow",
+		"glowshroom",
+		"bloodthorn",
 	},
 	[9] = {
-		"cookies",
+		"waterberry",
+		"fireblossom",
 	},
 }
 local mixers = {
@@ -85,24 +93,40 @@ local mixers = {
 }
 local costs = {
 	[1] = 0,
-	[2] = 3000,
-	[3] = 5000,
-	[4] = 10_000,
-	[5] = 50_000,
+	[2] = 300,
+	[3] = 1000,
+	[4] = 2000,
+	[5] = 5000,
 	[6] = 100_000,
 	[7] = 150_000,
 	[8] = 300_000,
 	[9] = 900_000,
 }
 
-local LevelConfig = {}
+local LevelConfig: {
+	{
+		Ingredients: { [string]: true },
+		Cost: number,
+		Tables: { string },
+		Mixers: { string },
+	}
+} =
+	{}
 
 for i = 1, 9 do
 	LevelConfig[i] = {}
-	LevelConfig[i].Ingredients = ingredients[i]
+
+	-- setting ingredients at level i:
+	LevelConfig[i].Ingredients = {}
+	for j = 1, i do
+		for _, ingredient in ingredients[j] do
+			LevelConfig[i].Ingredients[ingredient] = true
+		end
+	end
 	LevelConfig[i].Cost = costs[i]
 	LevelConfig[i].Tables = tables[i]
 	LevelConfig[i].Mixers = mixers[i]
+	LevelConfig[i].NewIngredients = ingredients[i]
 end
 
 --[[

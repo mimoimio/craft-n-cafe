@@ -8,10 +8,12 @@ local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local MixerNode = require(script.Parent.MixerNode)
 local e = React.createElement
 
+local player = game.Players.LocalPlayer
+local playerId = player and tostring(player.UserId) or ""
+
 local function MixerManager(props: {
 	onInteract: (mixerName: string) -> (),
 })
-	local playerId = tostring(Players.LocalPlayer.UserId)
 	local mixersState, setMixersState = React.useState({})
 	local mixerInstances, setMixerInstances = React.useState({})
 

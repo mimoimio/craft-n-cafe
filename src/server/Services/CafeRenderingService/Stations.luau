@@ -16,27 +16,27 @@ local function Station(props: {
 	PlayerId: string,
 })
 	local children = {}
-	useEffect(function()
-		if not props.StationModel then
-			return
-		end
-		local conn = props.StationModel.Part.TriggerPrompt.Triggered:Connect(function(player: Player)
-			local playerId = tostring(player.UserId)
-			if playerId ~= props.PlayerId then
-				print("not playerId")
-				return
-			end
-		end)
-		return function()
-			if conn then
-				conn:Disconnect()
-			end
-			if not (props.StationModel and props.StationModel.Parent) then
-				return
-			end
-			-- props.StationModel.Part.TriggerPrompt.
-		end
-	end, { props.StationModel })
+	-- useEffect(function()
+	-- 	if not props.StationModel then
+	-- 		return
+	-- 	end
+	-- 	local conn = props.StationModel.Part.TriggerPrompt.Triggered:Connect(function(player: Player)
+	-- 		local playerId = tostring(player.UserId)
+	-- 		if playerId ~= props.PlayerId then
+	-- 			print("not playerId")
+	-- 			return
+	-- 		end
+	-- 	end)
+	-- 	return function()
+	-- 		if conn then
+	-- 			conn:Disconnect()
+	-- 		end
+	-- 		if not (props.StationModel and props.StationModel.Parent) then
+	-- 			return
+	-- 		end
+	-- 		-- props.StationModel.Part.TriggerPrompt.
+	-- 	end
+	-- end, { props.StationModel })
 
 	return e(React.Fragment, nil, children)
 end
@@ -52,7 +52,7 @@ local function Stations(props: {
 		return function() end
 	end, { props.CafeModel })
 
-	local stations: { CafeTypes.Station } = props.CafeModel and props.CafeModel.Stations:GetChildren()
+	-- local stations: { CafeTypes.Station } = props.CafeModel and props.CafeModel.Stations:GetChildren()
 
 	local children = {}
 	-- for i, station in stations do

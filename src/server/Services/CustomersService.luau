@@ -5,7 +5,7 @@ local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 
-local SPAWN_INTERVAL = 10
+local SPAWN_INTERVAL = 5
 local rng = Random.new()
 
 -- Dictionary to track when we last spawned a customer for a player
@@ -159,19 +159,23 @@ function CustomersService.initialize()
 				local playerId = tostring(player.UserId)
 				local playerStats = state.Stats[playerId]
 				local playersCustomers = state.Customers[playerId]
+				local activePlayerCustomers = {}
 
 				if not playerStats or not playersCustomers then
 					continue
 				end
 
-				-- Tutorial Check! If Spawning is toggled off, skip this player entirely
-				if not playerStats.CustomerSpawningEnabled then
-					continue
+				for i, customer in playersCustomers do
+					if customer.customerAction == "paid" then
+						continue
+					end
+					table.insert(activePlayerCustomers, customer)
 				end
 
+				-- Cafe Open Check. If Spawning is toggled off, skip the spawn. Keep other actions.
 				-- 1. Evaluate Spawning Phase
 				local lastSpawn = lastSpawnTimes[playerId] or 0
-				if now - lastSpawn >= SPAWN_INTERVAL and #playersCustomers < 3 then
+				if now - lastSpawn >= SPAWN_INTERVAL and #activePlayerCustomers < 3 and playerStats.CafeOpen then
 					CustomersService.SpawnCustomer(playerId)
 				end
 
@@ -185,7 +189,11 @@ function CustomersService.initialize()
 							local success = CustomersService.CustomerTakeItems(playerId, customer.id)
 							if not success then
 								-- Cafe empty, they leave empty handed
-								GlobalState.removeCustomer(playerId, customer.id)
+								GlobalState.playerReceivePayment(playerId, {
+									customerUid = customer.id,
+									Cash = 0,
+									timestamp = workspace:GetServerTimeNow(),
+								})
 							end
 						end
 					elseif customer.customerAction == "paid" then

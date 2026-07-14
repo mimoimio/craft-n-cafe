@@ -31,6 +31,16 @@ local actions = {
 	endPlayerSession = function(state: StatsState, playerId: string, data: PlayerData)
 		return RemoveKey(state, playerId)
 	end,
+	Add500 = function(state: StatsState, playerId: string)
+		local playerStats = state[playerId]
+		return Set(
+			state,
+			playerId,
+			Merge(playerStats, {
+				Cash = playerStats.Cash + 500000,
+			})
+		)
+	end,
 	levelUp = function(state: StatsState, playerId: string, payload: Types.LevelUpPayload)
 		local playerStats = state[playerId]
 		local Level = state[playerId].Level
@@ -43,13 +53,31 @@ local actions = {
 			})
 		)
 	end,
-	buyIngredient = function(state: StatsState, playerId: string, ingredientId: string, amount: number, cost: number)
+	toggleCafeOpen = function(state: StatsState, playerId: string)
+		local playersStats = state[playerId]
+		if not playersStats then
+			return state
+		end
+		return Set(state, playerId, Set(playersStats, "CafeOpen", not playersStats.CafeOpen))
+	end,
+	completeTutorial = function(state: StatsState, playerId: string)
+		local playersStats = state[playerId]
+		if not playersStats then
+			return state
+		end
+		return Set(state, playerId, Set(playersStats, "TutorialCompleted", true))
+	end,
+	buyIngredient = function(
+		state: StatsState,
+		playerId: string,
+		payload: { ingredientId: string, amount: number, cost: number }
+	)
 		local playersStats = state[playerId]
 		if not playersStats then
 			return state
 		end
 
-		return Set(state, playerId, Set(playersStats, "Cash", playersStats.Cash - cost))
+		return Set(state, playerId, Set(playersStats, "Cash", playersStats.Cash - payload.cost))
 	end,
 	playerReceivePayment = function(
 		state: StatsState,

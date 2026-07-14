@@ -62,25 +62,29 @@ local function ConsoleApp(props)
 		setText(table.concat(lines, "\n"))
 		return
 	end, { currentGlobalState })
-	return e(HStack, {
-		Size = UDim2.new(1, 0, 1, 0),
+	return e(VStack, {
+		Size = UDim2.new(0, 400, 0, 400),
+		Position = UDim2.new(1, 0, 0, 0),
+		AnchorPoint = Vector2.new(1, 0),
 		BackgroundTransparency = 0.8,
+		Active = false,
 	}, {
+		e(SmallButton, {
+			Text = "+500 Cash",
+			[React.Event.Activated] = function()
+				Remotes.Add500:FireServer()
+			end,
+		}),
 		ScrollingFrame = e("ScrollingFrame", {
 			Size = UDim2.new(1, 0, 1, 0),
 			AutomaticCanvasSize = Enum.AutomaticSize.XY,
 			BackgroundTransparency = 0.8,
+			Active = false,
 		}, {
 			textdisplay = e(SmallText, {
 				Text = text,
+				Active = false,
 			}),
-		}),
-		button = e(SmallButton, {
-			Text = "Buy",
-			[React.Event.Activated] = function()
-				Remotes.BuyDragon:FireServer()
-				SoundController.Sound("Click")
-			end,
 		}),
 	})
 end

@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local COINICON = "robux"
 local React = require(ReplicatedStorage.Packages.React)
+local Mionum = require(ReplicatedStorage.Packages.Mionum)
 local ReactFlow = require(ReplicatedStorage.Packages.ReactFlow)
 
 local Primitives = ReplicatedStorage.Shared.ReactComponents.ui
@@ -153,9 +154,10 @@ local function CashHud(props: {
 	-- Main HUD Frame is now a vertical list to stack the SmallText and Toast Container
 	return e("Frame", {
 		AutomaticSize = Enum.AutomaticSize.XY,
-		Position = UDim2.new(0.5, 0, 0, 0),
-		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0, 0, 0, 0),
+		AnchorPoint = Vector2.new(0, 0),
 		BackgroundTransparency = 1,
+		ZIndex = -1,
 	}, {
 		-- Stacks the Text and the Toasts Container
 		layout = e("UIListLayout", {
@@ -165,21 +167,27 @@ local function CashHud(props: {
 			Padding = UDim.new(0, 5),
 		}),
 
-		text = e("Frame", {
-			AutomaticSize = Enum.AutomaticSize.XY,
+		text = e("ImageLabel", {
+			-- AutomaticSize = Enum.AutomaticSize.XY,
+			Image = "rbxassetid://79117466159931",
+			Size = UDim2.new(0, 200, 0, 50),
 			BackgroundTransparency = 1,
 		}, {
 			e(SmallText, {
-				Text = (
-					([[<font family="rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json">%s</font>]]):format(
-						COINICON
-					) .. [[%s]]
-				):format(coins),
+				-- Text = (
+				-- 	([[<font family="rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json">%s</font>]]):format(
+				-- 		COINICON
+				-- 	) .. [[%s]]
+				-- ):format(coins or 0),
+				Text = Mionum.new(coins or 0):toString(),
 				RichText = true,
 				TextSize = 42,
 				TextColor3 = Color3.new(1, 1, 0),
 				OnMount = props.OnMount,
+				Size = UDim2.new(0, 200, 0, 50),
 				AutomaticSize = Enum.AutomaticSize.XY,
+				TextXAlignment = Enum.TextXAlignment.Center,
+				TextYAlignment = Enum.TextYAlignment.Center,
 				Rotation = hudRot,
 				LayoutOrder = 1, -- Force it to stay on top
 			}),

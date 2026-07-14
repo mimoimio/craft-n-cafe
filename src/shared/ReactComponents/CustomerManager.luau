@@ -8,8 +8,10 @@ local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local CustomerNode = require(script.Parent.CustomerNode)
 local e = React.createElement
 
-local function TableManager(props)
-	local playerId = tostring(Players.LocalPlayer.UserId)
+local player = game.Players.LocalPlayer
+local playerId = player and tostring(player.UserId) or ""
+
+local function CustomerManager(props)
 	local customersState, setCustomersState = React.useState({})
 	local customerInstances, setCustomerInstances = React.useState({})
 
@@ -67,4 +69,4 @@ local function TableManager(props)
 	return e(React.Fragment, nil, children)
 end
 
-return TableManager
+return CustomerManager

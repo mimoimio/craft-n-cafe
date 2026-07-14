@@ -41,9 +41,11 @@ local actions = {
 	buyIngredient = function(
 		state: IngredientsState,
 		playerId: string,
-		ingredientId: string,
-		amount: number,
-		cost: number
+		payload: {
+			ingredientId: string,
+			amount: number,
+			cost: number,
+		}
 	)
 		local playersIngredients = state[playerId]
 		if not playersIngredients then
@@ -54,7 +56,11 @@ local actions = {
 		return Set(
 			state,
 			playerId,
-			Set(playersIngredients, ingredientId, (playersIngredients[ingredientId] or 0) + amount)
+			Set(
+				playersIngredients,
+				payload.ingredientId,
+				(playersIngredients[payload.ingredientId] or 0) + payload.amount
+			)
 		)
 	end,
 }

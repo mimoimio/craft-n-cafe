@@ -8,8 +8,10 @@ local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local TableNode = require(script.Parent.TableNode)
 local e = React.createElement
 
+local player = game.Players.LocalPlayer
+local playerId = player and tostring(player.UserId) or ""
+
 local function TableManager(props)
-	local playerId = tostring(Players.LocalPlayer.UserId)
 	local tablesState, setTablesState = React.useState({})
 	local drinks, setDrinks = React.useState({})
 	local tableInstances, setTableInstances = React.useState({})

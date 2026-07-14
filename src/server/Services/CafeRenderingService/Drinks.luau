@@ -52,6 +52,13 @@ local function buildDrinkTool(player: Player, drink: DrinkEntity): Tool?
 	local clonedModel = drinkModel:Clone()
 	clonedModel.Parent = tool
 
+	for i, desc: Part in clonedModel:GetDescendants() do
+		if not desc:IsA("BasePart") then
+			continue
+		end
+		desc.CollisionGroup = "Walls"
+	end
+
 	local modelBasePart = clonedModel:FindFirstChildWhichIsA("BasePart", true)
 	if not modelBasePart then
 		warn(`Drink tool render failed: {drink.id} has no BasePart to weld`)

@@ -3,8 +3,11 @@ local GuiService = game:GetService("GuiService")
 local React = require(ReplicatedStorage.Packages.React)
 local e = React.createElement
 local useState = React.useState
+local useEffect = React.useEffect
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
+local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
+local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 
 local Primitives = ReplicatedStorage.Shared.ReactComponents.ui
 local DefaultScrollFrame = require(script.Parent.DefaultScrollFrame)
@@ -21,22 +24,70 @@ local player = game.Players.LocalPlayer
 local playerId: string? = player and tostring(player.UserId) or "0"
 
 local function MixerPanel(props: {
-	Ingredients: { [string]: number },
-	MixerId: string,
-	Open: boolean,
 	OnClose: () -> (),
 })
 	local currentIngredients, setCurrentIngredients = useState({})
-
-	-- NEW: Track ingredients currently flying through the air
 	local pendingIngredients, setPendingIngredients = useState({})
 	local activeTrails, setActiveTrails = useState({})
+	local panelOpen, setPanelOpen = useState((not player) and true or false)
+	local activeMixerId, setMixerId = useState(nil)
 
 	-- Reference to the selected ingredients UI to act as the target position
 	local targetRef = React.useRef(nil)
+	local ingredients, setIngredients = useState((not player) and { espresso = 1 } or {})
 
-	local ing = props.Ingredients or {}
-	local ingredients = ing[playerId] or {}
+	--  listen to ingredients
+	useEffect(function()
+		local unsub = GlobalState:subscribe(function(newState)
+			if not (newState.Ingredients and newState.Ingredients[playerId]) then
+				return
+			end
+			setIngredients(newState.Ingredients[playerId])
+		end)
+		local state = GlobalState:getState()
+		if not (state.Ingredients and state.Ingredients[playerId]) then
+			return
+		end
+		setIngredients(state.Ingredients[playerId])
+		return unsub
+	end, {})
+
+	--  listen to activeMixerId
+	useEffect(function()
+		local unsub = UIState:subscribe(function(newState)
+			if not newState.activeMixerId then
+				return
+			end
+			setMixerId(newState.activeMixerId)
+		end)
+		local state = UIState:getState()
+		local activeMixerId = state.activeMixerId
+		if activeMixerId then
+			setMixerId(activeMixerId)
+		end
+		return unsub
+	end, {})
+
+	-- listen to panel
+	useEffect(function()
+		local unsub = UIState:subscribe(function(state: UIState.UIState)
+			setPanelOpen(state.panel == "mixer")
+		end)
+		return unsub
+	end, {})
+
+	React.useEffect(function()
+		setCurrentIngredients({})
+		setPendingIngredients({}) -- Safety clear
+	end, { panelOpen })
+
+	React.useEffect(function()
+		if not currentIngredients then
+			return
+		end
+		local is = table.find(currentIngredients, "espresso")
+		UIState.setIsEspressoInserted(is or false)
+	end, { currentIngredients })
 
 	local function removeIngredientAtIndex(index: number)
 		setCurrentIngredients(function(prev)
@@ -56,8 +107,6 @@ local function MixerPanel(props: {
 	for id, count in pairs(pendingIngredients) do
 		usedIngredients[id] = (usedIngredients[id] or 0) + count
 	end
-
-	React.useEffect(function() end, {})
 
 	local ingredientElements = {}
 	for i, config in ipairs(CoffeeModule.IngredientConfigs) do
@@ -155,15 +204,10 @@ local function MixerPanel(props: {
 		})
 	end
 
-	React.useEffect(function()
-		setCurrentIngredients({})
-		setPendingIngredients({}) -- Safety clear
-	end, { props.Open })
-
 	return e("Frame", {
 		Size = UDim2.new(1, 0, 1, 0),
 		BackgroundTransparency = 1,
-		Visible = props.Open or false,
+		Visible = panelOpen or false,
 		Position = UDim2.new(0.5, 0, 0.5, 0),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 	}, {
@@ -320,8 +364,8 @@ local function MixerPanel(props: {
 							Size = UDim2.new(0, 80, 0, 40),
 							BackgroundColor3 = resultConfig and Color3.new(0.5, 1, 0) or nil,
 							[React.Event.Activated] = function()
-								if resultConfig and props.MixerId then
-									Remotes.MixDrink:FireServer(resultConfig.Id, props.MixerId)
+								if resultConfig and activeMixerId then
+									Remotes.MixDrink:FireServer(resultConfig.Id, activeMixerId)
 									setCurrentIngredients({})
 									setPendingIngredients({}) -- Safety clear
 									if props.OnClose then

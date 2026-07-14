@@ -36,6 +36,7 @@ local actions = {
 			return state
 		end
 		if playersDiscovered[payload.drinkId] then
+			-- warn(`already unlocked {payload.drinkId}`)
 			return state
 		end
 		return Set(state, playerId, Set(playersDiscovered, payload.drinkId, true))

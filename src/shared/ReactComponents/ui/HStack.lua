@@ -44,6 +44,7 @@ local function HStack(props)
 		LayoutOrder = props.LayoutOrder,
 		ZIndex = props.ZIndex,
 		ref = props.OnMount,
+		Active = props.Active,
 	}, elements)
 end
 

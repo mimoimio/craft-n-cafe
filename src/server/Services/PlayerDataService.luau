@@ -12,6 +12,8 @@ local Types = require(ReplicatedStorage.Shared.Types)
 local Signal = require(game.ReplicatedStorage.Packages.Signal)
 local ShopCycle = require(game.ReplicatedStorage.Shared.ShopCycle)
 
+local IS_PLAYTESTING = true
+
 type PlayerData = Types.PlayerData
 type Profile = ProfileStoreModule.Profile<PlayerData> -- Typed Profile object
 
@@ -20,31 +22,26 @@ local PROFILE_TEMPLATE: PlayerData = {
 		Sfx = 0.5,
 		Music = 0.5,
 		SecondsPlayed = 0,
-		Cash = 100,
+		Cash = 50,
 		Level = 1,
-		CustomerSpawningEnabled = true,
+		CafeOpen = false,
 	},
 	Tables = {
 		Table1 = {
 			TableId = "woodentable",
-			Slots = {
-				Slot1 = "none",
-				Slot2 = "none",
-				Slot3 = "none",
-				Slot4 = "none",
-			},
+			Slots = { Slot1 = "none", Slot2 = "none", Slot3 = "none", Slot4 = "none" },
 		},
 	},
 	Drinks = {},
 	Mixers = {
-		Mixer1 = {
-			drinkId = "none",
-		},
+		Mixer1 = { drinkId = "none" },
 	},
 	Ingredients = {},
-	Cup = {},
 	Customers = {},
+	Shop = { shops = {} }, -- CRITICAL: Added so Reflex updates sync to the Profile!
+	DiscoveredDrinks = {},
 }
+
 -- Recursively clones a table so we don't accidentally pass memory references
 -- from the template into the player's actual data.
 local function DeepCopy(target: any): any
@@ -84,6 +81,9 @@ local PlayerProfileStore = ProfileStoreModule.New(
 	DATASTORENAME, -- Your DataStore name
 	PROFILE_TEMPLATE
 )
+if IS_PLAYTESTING then
+	PlayerProfileStore = PlayerProfileStore.Mock
+end
 
 -- 4. Cache for active player profiles on this server
 local Profiles: { [Player]: Profile } = {}
@@ -137,7 +137,7 @@ local function OnPlayerRemoving(player: Player)
 	if profile then
 		-- End the session - this saves the data and unlocks the session
 		profile.Data.LastOnline = workspace:GetServerTimeNow()
-		profile:EndSession()
+		-- profile:EndSession()
 		print(`Ending session profile for {player.Name} ({player.UserId}) on leave.`)
 	end
 end
@@ -188,7 +188,7 @@ local broadcaster = Reflex.createBroadcaster({
 	) -- somehow state here is an empty table
 		local state = GlobalState:getState()
 		local playerId = tostring(player.UserId)
-		warn("before hydrate", s, state)
+		-- warn("before hydrate", s, state)
 
 		-- filter later
 		return state
@@ -199,9 +199,9 @@ local broadcaster = Reflex.createBroadcaster({
 		local relevantActions = {}
 		for _, action in actions do
 			-- just add all for now
-			if action.name == `__hydrate__` then
-				warn("dispatched", action.name, action.arguments)
-			end
+			-- if action.name == `__hydrate__` then
+			-- 	warn("dispatched", action.name, action.arguments)
+			-- end
 			table.insert(relevantActions, action)
 		end
 
@@ -237,9 +237,14 @@ Remotes.start.OnServerEvent:Connect(function(player)
 	end
 	local playersShop = state.Shop
 
+	-- Require ShopService to access the deterministic generator
+	local ShopService = require(game.ServerScriptService.Server.Services.ShopService)
+	local currentSeed = tostring(ShopCycle.getCurrentState().seed)
+	local generatedShop = ShopService.GenerateDeterministicShop(currentSeed)
+
 	GlobalState.startPlayerSession(playerId, profile.Data, {
-		newestShop = shop,
-		newestSeed = seed,
+		newestShop = generatedShop,
+		newestSeed = currentSeed,
 	})
 	player:RequestStreamAroundAsync(Vector3.new())
 

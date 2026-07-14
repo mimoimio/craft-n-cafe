@@ -50,10 +50,12 @@ local function Character(props: {
 		end
 		for i, d in character:GetDescendants() do
 			if d:IsA("BasePart") then
-				d.CollisionGroup = "Characters"
+				d.CollisionGroup = "Players"
 			end
 		end
-		character:PivotTo(props.BaseModel:GetPivot() + Vector3.new(0, 10, 0))
+		character:PivotTo(
+			(props.BaseModel.Entrance:GetPivot() + Vector3.new(0, 10, 0)) * CFrame.Angles(0, math.pi / 2, 0)
+		)
 		return function() end
 	end, { character, props.BaseModel })
 	return e(React.Fragment, nil, children) -- Ensure children are rendered in a Fragment

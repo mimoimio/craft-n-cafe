@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
 local Promise = require(ReplicatedStorage.Packages.Promise) -- Added Promise
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
+local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local SoundController = require(ReplicatedStorage.Shared.Controllers.SoundController)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 local SmallText = require(script.Parent.ui.SmallText)
@@ -11,6 +12,9 @@ local SmallText = require(script.Parent.ui.SmallText)
 local e = React.createElement
 local useState = React.useState
 local useEffect = React.useEffect
+
+local TAP_ICON =
+	`<font family="rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json">hand-half-ellipse</font>`
 
 local function SlotNode(props: {
 	SlotName: string,
@@ -74,11 +78,13 @@ local function SlotNode(props: {
 		prompt.Style = Enum.ProximityPromptStyle.Custom
 
 		local conn1 = prompt.PromptShown:Connect(function(inputType: Enum.ProximityPromptInputType)
+			UIState.setTableSlotNodeShown(true)
 			setOn(true)
 			local mobile = inputType == Enum.ProximityPromptInputType.Touch
-			setPromptText(mobile and "" or `[E]`)
+			setPromptText(mobile and TAP_ICON or `[E]`)
 		end)
 		local conn2 = prompt.PromptHidden:Connect(function()
+			UIState.setTableSlotNodeShown(nil)
 			setOn(false)
 			setPromptText("")
 		end)
@@ -150,6 +156,10 @@ local function SlotNode(props: {
 				(prompt :: ProximityPrompt):InputHoldEnd()
 			end
 		end,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0.5, 0),
+		AutomaticSize = Enum.AutomaticSize.XY,
+		BackgroundTransparency = 0.6,
 	}, {
 		UICorner = e("UICorner", {
 			CornerRadius = UDim.new(0, 8),
@@ -157,12 +167,18 @@ local function SlotNode(props: {
 		SmallText = e(SmallText, {
 			Size = UDim2.new(1, 0, 1, 0),
 			TextXAlignment = Enum.TextXAlignment.Center,
+			TextYAlignment = Enum.TextYAlignment.Center,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, 0, 0.5, 0),
 			Text = `{promptText} {drink and "Pickup" or "Place"}`,
+			AutomaticSize = Enum.AutomaticSize.XY,
+			RichText = true,
+			TextWrapped = false,
 			TextColor3 = Color3.new(1, 1, 1),
 			TextStrokeTransparency = 0,
 			TextStrokeColor3 = Color3.new(0, 0, 0),
 			Font = Enum.Font.FredokaOne,
-			-- TextScaled = true,
+			TextScaled = true,
 			Active = false,
 		}),
 	})

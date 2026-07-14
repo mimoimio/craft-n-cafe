@@ -15,6 +15,9 @@ for index, config in ipairs(CoffeeConfigArray) do
 	CoffeeConfig[config.Id] = config
 	ingredientPriority[config.Id] = index
 end
+for index, config in ipairs(IngredientConfigs) do
+	ingredientPriority[config.Id] = index
+end
 
 function CoffeeModule.GetId(Ingredients: { string }): string
 	-- Sort ingredients by alphabet and concatenate

@@ -6,6 +6,8 @@ local Promise = require(ReplicatedStorage.Packages.Promise)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local SoundController = require(ReplicatedStorage.Shared.Controllers.SoundController)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
+local UIState = require(ReplicatedStorage.Shared.producers.UIState)
+local toggleMixerInteract = UIState.toggleMixerInteract
 local MixerProgressBar = require(script.Parent.MixerProgressBar)
 
 local e = React.createElement
@@ -17,7 +19,6 @@ local function MixerNode(props: {
 	MixerName: string,
 	MixerData: any,
 	Instance: Instance?,
-	onInteract: (mixerName: string) -> (),
 })
 	local isOccupied = props.MixerData.drinkId ~= "none"
 
@@ -71,7 +72,7 @@ local function MixerNode(props: {
 				if isOccupied then
 					Remotes.PickUpDrink:FireServer(props.MixerName)
 				else
-					props.onInteract(props.MixerName)
+					toggleMixerInteract(props.MixerName)
 				end
 			end
 		end)
@@ -80,6 +81,23 @@ local function MixerNode(props: {
 			conn:Disconnect()
 		end
 	end, { prompt, isOccupied, props.MixerName, props.onInteract })
+
+	-- set UIState's mixernodeshown
+	useEffect(function()
+		if not prompt then
+			return
+		end
+		local conn = prompt.PromptShown:Connect(function()
+			UIState.setMixerNodeShown(props.MixerName)
+		end)
+		local conn2 = prompt.PromptHidden:Connect(function()
+			UIState.setMixerNodeShown(nil)
+		end)
+		return function()
+			conn:Disconnect()
+			conn2:Disconnect()
+		end
+	end, { prompt })
 
 	-- 3. Sound Effects
 	local isOccupiedRef = useRef(nil)

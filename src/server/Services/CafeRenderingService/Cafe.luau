@@ -58,6 +58,12 @@ local function Cafe(props: {
 			clone.Name = "Cafe"
 			-- Parent it to the BaseModel so your type definitions hold true in the Explorer!
 			clone.Parent = props.BaseModel
+			for i, desc: Part in clone:GetDescendants() do
+				if not desc:IsA("BasePart") or desc == clone.Part then
+					continue
+				end
+				desc.CollisionGroup = "Walls"
+			end
 
 			-- Tell React the model is ready!
 			setClonedCafe(clone)

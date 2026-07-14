@@ -13,10 +13,11 @@ export type PlayerId = string
 export type StatsEntity = {
 	Cash: number,
 	Sfx: number,
+	TutorialCompleted: boolean,
 	Music: number,
 	SecondsPlayed: number,
 	Level: number,
-	CustomerSpawningEnabled: boolean, -- New Toggle for Tutorial
+	CafeOpen: boolean, -- New Toggle for Tutorial
 	UnlockedIngredients: { string },
 	DiscoveredDrinks: { [string]: string },
 }
@@ -47,11 +48,11 @@ export type UnlockedIngredientsState = {
 
 -- Shop
 export type ShopCycle = {
-	seed: string,
-	position: string,
-	isSpecial: string,
-	timeLeft: string,
-	timeToSpecial: string,
+	seed: number,
+	position: number,
+	isSpecial: boolean,
+	timeLeft: number,
+	timeToSpecial: number,
 }
 export type Seed = string
 export type ShopEntity = {
@@ -188,7 +189,7 @@ export type CombinedActions = {
 	}) -> (),
 
 	-- Added toggle action for your tutorial
-	toggleCustomerSpawning: (playerId: PlayerId, enabled: boolean) -> (),
+	toggleCafeOpen: (playerId: PlayerId) -> (),
 
 	spawnCustomer: (playerId: PlayerId, payload: SpawnCustomerPayload) -> (),
 	customerTakeItems: (playerId: PlayerId, payload: CustomerItemPayload) -> (),
@@ -203,6 +204,7 @@ export type CombinedActions = {
 	) -> (),
 
 	removeCustomer: (playerId: PlayerId, uid: string) -> (),
+	completeTutorial: (playerId: PlayerId) -> (),
 }
 
 --Coffee Modules

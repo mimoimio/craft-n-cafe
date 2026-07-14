@@ -1,5 +1,6 @@
 -- CafeRenderingService/Customers.luau
 
+local PathfindingService = game:GetService("PathfindingService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -35,10 +36,18 @@ local function Customer(props: {
 
 	-- 1. Mounting Effect: Clone the rig and Pivot to the deterministic start state
 	useEffect(function()
+		warn(`props.CafeModel {props.CafeModel}`)
 		local clone = workspace.Rig:Clone() :: CafeTypes.CustomerRig
-		local tag = "Customer" .. props.PlayerId -- player dont change so ok no dependency for this useEffect right
+		local tag = "Customer" .. props.PlayerId
 		clone.Parent = workspace
 		clone:AddTag(tag)
+		clone.Name = props.Customer.id
+
+		-- FIX: Force the server to handle the physics so the NPC doesn't stutter!
+		local rootPart = clone:FindFirstChild("HumanoidRootPart")
+		if rootPart and rootPart:CanSetNetworkOwnership() then
+			rootPart:SetNetworkOwner(nil)
+		end
 
 		setRig(clone)
 		setPrompt(clone.TriggerPrompt)
@@ -47,6 +56,7 @@ local function Customer(props: {
 		local cashierCF = props.CafeModel.Cashier.Part:GetPivot()
 		local action = props.Customer.customerAction
 
+		-- ... [The rest of your mounting effect remains exactly the same]
 		-- Default start is the entrance
 		local targetCF = entranceCF
 
@@ -65,6 +75,7 @@ local function Customer(props: {
 
 		clone:PivotTo(targetCF)
 
+		clone.TriggerPrompt.RequiresLineOfSight = false
 		local conn = clone.TriggerPrompt.Triggered:Connect(function(player: Player)
 			if tostring(player.UserId) ~= props.PlayerId then
 				return
@@ -84,13 +95,16 @@ local function Customer(props: {
 		end
 	end, { props.Customer.id, props.BaseModel, props.CafeModel })
 
-	-- 2. State Transition Effect: Handle walking targets based on CFrame vectors
+	-- Customers.luau
+
+	-- 2. State Transition Effect: Handle walking targets using PathfindingService
 	useEffect(function()
 		if not (rig and prompt) then
 			return
 		end
 
 		local humanoid = rig:FindFirstChildOfClass("Humanoid")
+		local rootPart = rig:FindFirstChild("HumanoidRootPart")
 		local action = props.Customer.customerAction
 
 		local tables = props.BaseModel.Cafe.Tables:GetChildren()
@@ -100,30 +114,68 @@ local function Customer(props: {
 		local entranceCF = props.BaseModel.Entrance:GetPivot()
 		local cashierCF = props.CafeModel.Cashier.Part:GetPivot()
 
+		local targetPos = nil
+
+		-- Determine the ultimate target position based on the action state
 		if action == "entering" then
 			prompt.Enabled = false
-			if humanoid then
-				-- Walk towards a waiting area (e.g., to the side of the cashier)
-				-- Uses RightVector to fan them out so they don't clump perfectly on one spot
-				local randomOffset = (math.random() - 0.5) * 10
-				local targetPos = tableCF.Position + (tableCF.RightVector * randomOffset) + (tableCF.LookVector * 15)
-				humanoid:MoveTo(targetPos)
-			end
+			local randomOffset = (math.random() - 0.5) * 10
+			targetPos = tableCF.Position + (tableCF.RightVector * randomOffset) + (tableCF.LookVector * 15)
 		elseif action == "queuing" then
 			prompt.Enabled = (props.numberInLine == 1)
-			if humanoid then
-				-- Walk smoothly into their exact slot in the cashier line
-				local lineOffset = cashierCF.LookVector * (4 * (props.numberInLine or 1))
-				local targetPos = cashierCF.Position + lineOffset
-				humanoid:MoveTo(targetPos)
-			end
+			local lineOffset = cashierCF.LookVector * (4 * (props.numberInLine or 1))
+			targetPos = cashierCF.Position + lineOffset
 		elseif action == "paid" then
 			prompt.Enabled = false
-			if humanoid then
-				-- Walk out of the cafe entirely (using the Entrance's LookVector to go outside)
-				local exitPos = entranceCF.Position + (entranceCF.LookVector * 25)
-				humanoid:MoveTo(exitPos)
-			end
+			targetPos = entranceCF.Position
+		end
+
+		-- A flag to safely cancel the pathfinding loop if the component unmounts or state changes
+		local isNavigating = true
+
+		if humanoid then
+			humanoid:MoveTo(targetPos)
+		end
+
+		if humanoid and rootPart and targetPos then
+			task.spawn(function()
+				-- Create a custom pathfinding agent that cannot jump or climb
+				local path = PathfindingService:CreatePath({
+					AgentRadius = 2,
+					AgentHeight = 5,
+					AgentCanJump = false,
+					AgentCanClimb = true, -- This prevents them from scaling objects!
+				})
+
+				local success, _ = pcall(function()
+					path:ComputeAsync(rootPart.Position, targetPos)
+				end)
+
+				if success and path.Status == Enum.PathStatus.Success then
+					local waypoints = path:GetWaypoints()
+
+					for _, waypoint in ipairs(waypoints) do
+						-- Break out of the loop if the state changed while walking
+						if not isNavigating then
+							break
+						end
+
+						humanoid:MoveTo(waypoint.Position)
+
+						-- Wait for the humanoid to reach the waypoint before continuing
+						local moveSuccess = humanoid.MoveToFinished:Wait()
+						if not moveSuccess then
+							-- If they get stuck for longer than 8 seconds, break the loop
+							break
+						end
+					end
+				end
+			end)
+		end
+
+		-- Cleanup function to stop the current pathfinding loop when state updates
+		return function()
+			isNavigating = false
 		end
 	end, { rig, prompt, props.Customer.customerAction, props.numberInLine, props.BaseModel, props.CafeModel })
 

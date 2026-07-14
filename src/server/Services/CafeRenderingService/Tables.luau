@@ -65,6 +65,12 @@ local function SlotComponent(
 			local clone = drinkTemplate:Clone()
 			local placePart = props.SlotInstance:FindFirstChild("PlacePart")
 
+			for i, desc: Part in clone:GetDescendants() do
+				if not desc:IsA("BasePart") then
+					continue
+				end
+				desc.CollisionGroup = "Walls"
+			end
 			if placePart then
 				clone:PivotTo(placePart.CFrame)
 			end
@@ -75,7 +81,10 @@ local function SlotComponent(
 				clone:Destroy()
 			end
 		end
-	end, { drinkData, props.SlotInstance })
+	end, {
+		drinkData and drinkData.drinkId --[[rerender only when drinkId change]],
+		props.SlotInstance,
+	})
 	useEffect(function()
 		if not (props.SlotInstance and props.SlotInstance.Parent) then
 			return
@@ -129,6 +138,12 @@ local function TableComponent(
 		if tableTemplate then
 			local clone = tableTemplate:Clone()
 			local placePart = props.TableAnchor:FindFirstChild("PlacePart")
+			for i, desc: Part in clone:GetDescendants() do
+				if not desc:IsA("BasePart") then
+					continue
+				end
+				desc.CollisionGroup = "Walls"
+			end
 
 			if placePart then
 				placePart.Transparency = 1

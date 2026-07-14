@@ -81,4 +81,7 @@ return {
 	TendCustomer = CreateRemote("TendCustomer"),
 	BuyIngredient = CreateRemote("BuyIngredient"),
 	LevelUp = CreateRemote("LevelUp"),
+	ToggleCafeOpen = CreateRemote("ToggleCafeOpen"),
+	Add500 = CreateRemote("Add500"),
+	CompleteTutorial = CreateRemote("CompleteTutorial"),
 }

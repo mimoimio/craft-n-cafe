@@ -73,20 +73,18 @@ local function SmallButton(props)
 	props.children = props.children or {}
 	props.children.UICorner = e("UICorner", { CornerRadius = props.CornerRadius or UDim.new(0, 8) })
 	props.children.UITextSizeConstraint = e("UITextSizeConstraint", {
-		MaxTextSize = props.TextSize or 18,
-		MinTextSize = props.TextSize or 18,
+		MaxTextSize = props.MaxTextSize or props.TextSize or 18,
+		MinTextSize = props.MinTextSize or props.TextSize or 18,
 	})
 	props.children.UIScale = e("UIScale", {
 		Scale = props.Scale,
 	})
-	props.children.Padding = props.Padding
-			and e("UIPadding", {
-				PaddingTop = props.Padding.All or props.Padding.Top or UDim.new(0, 0),
-				PaddingBottom = props.Padding.All or props.Padding.Bottom or UDim.new(0, 0),
-				PaddingLeft = props.Padding.All or props.Padding.Left or UDim.new(0, 0),
-				PaddingRight = props.Padding.All or props.Padding.Right or UDim.new(0, 0),
-			})
-		or nil
+	props.children.Padding = e("UIPadding", {
+		PaddingTop = props.Padding and (props.Padding.All or props.Padding.Top) or UDim.new(0, 4),
+		PaddingBottom = props.Padding and (props.Padding.All or props.Padding.Bottom) or UDim.new(0, 4),
+		PaddingLeft = props.Padding and (props.Padding.All or props.Padding.Left) or UDim.new(0, 4),
+		PaddingRight = props.Padding and (props.Padding.All or props.Padding.Right) or UDim.new(0, 4),
+	}) or nil
 	props.children.TextOverlay = props.OverlayText
 			and e("TextLabel", {
 				TextYAlignment = Enum.TextYAlignment.Bottom,

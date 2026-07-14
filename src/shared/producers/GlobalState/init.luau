@@ -25,7 +25,7 @@ export type GlobalState = {
 	Customers: customersSlice.CustomersState,
 	UnlockedIngredients: unlockedIngredientsSlice.UnlockedIngredientsState,
 	DiscoveredDrinks: discoveredDrinksSlice.DiscoveredDrinksState,
-	ShopSlice: shopSlice.ShopState,
+	Shop: shopSlice.ShopState,
 }
 
 export type Stats = statsSlice.StatsState
