@@ -17,7 +17,12 @@ local Mixers = require(script.Parent.Mixers)
 local Customers = require(script.Parent.Customers)
 
 local function getCafeTemplate(Level: number): Model
-	local template = workspace:FindFirstChild("Cafe" .. tostring(Level))
+	local ref: ObjectValue = ReplicatedStorage.Shared.InstanceReferences:WaitForChild("CafeTemplateModelsRef")
+	local cafetemplateModels: Model = ref and ref.Value
+	local template = cafetemplateModels:FindFirstChild("Cafe" .. tostring(Level))
+	if not template then
+		warn(`{ref},{cafetemplateModels},{template}`)
+	end
 	return template
 end
 

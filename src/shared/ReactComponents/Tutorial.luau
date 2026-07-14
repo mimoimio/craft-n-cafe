@@ -300,6 +300,7 @@ local function Tutorial(props)
 
 			if not open then
 				Remotes.ToggleCafeOpen:FireServer()
+				warn("opened")
 			end
 			-- setText(`ATableSlotFilled`)
 			setText("Wait until a customer comes in")

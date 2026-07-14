@@ -80,6 +80,11 @@ function CustomersService.CustomerTakeItems(playerId: string, customerUid: strin
 	end
 
 	local drinkCount = rng:NextInteger(1, #availableDrinks)
+	-- maxDrinksPerCustomer: number later use this. first level is nothing
+	-- then a tray
+	-- then a basket
+	-- then a shopping cart
+
 	for i = #availableDrinks, 2, -1 do
 		local j = rng:NextInteger(1, i)
 		availableDrinks[i], availableDrinks[j] = availableDrinks[j], availableDrinks[i]
@@ -175,6 +180,7 @@ function CustomersService.initialize()
 				-- Cafe Open Check. If Spawning is toggled off, skip the spawn. Keep other actions.
 				-- 1. Evaluate Spawning Phase
 				local lastSpawn = lastSpawnTimes[playerId] or 0
+				-- maxCustomersAtOnce: number later
 				if now - lastSpawn >= SPAWN_INTERVAL and #activePlayerCustomers < 3 and playerStats.CafeOpen then
 					CustomersService.SpawnCustomer(playerId)
 				end

@@ -28,7 +28,11 @@ local function buildDrinkTool(player: Player, drink: DrinkEntity): Tool?
 	local drinkModel = ReplicatedStorage.Shared.Models:FindFirstChild(drink.drinkId)
 	if not drinkModel then
 		warn(`Drink tool render failed: model {drink.id} not found for {player.Name}`)
-		return nil
+		-- return nil
+		local part = Instance.new("Part")
+		local model = Instance.new("Model")
+		part.Parent = model
+		drinkModel = model
 	end
 
 	local tool = Instance.new("Tool")

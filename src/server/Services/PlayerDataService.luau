@@ -165,6 +165,7 @@ local function OnShutdown()
 	-- Wait for all end session threads to complete
 	for _, thread in ipairs(threads) do
 		task.wait(thread) -- Wait for each coroutine to finish
+		--invalid argument #1 to 'wait' (number expected, got thread)
 	end
 
 	local duration = os.clock() - startTime

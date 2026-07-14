@@ -36,7 +36,7 @@ local function Customer(props: {
 
 	-- 1. Mounting Effect: Clone the rig and Pivot to the deterministic start state
 	useEffect(function()
-		warn(`props.CafeModel {props.CafeModel}`)
+		-- warn(`props.CafeModel {props.CafeModel}`)
 		local clone = workspace.Rig:Clone() :: CafeTypes.CustomerRig
 		local tag = "Customer" .. props.PlayerId
 		clone.Parent = workspace
@@ -117,6 +117,8 @@ local function Customer(props: {
 		local targetPos = nil
 
 		-- Determine the ultimate target position based on the action state
+		local holdingAnimation: AnimationTrack?
+		local holdingAnimationThread: thread?
 		if action == "entering" then
 			prompt.Enabled = false
 			local randomOffset = (math.random() - 0.5) * 10
@@ -128,6 +130,19 @@ local function Customer(props: {
 		elseif action == "paid" then
 			prompt.Enabled = false
 			targetPos = entranceCF.Position
+		end
+
+		if action == "queuing" or action == "paid" then
+			holdingAnimationThread = task.spawn(function()
+				local animation = ReplicatedStorage.Shared.Animations:FindFirstChild("HoldCup")
+				while true do -- i dont know how to use animation with the predefined animate script from the rig, so i just keep this on loop
+					local animator: Animator = rig.Humanoid.Animator
+					holdingAnimation = animator:LoadAnimation(animation)
+					holdingAnimation.Looped = true -- this alone will stop animating with the rig's animate script
+					holdingAnimation:Play()
+					task.wait(1)
+				end
+			end)
 		end
 
 		-- A flag to safely cancel the pathfinding loop if the component unmounts or state changes
@@ -176,8 +191,71 @@ local function Customer(props: {
 		-- Cleanup function to stop the current pathfinding loop when state updates
 		return function()
 			isNavigating = false
+			if holdingAnimation then
+				holdingAnimation:Stop()
+			end
+			if holdingAnimationThread then
+				task.cancel(holdingAnimationThread)
+			end
 		end
 	end, { rig, prompt, props.Customer.customerAction, props.numberInLine, props.BaseModel, props.CafeModel })
+
+	useEffect(function()
+		local drinkIds = props.Customer.drinkIds
+		if not (rig and drinkIds and #drinkIds > 0) then
+			return
+		end
+
+		local instances = {}
+
+		for i, drinkId in drinkIds do
+			local drinkModel = ReplicatedStorage.Shared.Models:FindFirstChild(drinkId)
+			if not drinkModel then
+				drinkModel = Instance.new("Model")
+				Instance.new("Part", drinkModel)
+			else
+				drinkModel = drinkModel:Clone()
+			end
+			drinkModel:PivotTo(rig.Head:GetPivot() + Vector3.new(0, 2 * i, 0))
+			drinkModel.Parent = rig
+
+			for i, part in drinkModel:GetDescendants() do
+				if not part:IsA("BasePart") then
+					continue
+				end
+				part.Anchored = false
+				part.CanCollide = false
+			end
+			for i, part in drinkModel:GetDescendants() do
+				if not part:IsA("BasePart") then
+					continue
+				end
+				part:SetNetworkOwner(nil)
+			end
+
+			local primaryPart = drinkModel.PrimaryPart
+			if primaryPart then
+				primaryPart:SetNetworkOwner(nil)
+			end
+			local drinkPart = drinkModel:FindFirstChildWhichIsA("BasePart")
+
+			local weld = Instance.new("WeldConstraint")
+			weld.Part0 = drinkPart
+			weld.Part1 = rig.Head
+			weld.Parent = drinkPart
+
+			table.insert(instances, drinkModel)
+			table.insert(instances, weld)
+		end
+		return function()
+			for i, instance in instances do
+				if not (instance and instance.Parent) then
+					continue
+				end
+				instance:Destroy()
+			end
+		end
+	end, { rig, props.Customer.customerAction == "paid" or props.Customer.customerAction == "queuing" })
 
 	return e(React.Fragment)
 end

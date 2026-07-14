@@ -20,6 +20,10 @@ export type StatsEntity = {
 	CafeOpen: boolean, -- New Toggle for Tutorial
 	UnlockedIngredients: { string },
 	DiscoveredDrinks: { [string]: string },
+
+	-- for the future
+	maxDrinksPerCustomer: number,
+	maxCustomersAtOnce: number,
 }
 
 -- Tables
@@ -84,6 +88,10 @@ export type IngredientsState = {
 export type MixerEntity = {
 	drinkId: string,
 	startTime: number?,
+
+	-- for the future
+	mixerLevel: number,
+	additionalStocks: number,
 }
 export type MixersState = {
 	[PlayerId]: {
