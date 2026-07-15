@@ -17,6 +17,7 @@ local function SmallButton(props)
 	end
 
 	local buttonProps = {
+		ref = props.OnMount,
 		[React.Change.AbsolutePosition] = props[React.Change.AbsolutePosition],
 		[React.Change.AbsoluteSize] = props[React.Change.AbsoluteSize],
 		LayoutOrder = props.LayoutOrder,

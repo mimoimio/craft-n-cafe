@@ -63,6 +63,7 @@ local function CustomerManager(props)
 			CustomerUid = customerData.id,
 			CustomerData = customerData,
 			Instance = customerInstances[customerData.id],
+			numberInLine = i,
 		})
 	end
 

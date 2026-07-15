@@ -47,7 +47,7 @@ local function IngredientParticle(props)
 	React.useEffect(function()
 		setTGoal(ReactOtter.spring(1, {
 			dampingRatio = 0.9,
-			frequency = 6.2 - 0.5 * math.random(),
+			frequency = 10 - 0.5 * math.random(),
 		}))
 	end, {})
 

@@ -14,6 +14,7 @@ local SmallText = function(props)
 		BackgroundColor3 = props.BackgroundColor3,
 		TextColor3 = Color3.new(1, 1, 1),
 		TextXAlignment = props.TextXAlignment or Enum.TextXAlignment.Left,
+		TextYAlignment = props.TextYAlignment or Enum.TextYAlignment.Bottom,
 		TextStrokeTransparency = props.TextStrokeTransparency or 0,
 		TextTransparency = props.TextTransparency or 0,
 		Text = props.Text,

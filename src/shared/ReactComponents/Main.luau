@@ -45,6 +45,10 @@ local getStats = function(state: GlobalState.GlobalState): {}?
 	return stats[playerId]
 end
 
+local function onMountShopButton(button: GuiButton?)
+	UIState.setShopButton(button)
+end
+
 local function Main(props)
 	local state, setState = useState(nil)
 	local activePanel, setActivePanel = useState(nil) -- "Shop", "Customers", or nil
@@ -177,10 +181,9 @@ local function Main(props)
 			Mixer = e(MixerPanel, {
 				OnClose = closeAllPanels,
 			}),
-			-- Recipes = e(RecipePanel, {
-			-- 	visible = activePanel == "recipe",
-			-- 	OnClose = closeAllPanels,
-			-- }),
+			Recipes = e(RecipePanel, {
+				OnClose = closeAllPanels,
+			}),
 			CafePanel = e(CafePanel, {
 				OnClose = closeAllPanels,
 			}),
@@ -227,7 +230,7 @@ local function Main(props)
 					toggle("settings")
 				end,
 			}),
-			e(SmallButton, {
+			ShopButton = e(SmallButton, {
 				LayoutOrder = 3,
 				Image = "rbxassetid://112161362547076",
 				BackgroundTransparency = 1,
@@ -235,6 +238,18 @@ local function Main(props)
 				Size = UDim2.new(0, 50, 0, 50),
 				[React.Event.Activated] = function()
 					toggle("ingredientShop")
+				end,
+				OnMount = onMountShopButton,
+			}),
+			recipeButton = e(SmallButton, {
+				LayoutOrder = 4,
+				-- Image = "rbxassetid://112161362547076",
+				Text = "Recipe",
+				BackgroundTransparency = 0,
+				TextSize = 12,
+				Size = UDim2.new(0, 50, 0, 50),
+				[React.Event.Activated] = function()
+					toggle("recipe")
 				end,
 			}),
 		}),

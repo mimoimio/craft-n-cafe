@@ -4,7 +4,8 @@ local Players = game:GetService("Players")
 local React = require(ReplicatedStorage.Packages.React)
 local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
 local e = React.createElement
-
+local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
+local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local MixerPanel = require(ReplicatedStorage.Shared.ReactComponents.MixerPanel)
 
 -- We dynamically grab the LocalPlayer ID (or default to "0" if running in a weird Studio context)
@@ -47,6 +48,7 @@ local function story(frame: Frame)
 	local root = ReactRoblox.createRoot(frame)
 
 	root:render(e(StoryWrapper))
+	UIState.toggle("mixer")
 
 	return function()
 		root:unmount()

@@ -192,7 +192,7 @@ return {
 		Duration = 20,
 	},
 	{
-		Id = "mochalatte",
+		Id = "mochamacchiato",
 		DisplayName = "Mocha Latte",
 		Ingredients = { "espresso", "milk", "foam", "chocolate" },
 		ItemTip = [[A comforting blend of espresso, hot milk, and rich chocolate. And yeah. Foams]],
@@ -212,7 +212,7 @@ return {
 	{
 		Id = "icedmochalatte",
 		DisplayName = "Iced Mocha Latte",
-		Ingredients = { "espresso", "milk", "chocolate", "ice" },
+		Ingredients = { "espresso", "milk", "chocolate", "ice", "foam" },
 		ItemTip = [[A cold, sweet mix of coffee, milk, and chocolate. And yeah. Foams. Again]],
 		Price = 18,
 		InitialStock = 6,

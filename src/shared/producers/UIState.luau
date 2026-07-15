@@ -16,6 +16,7 @@ export type UIState = {
 	mixerNodeShown: string,
 	isEspressoInserted: boolean,
 	tableSlotNodeShown: boolean,
+	shopButton: GuiButton,
 }
 export type UIActions = {
 	toggle: (panel: string) -> (),
@@ -23,6 +24,7 @@ export type UIActions = {
 	setMixerNodeShown: (mixerName: string) -> (),
 	setIsEspressoInserted: (is: boolean) -> (),
 	setTableSlotNodeShown: (is: boolean) -> (),
+	setShopButton: (shopButton: GuiButton) -> (),
 }
 local initialState = {
 	panel = "none",
@@ -52,6 +54,10 @@ local producer = Reflex.createProducer(initialState, {
 	end,
 	setTableSlotNodeShown = function(state: UIState, is: boolean)
 		return Set(state, "tableSlotNodeShown", is and true or false)
+	end,
+	setShopButton = function(state: UIState, shopButton: GuiButton?)
+		warn(`setting shop button: {shopButton}`)
+		return Set(state, "shopButton", shopButton)
 	end,
 }) :: Reflex.Producer<UIState, UIActions>
 

@@ -45,10 +45,9 @@ local function MixerPanel(props: {
 			setIngredients(newState.Ingredients[playerId])
 		end)
 		local state = GlobalState:getState()
-		if not (state.Ingredients and state.Ingredients[playerId]) then
-			return
+		if state.Ingredients and state.Ingredients[playerId] then
+			setIngredients(state.Ingredients[playerId])
 		end
-		setIngredients(state.Ingredients[playerId])
 		return unsub
 	end, {})
 

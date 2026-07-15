@@ -163,10 +163,16 @@ local function OnShutdown()
 	end
 
 	-- Wait for all end session threads to complete
-	for _, thread in ipairs(threads) do
-		task.wait(thread) -- Wait for each coroutine to finish
-		--invalid argument #1 to 'wait' (number expected, got thread)
-	end
+	repeat
+		local complete = true
+		for _, thread in ipairs(threads) do
+			complete = complete and coroutine.status(thread) == "dead"
+		end
+		if complete then
+			break
+		end
+		task.wait()
+	until complete
 
 	local duration = os.clock() - startTime
 	warn(`All profile sessions ended. Shutdown process took {string.format("%.2f", duration)} seconds.`)

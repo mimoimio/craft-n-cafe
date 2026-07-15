@@ -1,3 +1,4 @@
+-- Shared/ReactComponents/Tutorial.luau
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
 local Reflex = require(ReplicatedStorage.Packages.Reflex)
@@ -7,6 +8,8 @@ local Toasts = require(ReplicatedStorage.Shared.ReactComponents.Toasts)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local useToast = Toasts.useToast
 local useState = React.useState
+local useBinding = React.useBinding
+local useCallback = React.useCallback
 local useRef = React.useRef
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
@@ -226,6 +229,24 @@ local function Tutorial(props)
 	local tutorialCompleted, setTutorialCompleted = useState(nil)
 	local text: string, setText = useState("")
 	local completedRef = useRef(nil)
+	local step, setStep = useState(1)
+	local arrow, setArrow = useState({
+		rotation = 0,
+		positionFromTarget = UDim2.new(),
+	})
+	local arrowTarget, setArrowTarget = useState(nil)
+	local time, setTime = useBinding(workspace:GetServerTimeNow())
+
+	useEffect(function()
+		local t = task.spawn(function()
+			while task.wait(1 / 30) do
+				setTime(workspace:GetServerTimeNow())
+			end
+		end)
+		return function()
+			task.cancel(t)
+		end
+	end, {})
 
 	useEffect(function()
 		if completedRef.current then
@@ -248,6 +269,7 @@ local function Tutorial(props)
 		return unsub
 	end, {})
 
+	-- run loop
 	useEffect(function()
 		if completedRef.current then
 			return
@@ -267,6 +289,7 @@ local function Tutorial(props)
 		end
 	end, { tutorialCompleted })
 
+	-- ladder
 	useEffect(function()
 		if completedRef.current then
 			return
@@ -280,6 +303,7 @@ local function Tutorial(props)
 		end
 		-- 11) See if player already got a customer paid
 		if everything.PlayerTendedCustomer then
+			setStep(10)
 			setText(`Congrats, you completed the tutorial! Have Fun!`, 10)
 			Remotes.CompleteTutorial:FireServer()
 			task.delay(5, function()
@@ -289,6 +313,7 @@ local function Tutorial(props)
 		end
 
 		if everything.ACustomerQueuing then
+			setStep(10)
 			setText(`Tend to the customer at the cashier`)
 			return
 		end
@@ -300,14 +325,15 @@ local function Tutorial(props)
 
 			if not open then
 				Remotes.ToggleCafeOpen:FireServer()
-				warn("opened")
 			end
 			-- setText(`ATableSlotFilled`)
+			setStep(9)
 			setText("Wait until a customer comes in")
 			return
 		end
 		if everything.IsDrinkPickedUp and everything.TableSlotNodeShown then
 			-- setText(`TableSlotNodeShown`)
+			setStep(8)
 			setText("Place it.")
 			return
 		end
@@ -315,43 +341,51 @@ local function Tutorial(props)
 		if everything.IsDrinkPickedUp then
 			-- setText(`IsDrinkPickedUp`)
 			setText("Go to the table to place")
+			setStep(7)
 			return
 		end
 		if everything.DrinkBrewed then
 			-- setText(`DrinkBrewed`)
+			setStep(6)
 			setText("Pick it up")
 			return
 		end
 
 		if everything.IsMixerFilled then
 			-- setText(`IsMixerFilled`)
+			setStep(5)
 			setText("Wait until the mixer is done")
 			return
 		end
 
 		if everything.IsEspressoInserted then
 			-- setText(`IsEspressoInserted`)
+			setStep(4)
 			setText("Click Craft")
 			return
 		end
 
 		if everything.EspressoBought and everything.IsMixerPanel then
 			-- setText(`IsMixerPanel`)
+			setStep(4)
 			setText("Click on the espresso to craft")
 			return
 		end
 		if everything.EspressoBought and everything.MixerNodePromptShown then
 			-- setText(`MixerNodePromptShown`)
+			setStep(3)
 			setText("Open the mixer")
 			return
 		end
 
 		if everything.EspressoBought then
 			-- setText(`EspressoBought`)
+			setStep(2)
 			setText("Go to your mixer")
 			return
 		end
 
+		setStep(1)
 		setText("Open the shop and Buy an Espresso")
 
 		return function()
@@ -359,13 +393,84 @@ local function Tutorial(props)
 		end
 	end, { everything })
 
+	-- action
+	useEffect(function()
+		if step == 1 then
+			-- arrow to shop button
+
+			local unsub = UIState:subscribe(function(state: UIState.UIState)
+				local shopButton = state.shopButton
+				setArrowTarget(shopButton)
+			end)
+			local shopButton = UIState:getState().shopButton
+			setArrowTarget(shopButton)
+			setArrow({
+				rotation = 90, -- the arrow image is down, rotate to left
+				positionFromTarget = UDim2.fromOffset(100, 0), -- 50, 50 size
+			})
+			return unsub
+		elseif step == 2 or step == 3 then
+			-- highlight the mixer instance
+		elseif step == 4 then
+			--
+		elseif step == 5 then
+			--
+		elseif step == 6 then
+			-- highlight the mixer instance
+		elseif step == 7 then
+			-- highlight the table instance
+		elseif step == 8 then
+			--
+		elseif step == 9 then
+			--
+		elseif step == 10 then
+			-- highlight the customer instance
+			-- local unsub = UIState:subscribe(function(state: UIState.UIState)
+			-- 	local customerInstance = state.firstCustomerInstance
+			-- end)
+			return function() end
+		end
+		return
+	end, { step })
+
+	local positionFromTarget = (arrow and arrow.positionFromTarget or UDim2.new())
+	local targetAbsolutePosition: Vector2 = arrowTarget and arrowTarget.AbsolutePosition or Vector2.new()
+	local targetPosition = UDim2.fromOffset(targetAbsolutePosition.X, targetAbsolutePosition.Y)
+	local arrowPosition = (positionFromTarget + targetPosition) or nil
+	local arrowRotation = arrow and arrow.rotation or nil
+
+	local positionMap = useCallback(function(t)
+		return arrowPosition + UDim2.fromOffset(math.sin(t * 5) * 50, 0)
+	end, { arrowPosition })
+
 	return e("ScreenGui", {}, {
-		e(SmallText, {
-			Text = text,
-			Size = UDim2.new(1, 0, 1, 0),
-			TextXAlignment = Enum.TextXAlignment.Center,
+		e("ImageLabel", {
+			Size = UDim2.new(0.5, 0, 0, 40),
+			AutomaticSize = Enum.AutomaticSize.XY,
+			Position = UDim2.new(0.5, 0, 1, -100),
+			AnchorPoint = Vector2.new(0.5, 1),
+			Image = "rbxassetid://127657596958436",
+			ImageColor3 = Color3.new(0.768627, 0.549019, 0.549019),
+			ScaleType = Enum.ScaleType.Slice,
+			SliceCenter = Rect.new(8, 8, 92, 92),
+			BackgroundTransparency = 1,
+		}, {
+			e(SmallText, {
+				Size = UDim2.new(1, 0, 1, 0),
+				Text = text,
+				TextXAlignment = Enum.TextXAlignment.Center,
+				TextYAlignment = Enum.TextYAlignment.Center,
+			}),
 		}),
-	}) or nil
+		e("ImageLabel", {
+			Size = UDim2.new(0, 50, 0, 50),
+			AutomaticSize = Enum.AutomaticSize.XY,
+			BackgroundTransparency = 1,
+			Position = time:map(positionMap),
+			Rotation = arrowRotation,
+			Image = "rbxassetid://8152628560",
+		}),
+	})
 end
 
 return Tutorial

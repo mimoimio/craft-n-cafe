@@ -136,6 +136,9 @@ local function Customer(props: {
 			holdingAnimationThread = task.spawn(function()
 				local animation = ReplicatedStorage.Shared.Animations:FindFirstChild("HoldCup")
 				while true do -- i dont know how to use animation with the predefined animate script from the rig, so i just keep this on loop
+					if not (rig and rig.Parent) then
+						return
+					end
 					local animator: Animator = rig.Humanoid.Animator
 					holdingAnimation = animator:LoadAnimation(animation)
 					holdingAnimation.Looped = true -- this alone will stop animating with the rig's animate script
@@ -199,7 +202,7 @@ local function Customer(props: {
 			end
 		end
 	end, { rig, prompt, props.Customer.customerAction, props.numberInLine, props.BaseModel, props.CafeModel })
-
+	local paid = props.Customer.customerAction and props.Customer.customerAction == "paid"
 	useEffect(function()
 		local drinkIds = props.Customer.drinkIds
 		if not (rig and drinkIds and #drinkIds > 0) then
@@ -217,7 +220,7 @@ local function Customer(props: {
 				drinkModel = drinkModel:Clone()
 			end
 			drinkModel:PivotTo(rig.Head:GetPivot() + Vector3.new(0, 2 * i, 0))
-			drinkModel.Parent = rig
+			drinkModel.Parent = workspace
 
 			for i, part in drinkModel:GetDescendants() do
 				if not part:IsA("BasePart") then
@@ -255,7 +258,14 @@ local function Customer(props: {
 				instance:Destroy()
 			end
 		end
-	end, { rig, props.Customer.customerAction == "paid" or props.Customer.customerAction == "queuing" })
+	end, { rig, paid or props.Customer.customerAction == "queuing" })
+	useEffect(function()
+		if not (rig and paid) then
+			return
+		end
+		game:GetService("Chat"):Chat(rig.Head, "THANKS")
+		return
+	end, { rig, paid })
 
 	return e(React.Fragment)
 end

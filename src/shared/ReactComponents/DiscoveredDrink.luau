@@ -164,19 +164,38 @@ local function IngredientShopPanel(props: {})
 			Image = config.Image,
 			LayoutOrder = i,
 			BackgroundTransparency = 0.9,
-			Size = t:map(function(n)
-				local start = math.min(1, (n - drink.StartTime))
-				local End = drink.EndTime and math.min(1, (drink.EndTime - n + 1))
-				return drink.EndTime and UDim2.new(0, End * 200, 0, End * 200)
-					or UDim2.new(0, start * 200, 0, start * 200)
-			end),
+			-- Size = t:map(function(n)
+			-- 	local start = math.min(1, (n - drink.StartTime))
+			-- 	local End = drink.EndTime and math.min(1, (drink.EndTime - n + 1))
+			-- 	return drink.EndTime and UDim2.new(0, End * 200, 0, End * 200)
+			-- 		or UDim2.new(0, start * 200, 0, start * 200)
+			-- end),
+
 			SizeConstraint = Enum.SizeConstraint.RelativeXX,
 			-- ImageColor3 = Color3.new(1, 0, 0),
 		}, {
 			UICorner = e("UICorner", {
 				CornerRadius = UDim.new(1, 0),
 			}),
-			e("ImageLabel", {
+			DrinkImage = e("ImageLabel", {
+				ZIndex = 3,
+				AutomaticSize = Enum.AutomaticSize.None,
+				Active = false,
+				Image = config.Image,
+				LayoutOrder = i,
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.new(0.5, 0, 0.5, 0),
+				BackgroundTransparency = 1,
+				Size = t:map(function(n)
+					local start = math.min(1, (n - drink.StartTime))
+					local End = drink.EndTime and math.min(1, (drink.EndTime - n + 1))
+					return drink.EndTime and UDim2.new(0, End * 200, 0, End * 200)
+						or UDim2.new(0, start * 200, 0, start * 200)
+				end),
+				SizeConstraint = Enum.SizeConstraint.RelativeXX,
+				-- ImageColor3 = Color3.new(1, 0, 0),
+			}, {}),
+			flare1 = e("ImageLabel", {
 				Image = "rbxassetid://12386383371",
 
 				Size = t:map(function(n)
@@ -184,7 +203,7 @@ local function IngredientShopPanel(props: {})
 					-- local End = drink.EndTime and math.min(1, (drink.EndTime - n + 1))
 					-- return drink.EndTime and UDim2.new(0, End * 400, 0, End * 400)
 					-- 	or UDim2.new(0, start * 400, 0, start * 400)
-					local s = math.max(0, math.tan(5 / 4 * n + 1))
+					local s = math.max(0, math.tan(5 / 4 * n + drink.StartTime))
 					return UDim2.new(0, s * 400, 0, s * 400)
 				end),
 				AnchorPoint = Vector2.new(0.5, 0.5),
@@ -195,30 +214,37 @@ local function IngredientShopPanel(props: {})
 					return (n * 90) % 360
 				end),
 				ImageTransparency = t:map(function(n)
-					return math.cos(5 * n + 1)
+					return math.cos(2 * n + 1 + math.pi / 4) ^ 2
 				end),
+				ZIndex = 2,
 			}),
-			e("ImageLabel", {
-				Image = "rbxassetid://12386383371",
+			flare2 = e("ImageLabel", {
+				Image = "rbxassetid://12386392796",
 
+				-- Size = UDim2.new(0, 400, 0, 400),
 				Size = t:map(function(n)
 					-- local start = (n - drink.StartTime)
 					-- local End = drink.EndTime and math.min(1, (drink.EndTime - n + 1))
 					-- return drink.EndTime and UDim2.new(0, End * 400, 0, End * 400)
 					-- 	or UDim2.new(0, start * 400, 0, start * 400)
-					local s = math.max(0, math.tan(5 / 4 * n + 1 + math.pi / 4))
+
+					-- local s = math.max(0, math.tan(5 / 4 * n + drink.StartTime + math.pi / 4))
+					local s = math.cos(2 * n + 1 + math.pi / 4) ^ 2 + 0.5
+
 					return UDim2.new(0, s * 400, 0, s * 400)
 				end),
 				AnchorPoint = Vector2.new(0.5, 0.5),
 				Position = UDim2.new(0.5, 0, 0.5, 0),
 				Active = false,
+				ImageColor3 = Color3.new(1, 1, 0),
 				BackgroundTransparency = 1,
 				Rotation = t:map(function(n)
-					return (n * 90) % 360
+					return (math.cos(2 * n + 1 + math.pi / 4) ^ 2 * 90) % 360
 				end),
 				ImageTransparency = t:map(function(n)
-					return math.cos(5 * n + 1 + math.pi / 4)
+					return math.cos(2 * n + 1 + math.pi / 4) ^ 2
 				end),
+				ZIndex = 1,
 			}),
 			e(SmallText, {
 				Text = `<font size="32">{CoffeeModule.Config[drink.drinkId].DisplayName}</font>`,
@@ -232,6 +258,7 @@ local function IngredientShopPanel(props: {})
 				end),
 				AnchorPoint = Vector2.new(0.5, 0.5),
 				Position = UDim2.new(0.5, 0, 0.5, 0),
+				ZIndex = 5,
 			}),
 		})
 	end

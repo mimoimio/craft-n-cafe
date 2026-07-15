@@ -79,7 +79,7 @@ function CustomersService.CustomerTakeItems(playerId: string, customerUid: strin
 		return false
 	end
 
-	local drinkCount = rng:NextInteger(1, #availableDrinks)
+	local drinkCount = rng:NextInteger(1, math.min(3, #availableDrinks))
 	-- maxDrinksPerCustomer: number later use this. first level is nothing
 	-- then a tray
 	-- then a basket

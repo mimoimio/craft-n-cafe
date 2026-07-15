@@ -64,7 +64,8 @@ local function CafePanel(props: {})
 		local texts = {}
 		local count = 1
 		for i, id in config.NewIngredients do
-			table.insert(texts, `{count}. {CoffeeModule.IngredientLookup[id].DisplayName}`)
+			local cofeeg = CoffeeModule.IngredientLookup[id]
+			table.insert(texts, `{count}. {cofeeg and cofeeg.DisplayName}`)
 			count += 1
 		end
 		nextIngredients = table.concat(texts, "\n")
