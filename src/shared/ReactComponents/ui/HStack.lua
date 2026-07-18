@@ -32,6 +32,7 @@ local function HStack(props)
 		ImageColor3 = isImageLabel and props.BackgroundImageColor3 or nil,
 		ImageTransparency = isImageLabel and props.BackgroundImageTransparency or nil,
 		ScaleType = isImageLabel and props.ScaleType or Enum.ScaleType.Tile,
+		SliceCenter = isImageLabel and props.SliceCenter,
 		TileSize = isImageLabel and props.TileSize or UDim2.new(0, 200, 0, 200),
 		Rotation = props.Rotation,
 

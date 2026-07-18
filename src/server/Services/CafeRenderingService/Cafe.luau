@@ -59,7 +59,7 @@ local function Cafe(props: {
 		local cafeTemplate = getCafeTemplate(stats.Level)
 		if cafeTemplate then
 			local clone = cafeTemplate:Clone()
-			clone:PivotTo(props.BaseModel:GetPivot())
+			clone:PivotTo(props.BaseModel.Entrance:GetPivot())
 			clone.Name = "Cafe"
 			-- Parent it to the BaseModel so your type definitions hold true in the Explorer!
 			clone.Parent = props.BaseModel

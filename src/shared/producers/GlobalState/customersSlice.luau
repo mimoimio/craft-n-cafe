@@ -65,7 +65,7 @@ local actions = {
 			playerId,
 			Update(playersCustomers, index, function(customer: Types.CustomerEntity)
 				local new = table.clone(customer)
-				new.drinkIds = payload.drinkIds
+				new.drinkEntities = payload.drinkEntities
 				new.customerAction = "queuing"
 				new.actionStartTime = payload.timestamp
 				return new
@@ -98,8 +98,41 @@ local actions = {
 			playerId,
 			Update(playersCustomers, index, function(customer: Types.CustomerEntity)
 				local new = table.clone(customer)
-				new.drinkIds = nil
+				new.drinkEntities = nil
 				new.customerAction = "paid"
+				new.actionStartTime = payload.timestamp
+				return new
+			end)
+		)
+	end,
+	customerLeaveEmptyHanded = function(
+		state: CustomersState,
+		playerId: string,
+		payload: { customerUid: string, timestamp: number }
+	)
+		local playersCustomers = state[playerId]
+		if not playersCustomers then
+			return state
+		end
+
+		local index
+		for i, customer in playersCustomers do
+			if customer.id == payload.customerUid then
+				index = i
+				break
+			end
+		end
+		if not index then
+			return state
+		end
+
+		return Set(
+			state,
+			playerId,
+			Update(playersCustomers, index, function(customer: Types.CustomerEntity)
+				local new = table.clone(customer)
+				new.drinkEntities = nil
+				new.customerAction = "emptyHanded"
 				new.actionStartTime = payload.timestamp
 				return new
 			end)

@@ -8,6 +8,7 @@ local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local SoundController = require(ReplicatedStorage.Shared.Controllers.SoundController)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 local SmallText = require(script.Parent.ui.SmallText)
+local HStack = require(script.Parent.ui.HStack)
 
 local e = React.createElement
 local useState = React.useState
@@ -188,13 +189,56 @@ local function SlotNode(props: {
 		local adornee = props.Instance:FindFirstChild("PlacedItem") or props.Instance
 		local config = CoffeeModule.Config[drink.drinkId]
 		local displayname = config and config.DisplayName
+		local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConfig)
+		local variation = drink.variationId and VariationsConfig[drink.variationId] or nil
 
+		local VariationLabel = variation
+				and e(SmallText, {
+					TextXAlignment = Enum.TextXAlignment.Center,
+					BackgroundTransparency = 1,
+					Text = variation.DisplayName,
+					TextColor3 = variation.ColorPrimary or Color3.new(1, 1, 1),
+					TextSize = 18,
+					TextTruncate = Enum.TextTruncate.SplitWord,
+					Active = false,
+					ZIndex = 20,
+					LayoutOrder = 1,
+				}, {
+					UIStroke = e("UIStroke", {
+						Thickness = 4,
+						Color = Color3.new(0.070588, 0.070588, 0.168627),
+					}, {
+
+						UIGradient = e("UIGradient", {
+							Color = ColorGradient,
+							Rotation = 78,
+						}),
+					}),
+					UIGradient = e("UIGradient", {
+						Color = ColorGradient,
+						Rotation = 69,
+					}),
+					UIPadding = e("UIPadding", {
+						PaddingTop = UDim.new(0, 4),
+						PaddingBottom = UDim.new(0, 4),
+						PaddingLeft = UDim.new(0, 4),
+						PaddingRight = UDim.new(0, 4),
+					}),
+				})
+			or nil
 		return e("ScreenGui", nil, {
-			label = on and e(SmallText, {
-				TextXAlignment = Enum.TextXAlignment.Center,
-				Text = `{displayname}: {config.Price}$`,
+			label = on and e(HStack, {
+				Size = UDim2.new(1, 0, 0, 0),
 				Position = UDim2.new(0.5, 0, 1, -80),
 				AnchorPoint = Vector2.new(0.5, 0),
+				HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			}, {
+				VariationLabel = VariationLabel,
+				NameAndPrice = e(SmallText, {
+					LayoutOrder = 2,
+					TextXAlignment = Enum.TextXAlignment.Center,
+					Text = `{displayname}: {variation and (variation.Multiplier * config.Price) or config.Price}$`,
+				}),
 			}),
 			highlight = on and e("Highlight", {
 				Adornee = props.Instance:FindFirstChildWhichIsA("Model"),
@@ -207,7 +251,7 @@ local function SlotNode(props: {
 				Size = UDim2.new(0, 60, 0, 30),
 				StudsOffsetWorldSpace = Vector3.new(0, 1.5, 0),
 				AlwaysOnTop = true,
-				MaxDistance = 20,
+				MaxDistance = 25,
 			}, {
 				Label = e(SmallText, {
 					TextXAlignment = Enum.TextXAlignment.Center,

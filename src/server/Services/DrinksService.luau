@@ -1,10 +1,16 @@
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
+local Types = require(ReplicatedStorage.Shared.Types)
 
-local un
+local function getVariation(): Types.VariationConfig
+	local VariationService = require(ServerScriptService.Server.Services.VariationService)
+
+	return VariationService.GetVariation()
+end
 
 local DrinksService = {}
 
@@ -53,11 +59,13 @@ function DrinksService.MixDrink(player: Player, drinkId: string, mixer: string)
 		end
 	end
 
+	local variation = getVariation()
 	GlobalState.mixDrink(playerId, {
 		drinkId = drinkId,
 		ingredients = ingredients,
 		mixer = mixer,
 		startTime = workspace:GetServerTimeNow(),
+		variationId = variation and variation.VariationId or nil,
 	})
 end
 function DrinksService.PickUpDrink(player: Player, mixer: string)
@@ -102,6 +110,7 @@ function DrinksService.PickUpDrink(player: Player, mixer: string)
 		id = HttpService:GenerateGUID(),
 		drinkId = mixerDrink,
 		stock = config.InitialStock,
+		variationId = targetMixer.variationId,
 		mixer = mixer,
 	})
 end

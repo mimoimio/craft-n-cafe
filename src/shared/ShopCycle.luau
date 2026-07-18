@@ -4,6 +4,8 @@ local Types = require(ReplicatedStorage.Shared.Types)
 local ShopCycle = {}
 
 -- CONFIG
+-- local SMALL_CYCLE_DURATION = 1 * 5
+-- local CYCLES_PER_BIG_CYCLE = 2
 local SMALL_CYCLE_DURATION = 5 * 60 -- 5 mins
 local CYCLES_PER_BIG_CYCLE = 6 -- 6 rotations
 local BIG_CYCLE_DURATION = CYCLES_PER_BIG_CYCLE * SMALL_CYCLE_DURATION
@@ -11,6 +13,10 @@ local BIG_CYCLE_DURATION = CYCLES_PER_BIG_CYCLE * SMALL_CYCLE_DURATION
 ShopCycle.SMALL_CYCLE_DURATION = SMALL_CYCLE_DURATION
 ShopCycle.CYCLES_PER_BIG_CYCLE = CYCLES_PER_BIG_CYCLE
 ShopCycle.BIG_CYCLE_DURATION = BIG_CYCLE_DURATION
+
+-- rules for seed:
+-- when stored as key in a dictionary, use type string, cuz it WILL be turned into string cuz of lua or something. tostring(seed)
+-- when stored as value, or used as value, always use type number. tonumber(seed)
 
 function ShopCycle.getCurrentState(): Types.ShopCycle
 	local currentTime = workspace:GetServerTimeNow() -- UTC Timestamp

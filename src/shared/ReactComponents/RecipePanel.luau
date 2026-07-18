@@ -347,7 +347,6 @@ local function RecipeDetail(props: {
 end
 
 local function RecipePanel(props: {
-	visible: boolean,
 	onClose: () -> (),
 })
 	local selected, setSelected = useState(RECIPES[1])
@@ -374,6 +373,10 @@ local function RecipePanel(props: {
 		local unsub = UIState:subscribe(function(state: UIState.UIState)
 			setVisible(state.panel == "recipe")
 		end)
+		local panel = UIState:getState().panel
+		if panel then
+			setVisible(panel == "recipe")
+		end
 		return unsub
 	end, {})
 	local function navigateRecipe(direction: number)

@@ -17,9 +17,20 @@ local e = React.createElement
 local useState = React.useState
 local useEffect = React.useEffect
 
-local function ConsoleApp(props)
+local function ConsoleApp()
 	local text, setText = useState("Hello")
-	local currentGlobalState = props.state
+	local state, setState = useState(nil)
+	local currentGlobalState = state
+	-- Keep global state in sync
+	useEffect(function()
+		local unsub = GlobalState:subscribe(function(newState)
+			setState(newState)
+		end)
+
+		setState(GlobalState:getState())
+
+		return unsub
+	end, {})
 	useEffect(function()
 		if not currentGlobalState then
 			return
@@ -31,11 +42,11 @@ local function ConsoleApp(props)
 				local results = {}
 				for k, v in value do
 					if type(v) == "table" then
-						table.insert(results, string.format("%s%s: {", indent, tostring(k)))
+						table.insert(results, string.format("%s%s (%s): {", indent, tostring(k), type(k)))
 						table.insert(results, formatValue(v, depth + 1))
 						table.insert(results, indent .. "}")
 					else
-						table.insert(results, string.format("%s%s: %s,", indent, tostring(k), tostring(v)))
+						table.insert(results, string.format("%s%s (%s): %s(%s),", indent, tostring(k), type(k), tostring(v), type(v)))
 					end
 				end
 				return table.concat(results, "\n")
@@ -46,11 +57,11 @@ local function ConsoleApp(props)
 
 		local lines = {}
 		for key, slice in currentGlobalState do
-			table.insert(lines, string.format("%s:", key))
+			table.insert(lines, string.format("%s (%s):", key, type(key)))
 			if type(slice) == "table" then
 				for k, v in slice do
 					if type(v) == "table" then
-						table.insert(lines, string.format("\t%s: {", tostring(k)))
+						table.insert(lines, string.format("\t%s (%s): {", tostring(k), tostring(type(k))))
 						table.insert(lines, formatValue(v, 2))
 						table.insert(lines, "\t}")
 					else

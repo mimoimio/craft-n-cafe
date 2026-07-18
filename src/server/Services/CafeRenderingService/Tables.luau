@@ -1,4 +1,5 @@
 -- Server/Services/CafeRenderingService/Tables.luau
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local React = require(ReplicatedStorage.Packages.React)
@@ -7,6 +8,7 @@ local useState = React.useState
 local useEffect = React.useEffect
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local CafeTypes = require(game.ReplicatedStorage.Shared.CafeTypes) -- = require(script.Parent.CafeTypes)
+local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConfig)
 
 -- 1. THE SLOT COMPONENT
 local function SlotComponent(
@@ -74,9 +76,42 @@ local function SlotComponent(
 			if placePart then
 				clone:PivotTo(placePart.CFrame)
 			end
+			local modelBasePart = clone:FindFirstChildWhichIsA("BasePart", true)
 
+			-- no need to unanchor on table
+			-- for _, descendant in clone:GetDescendants() do
+			-- 	if descendant:IsA("BasePart") then
+			-- 		descendant.Anchored = false
+			-- 	end
+			-- end
+
+			if drinkData.variationId then
+				local variation = VariationsConfig[drinkData.variationId]
+				if variation then
+					for _, descendant: BasePart in clone:GetDescendants() do
+						if descendant:IsA("BasePart") and variation.ColorPrimary then
+							descendant.Color = variation.ColorPrimary
+						end
+						if descendant:IsA("UnionOperation") then
+							descendant.UsePartColor = true
+						end
+					end
+				end
+				local part = ReplicatedStorage.Shared.Particles:FindFirstChild(drinkData.variationId)
+				if part then
+					part = part:Clone()
+					part.Transparency = 1
+					part.CanCollide = false
+					part.Massless = true
+					part:PivotTo(clone:GetPivot() + Vector3.new(0, 1, 0))
+					part.Parent = modelBasePart
+					local weld = Instance.new("WeldConstraint")
+					weld.Part0 = part
+					weld.Part1 = modelBasePart
+					weld.Parent = part
+				end
+			end
 			clone.Parent = props.SlotInstance
-
 			return function()
 				clone:Destroy()
 			end

@@ -11,9 +11,7 @@ local e = React.createElement
 local player = game.Players.LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
 
-local function MixerManager(props: {
-	onInteract: (mixerName: string) -> (),
-})
+local function MixerManager(props)
 	local mixersState, setMixersState = React.useState({})
 	local mixerInstances, setMixerInstances = React.useState({})
 
@@ -66,7 +64,6 @@ local function MixerManager(props: {
 			MixerName = mixerName,
 			MixerData = mixerData,
 			Instance = mixerInstances[mixerName], -- Inject the physical instance
-			onInteract = props.onInteract,
 		})
 	end
 

@@ -1,5 +1,6 @@
 -- ShopService.luau
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
@@ -10,7 +11,8 @@ local ShopCycle = require(ReplicatedStorage.Shared.ShopCycle)
 local ShopService = {}
 
 -- Generates a shop predeterministically based on the cycle seed
-function ShopService.GenerateDeterministicShop(seed: string): Types.ShopEntity
+function ShopService.GenerateDeterministicShop(seed: number): Types.ShopEntity
+	local seedString = tostring(seed) or "0"
 	local seedNumber = tonumber(seed) or 0
 	local rng = Random.new(seedNumber)
 	local shopEntity = {}
@@ -55,10 +57,13 @@ function ShopService.BuyIngredient(player: Player, ingredientId: string)
 	end
 
 	local currentSeed = playerShopState.currentSeed
-	local currentShop = playerShopState.shops[currentSeed]
+	local seedString = tostring(currentSeed)
+
+	-- retrieving seed from player's shops dictionary. Since it's a key, use string
+	local currentShop = playerShopState.shops[seedString]
 
 	if not currentShop then
-		warn(`BuyIngredient Failed: No active shop for seed {currentSeed}`)
+		warn(`BuyIngredient Failed: No active shop for seed {seedString}`)
 		return
 	end
 
@@ -126,12 +131,13 @@ function ShopService.initialize()
 	-- Spin up a background thread to watch for seed changes!
 	task.spawn(function()
 		local currentSeed = nil
+		local VariationService = require(ServerScriptService.Server.Services.VariationService)
 
 		while true do
 			-- Assuming your ShopCycle module has a way to get the active cycle data
 			-- Adjust the function call to match exactly how your ShopCycle module works
 			local activeCycle = ShopCycle.getCurrentState()
-			local newSeed = tostring(activeCycle.seed)
+			local newSeed = activeCycle.seed
 
 			if currentSeed ~= newSeed then
 				if currentSeed ~= nil then
@@ -141,9 +147,12 @@ function ShopService.initialize()
 
 					local state = GlobalState:getState()
 
+					local variation = VariationService.GetCurrentVariationEvent()
+
 					-- Dispatch the refresh action for every player currently in the session
 					for playerId, _ in state.Shop do
 						GlobalState.refreshShop(playerId, {
+							variationEvent = variation and variation.VariationId or nil,
 							newestShop = newShopBlueprint,
 							newestSeed = newSeed,
 						})

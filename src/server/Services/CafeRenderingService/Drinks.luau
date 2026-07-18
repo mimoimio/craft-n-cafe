@@ -7,6 +7,7 @@ local React = require(ReplicatedStorage.Packages.React)
 local Reflex = require(ReplicatedStorage.Packages.Reflex)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local Types = require(ReplicatedStorage.Shared.Types)
+local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConfig)
 
 local e = React.createElement
 local useEffect = React.useEffect
@@ -73,6 +74,36 @@ local function buildDrinkTool(player: Player, drink: DrinkEntity): Tool?
 	for _, descendant in clonedModel:GetDescendants() do
 		if descendant:IsA("BasePart") then
 			descendant.Anchored = false
+		end
+	end
+
+	if drink.variationId then
+		local variation = VariationsConfig[drink.variationId]
+		if variation then
+			for _, descendant: BasePart in clonedModel:GetDescendants() do
+				if descendant:IsA("BasePart") and variation.ColorPrimary then
+					descendant.Color = variation.ColorPrimary
+				end
+				if descendant:IsA("UnionOperation") then
+					descendant.UsePartColor = true
+				end
+			end
+		end
+
+		local part = ReplicatedStorage.Shared.Particles:FindFirstChild(drink.variationId)
+
+		if part then
+			part = part:Clone() :: Part
+			part.Transparency = 1
+			part.CanCollide = false
+			part.Massless = true
+			part.Anchored = false
+			part:PivotTo(clonedModel:GetPivot() + Vector3.new(0, 1, 0))
+			part.Parent = modelBasePart
+			local weld = Instance.new("WeldConstraint")
+			weld.Part0 = part
+			weld.Part1 = modelBasePart
+			weld.Parent = part
 		end
 	end
 

@@ -11,10 +11,18 @@ local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local Types = require(ReplicatedStorage.Shared.Types)
 local CafeTypes = require(ReplicatedStorage.Shared.CafeTypes)
 local CustomersService = require(ServerScriptService.Server.Services.CustomersService)
+local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConfig)
 
 local e = React.createElement
 local useEffect = React.useEffect
 local useState = React.useState
+
+local disappointed = {
+	"Where are the drinks?",
+	"I'm thirsty...",
+	"I thought this place sell drinks",
+	-- "KILL YOURSELF",
+}
 
 local function getPlayer(playerId: string): Player?
 	local userId = tonumber(playerId)
@@ -50,6 +58,7 @@ local function Customer(props: {
 		end
 
 		setRig(clone)
+		clone.TriggerPrompt.MaxActivationDistance = 15
 		setPrompt(clone.TriggerPrompt)
 
 		local entranceCF = props.BaseModel.Entrance:GetPivot()
@@ -68,7 +77,7 @@ local function Customer(props: {
 			targetCF = cashierCF + lineOffset
 			-- Make them face the cashier
 			targetCF = CFrame.lookAt(targetCF.Position, cashierCF.Position)
-		elseif action == "paid" then
+		elseif action == "paid" or action == "emptyHanded" then
 			-- Start them right at the cashier so they can begin their walk out
 			targetCF = cashierCF + (cashierCF.LookVector * 4)
 		end
@@ -127,7 +136,7 @@ local function Customer(props: {
 			prompt.Enabled = (props.numberInLine == 1)
 			local lineOffset = cashierCF.LookVector * (4 * (props.numberInLine or 1))
 			targetPos = cashierCF.Position + lineOffset
-		elseif action == "paid" then
+		elseif action == "paid" or action == "emptyHanded" then
 			prompt.Enabled = false
 			targetPos = entranceCF.Position
 		end
@@ -135,7 +144,10 @@ local function Customer(props: {
 		if action == "queuing" or action == "paid" then
 			holdingAnimationThread = task.spawn(function()
 				local animation = ReplicatedStorage.Shared.Animations:FindFirstChild("HoldCup")
-				while true do -- i dont know how to use animation with the predefined animate script from the rig, so i just keep this on loop
+				while true do
+					-- i dont know how to use animation with the predefined animate script from the rig, so i just keep this on loop
+					--  18:09:02.221  Failed to play animation: rbxassetid://98425830114541. AnimationTrack limit of 64 tracks exceeded for '78f1d549-4714-4cc9-88ff-2770385f77ea', new animations will not be played.  -  Studio
+					-- now how do i deal with this
 					if not (rig and rig.Parent) then
 						return
 					end
@@ -204,14 +216,18 @@ local function Customer(props: {
 	end, { rig, prompt, props.Customer.customerAction, props.numberInLine, props.BaseModel, props.CafeModel })
 	local paid = props.Customer.customerAction and props.Customer.customerAction == "paid"
 	useEffect(function()
-		local drinkIds = props.Customer.drinkIds
-		if not (rig and drinkIds and #drinkIds > 0) then
+		local drinkEntities = props.Customer.drinkEntities
+		if not (rig and drinkEntities and #drinkEntities > 0) then
 			return
 		end
 
 		local instances = {}
 
-		for i, drinkId in drinkIds do
+		for i, drink: {
+			drinkId: string,
+			variationId: string,
+		} in drinkEntities do
+			local drinkId = drink.drinkId
 			local drinkModel = ReplicatedStorage.Shared.Models:FindFirstChild(drinkId)
 			if not drinkModel then
 				drinkModel = Instance.new("Model")
@@ -234,6 +250,42 @@ local function Customer(props: {
 					continue
 				end
 				part:SetNetworkOwner(nil)
+			end
+
+			for _, descendant in drinkModel:GetDescendants() do
+				if descendant:IsA("BasePart") then
+					descendant.Anchored = false
+				end
+			end
+			local modelBasePart = drinkModel:FindFirstChildWhichIsA("BasePart", true)
+
+			if drink.variationId then
+				local variation = VariationsConfig[drink.variationId]
+				if variation then
+					for _, descendant: BasePart in drinkModel:GetDescendants() do
+						if descendant:IsA("BasePart") and variation.ColorPrimary then
+							descendant.Color = variation.ColorPrimary
+						end
+						if descendant:IsA("UnionOperation") then
+							descendant.UsePartColor = true
+						end
+					end
+				end
+				local part = ReplicatedStorage.Shared.Particles:FindFirstChild(drink.variationId)
+				if part then
+					part = part:Clone()
+					part.Transparency = 1
+					part.CanCollide = false
+					part.Anchored = false
+					part.Massless = true
+					part:PivotTo(drinkModel:GetPivot() + Vector3.new(0, 1, 0))
+					part.Parent = modelBasePart
+					part:SetNetworkOwner(nil)
+					local weld = Instance.new("WeldConstraint")
+					weld.Part0 = part
+					weld.Part1 = modelBasePart
+					weld.Parent = part
+				end
 			end
 
 			local primaryPart = drinkModel.PrimaryPart
@@ -266,6 +318,14 @@ local function Customer(props: {
 		game:GetService("Chat"):Chat(rig.Head, "THANKS")
 		return
 	end, { rig, paid })
+	local emptyHanded = props.Customer.customerAction == "emptyHanded"
+	useEffect(function()
+		if not (rig and emptyHanded) then
+			return
+		end
+		game:GetService("Chat"):Chat(rig.Head, disappointed[Random.new():NextInteger(1, #disappointed)])
+		return
+	end, { rig, emptyHanded })
 
 	return e(React.Fragment)
 end
@@ -317,7 +377,7 @@ local function Customers(props: {
 				BaseModel = props.BaseModel,
 			}
 
-			if customer.drinkIds then
+			if customer.drinkEntities then
 				customerProps.numberInLine = numberInLine
 				numberInLine += 1
 			end

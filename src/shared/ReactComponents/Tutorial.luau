@@ -1,7 +1,9 @@
 -- Shared/ReactComponents/Tutorial.luau
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CollectionService = game:GetService("CollectionService")
 local React = require(ReplicatedStorage.Packages.React)
 local Reflex = require(ReplicatedStorage.Packages.Reflex)
+local Promise = require(ReplicatedStorage.Packages.Promise)
 local e = React.createElement
 local useEffect = React.useEffect
 local Toasts = require(ReplicatedStorage.Shared.ReactComponents.Toasts)
@@ -41,8 +43,11 @@ local getEspressoBought = function()
 	if not (playersIngredients.espresso and playersIngredients.espresso > 0) then
 		return false
 	end
-	-- warn("EspressoBought")
 	return true
+end
+local getIsShopPanel = function()
+	local state: UIState.UIState = UIState:getState()
+	return state.panel == "ingredientShop"
 end
 local getMixerNodePromptShown = function()
 	local state: UIState.UIState = UIState:getState()
@@ -164,6 +169,7 @@ end
 local selectEverything: () -> Everything = Reflex.createSelector(
 	{
 		getEspressoBought,
+		getIsShopPanel,
 		getMixerNodePromptShown,
 		getIsMixerPanel,
 		getIsEspressoInserted,
@@ -177,6 +183,7 @@ local selectEverything: () -> Everything = Reflex.createSelector(
 	},
 	function(
 		EspressoBought,
+		IsShopPanel,
 		MixerNodePromptShown,
 		IsMixerPanel,
 		IsEspressoInserted,
@@ -188,9 +195,9 @@ local selectEverything: () -> Everything = Reflex.createSelector(
 		ACustomerQueuing,
 		PlayerTendedCustomer
 	)
-		-- warn("selectEverything")
 		return {
 			EspressoBought = EspressoBought,
+			IsShopPanel = IsShopPanel,
 			MixerNodePromptShown = MixerNodePromptShown,
 			IsMixerPanel = IsMixerPanel,
 			IsEspressoInserted = IsEspressoInserted,
@@ -205,25 +212,7 @@ local selectEverything: () -> Everything = Reflex.createSelector(
 	end
 )
 
--- local React = require(ReplicatedStorage.Shared.ReactComponents)
-
 local function Tutorial(props)
-	--[[
-    ladder step, condition/check, action/render
-    1) Player buys an "espresso" ingredient     | Ingredients.espresso and > 1              | highlight in IngredientShopPanel
-    2) Player go to the mixer                   | MixerNode's PromptShown                   | "Go to mixer" if already then "Click to open"
-    3) Player open the mixer panel              | UIState.panel == "mixer"                  | "Tap espresso to craft"
-    4) Player insert the ingredient             | MixerPanel's ingredients has "espresso"   |  "Tap Craft to craft"
-    5) Player clicks the Craft button           | mixer.drinkId ~= "none"                   | "Wait until done."
-    6) Player waits a bit                       |  now > mixer.StartTime + Duration         | "Pick up the espresso"
-    7) Player click the prompt to pick up       | #Drinks > 0                               | "Go to a table to place espresso"
-    8) Player goes to a table                   | PromptShown from SlotNode                 | "Tap to place"
-    9) Player places a drink                    | Check if any table has any slots filled   | "Wait for a customer to buy the drink!" and ToggleCafeOpen:FireServer()
-    10) Player wait for a customer to checkout  | any customer.customerAction == "queuing"  | "Tap to tend the customers!"
-    11) Player tends the customer               | stats.totalCustomer > 1                   | "Tutorial Complete!"
-
-    then fire server to toggle CafeOpen if isn't already open
-    ]]
 	local toast = useToast()
 	local everything: Everything, setEveryting = useState(nil)
 	local tutorialCompleted, setTutorialCompleted = useState(nil)
@@ -237,9 +226,13 @@ local function Tutorial(props)
 	local arrowTarget, setArrowTarget = useState(nil)
 	local time, setTime = useBinding(workspace:GetServerTimeNow())
 
+	-- New State to hold the dynamically resolved Mixer instance
+	local mixerInstance, setMixerInstance = useState(nil)
+	local tableInstance, setTableInstance = useState(nil)
+
 	useEffect(function()
 		local t = task.spawn(function()
-			while task.wait(1 / 30) do
+			while task.wait() do
 				setTime(workspace:GetServerTimeNow())
 			end
 		end)
@@ -280,7 +273,6 @@ local function Tutorial(props)
 		end
 		local t = task.spawn(function()
 			while task.wait(0.5) do
-				-- warn("selecting everything")
 				setEveryting(selectEverything({}))
 			end
 		end)
@@ -298,10 +290,8 @@ local function Tutorial(props)
 			return
 		end
 		if not everything then
-			-- warn("not everything")
 			return
 		end
-		-- 11) See if player already got a customer paid
 		if everything.PlayerTendedCustomer then
 			setStep(10)
 			setText(`Congrats, you completed the tutorial! Have Fun!`, 10)
@@ -326,78 +316,173 @@ local function Tutorial(props)
 			if not open then
 				Remotes.ToggleCafeOpen:FireServer()
 			end
-			-- setText(`ATableSlotFilled`)
 			setStep(9)
 			setText("Wait until a customer comes in")
 			return
 		end
 		if everything.IsDrinkPickedUp and everything.TableSlotNodeShown then
-			-- setText(`TableSlotNodeShown`)
 			setStep(8)
 			setText("Place it.")
 			return
 		end
 
 		if everything.IsDrinkPickedUp then
-			-- setText(`IsDrinkPickedUp`)
 			setText("Go to the table to place")
 			setStep(7)
 			return
 		end
 		if everything.DrinkBrewed then
-			-- setText(`DrinkBrewed`)
 			setStep(6)
 			setText("Pick it up")
 			return
 		end
 
 		if everything.IsMixerFilled then
-			-- setText(`IsMixerFilled`)
 			setStep(5)
 			setText("Wait until the mixer is done")
 			return
 		end
 
 		if everything.IsEspressoInserted then
-			-- setText(`IsEspressoInserted`)
 			setStep(4)
 			setText("Click Craft")
 			return
 		end
 
 		if everything.EspressoBought and everything.IsMixerPanel then
-			-- setText(`IsMixerPanel`)
 			setStep(4)
 			setText("Click on the espresso to craft")
 			return
 		end
 		if everything.EspressoBought and everything.MixerNodePromptShown then
-			-- setText(`MixerNodePromptShown`)
 			setStep(3)
 			setText("Open the mixer")
 			return
 		end
 
 		if everything.EspressoBought then
-			-- setText(`EspressoBought`)
 			setStep(2)
-			setText("Go to your mixer")
+			setText("Close shop and go to your mixer")
 			return
 		end
 
+		if everything.IsShopPanel then
+			setStep(1.1) -- additional. I dont bother to restep everything else
+			setText("Click espresso and buy it")
+			return
+		end
 		setStep(1)
 		setText("Open the shop and Buy an Espresso")
 
-		return function()
-			--
-		end
+		return
 	end, { everything })
+
+	-- Resolve the Mixer instance asynchronously using CollectionService tags
+	useEffect(function()
+		if (step == 2 or step == 3 or step == 6) and not mixerInstance then
+			local promise = Promise.defer(function(resolve, reject)
+				local tag = "Mixer" .. playerId
+
+				-- 1. Check if the instance is already loaded and tagged
+				for _, inst in CollectionService:GetTagged(tag) do
+					if inst.Name == "Mixer1" then
+						return resolve(inst)
+					end
+				end
+
+				-- 2. If not, wait for it to be added by CafeRenderingService
+				local conn
+				conn = CollectionService:GetInstanceAddedSignal(tag):Connect(function(inst)
+					if inst.Name == "Mixer1" then
+						conn:Disconnect()
+						resolve(inst)
+					end
+				end)
+
+				-- 3. Fail-safe timeout
+				task.delay(10, function()
+					if promise:getStatus() == Promise.Status.Started then
+						if conn and conn.Connected then
+							conn:Disconnect()
+						end
+						reject("Timeout waiting for Mixer1 replication via CollectionService")
+					end
+				end)
+			end)
+
+			promise
+				:andThen(function(resolvedMixer)
+					setMixerInstance(resolvedMixer)
+					setArrow({
+						rotation = 0,
+						positionFromTarget = UDim2.new(0, 0, 0, -100),
+					})
+					setArrowTarget(nil)
+				end)
+				:catch(function(err)
+					warn(`[Tutorial] Failed to resolve Mixer1: {err}`)
+				end)
+
+			return function()
+				promise:cancel()
+			end
+		end
+	end, { step, mixerInstance, playerId })
+
+	-- Resolve the table instance asynchronously using CollectionService tags
+	useEffect(function()
+		if (step == 2 or step == 3 or step == 6) and not mixerInstance then
+			local promise = Promise.defer(function(resolve, reject)
+				local tag = "Table" .. playerId
+
+				-- 1. Check if the instance is already loaded and tagged
+				for _, inst in CollectionService:GetTagged(tag) do
+					if inst.Name == "Table1" then
+						return resolve(inst)
+					end
+				end
+
+				-- 2. If not, wait for it to be added by CafeRenderingService
+				local conn
+				conn = CollectionService:GetInstanceAddedSignal(tag):Connect(function(inst)
+					if inst.Name == "Table1" then
+						conn:Disconnect()
+						resolve(inst)
+					end
+				end)
+
+				-- 3. Fail-safe timeout
+				task.delay(10, function()
+					if promise:getStatus() == Promise.Status.Started then
+						if conn and conn.Connected then
+							conn:Disconnect()
+						end
+						reject("Timeout waiting for Table1 replication via CollectionService")
+					end
+				end)
+			end)
+
+			promise
+				:andThen(function(resolvedMixer)
+					setTableInstance(resolvedMixer)
+					setArrow({
+						rotation = 0,
+						positionFromTarget = UDim2.new(0, 0, 0, -100),
+					})
+					setArrowTarget(nil)
+				end)
+				:catch(function(err)
+					warn(`[Tutorial] Failed to resolve Table1: {err}`)
+				end)
+			return function()
+				promise:cancel()
+			end
+		end
+	end, { step, tableInstance, playerId })
 
 	-- action
 	useEffect(function()
 		if step == 1 then
-			-- arrow to shop button
-
 			local unsub = UIState:subscribe(function(state: UIState.UIState)
 				local shopButton = state.shopButton
 				setArrowTarget(shopButton)
@@ -405,18 +490,20 @@ local function Tutorial(props)
 			local shopButton = UIState:getState().shopButton
 			setArrowTarget(shopButton)
 			setArrow({
-				rotation = 90, -- the arrow image is down, rotate to left
-				positionFromTarget = UDim2.fromOffset(100, 0), -- 50, 50 size
+				rotation = 90,
+				positionFromTarget = UDim2.fromOffset(100, 0),
 			})
-			return unsub
+			return function()
+				unsub()
+			end
 		elseif step == 2 or step == 3 then
-			-- highlight the mixer instance
+			-- Handled natively via the ScreenGui Highlight below
 		elseif step == 4 then
 			--
 		elseif step == 5 then
 			--
 		elseif step == 6 then
-			-- highlight the mixer instance
+			-- Handled natively via the ScreenGui Highlight below
 		elseif step == 7 then
 			-- highlight the table instance
 		elseif step == 8 then
@@ -425,52 +512,170 @@ local function Tutorial(props)
 			--
 		elseif step == 10 then
 			-- highlight the customer instance
-			-- local unsub = UIState:subscribe(function(state: UIState.UIState)
-			-- 	local customerInstance = state.firstCustomerInstance
-			-- end)
 			return function() end
 		end
 		return
 	end, { step })
 
-	local positionFromTarget = (arrow and arrow.positionFromTarget or UDim2.new())
-	local targetAbsolutePosition: Vector2 = arrowTarget and arrowTarget.AbsolutePosition or Vector2.new()
-	local targetPosition = UDim2.fromOffset(targetAbsolutePosition.X, targetAbsolutePosition.Y)
-	local arrowPosition = (positionFromTarget + targetPosition) or nil
-	local arrowRotation = arrow and arrow.rotation or nil
-
+	-- This now calculates the arrow target position continuously!
 	local positionMap = useCallback(function(t)
-		return arrowPosition + UDim2.fromOffset(math.sin(t * 5) * 50, 0)
-	end, { arrowPosition })
+		local rot = arrow and arrow.rotation
+		if not rot then
+			return UDim2.new()
+		end
 
-	return e("ScreenGui", {}, {
-		e("ImageLabel", {
-			Size = UDim2.new(0.5, 0, 0, 40),
-			AutomaticSize = Enum.AutomaticSize.XY,
-			Position = UDim2.new(0.5, 0, 1, -100),
-			AnchorPoint = Vector2.new(0.5, 1),
-			Image = "rbxassetid://127657596958436",
-			ImageColor3 = Color3.new(0.768627, 0.549019, 0.549019),
-			ScaleType = Enum.ScaleType.Slice,
-			SliceCenter = Rect.new(8, 8, 92, 92),
-			BackgroundTransparency = 1,
-		}, {
-			e(SmallText, {
-				Size = UDim2.new(1, 0, 1, 0),
-				Text = text,
-				TextXAlignment = Enum.TextXAlignment.Center,
-				TextYAlignment = Enum.TextYAlignment.Center,
-			}),
-		}),
-		e("ImageLabel", {
-			Size = UDim2.new(0, 50, 0, 50),
-			AutomaticSize = Enum.AutomaticSize.XY,
-			BackgroundTransparency = 1,
-			Position = time:map(positionMap),
-			Rotation = arrowRotation,
-			Image = "rbxassetid://8152628560",
-		}),
-	})
+		-- Dynamically fetch AbsolutePosition here so it perfectly tracks moving UI elements!
+		local currentAbsPos = arrowTarget and arrowTarget.AbsolutePosition or Vector2.new()
+		local posFromTarget = arrow and arrow.positionFromTarget or UDim2.new()
+
+		-- Combine them into our base position
+		local basePos = UDim2.fromOffset(currentAbsPos.X, currentAbsPos.Y) + posFromTarget
+
+		local xMag, yMag = math.cos((rot - 90) * math.pi / 180), math.sin((rot - 90) * math.pi / 180)
+		return basePos + UDim2.fromOffset(math.sin(t * 5) * xMag * 50, math.sin(t * 5) * yMag * 50)
+	end, { arrow, arrowTarget })
+
+	local arrowRotation = arrow and arrow.rotation or 0
+
+	-- Determine if the highlight should be visible right now
+	local showMixerHighlight = (step == 2 or step == 3 or step == 6) and mixerInstance ~= nil
+	local showTableHighlight = (step == 7 or step == 8) and tableInstance ~= nil
+
+	local textRef = useRef("")
+	useEffect(function()
+		textRef.current = text
+	end, { text })
+
+	local textMap = useCallback(function(t)
+		local finalTexts = {}
+		local originalText = textRef.current or ""
+		local length = string.len(originalText)
+		for i = 1, length do
+			local offset = (math.sin((t + i) * 5) + 1) * 2
+			table.insert(finalTexts, `<font size="{18 + offset // 1}">{string.sub(originalText, i, i)}</font>`)
+		end
+		return table.concat(finalTexts)
+	end, {})
+
+	return not tutorialCompleted
+			and e("ScreenGui", {
+				DisplayOrder = 1005,
+			}, {
+				-- The Dynamic Highlight
+				MixerHighlight = showMixerHighlight and e("Highlight", {
+					Adornee = mixerInstance:FindFirstChildWhichIsA("Model") or mixerInstance,
+					FillColor = Color3.new(1, 1, 1),
+					FillTransparency = 0.5,
+					OutlineColor = Color3.new(1, 1, 1),
+					OutlineTransparency = 0,
+				}),
+				TableHighlight = showTableHighlight and e("Highlight", {
+					Adornee = tableInstance or nil,
+					FillColor = Color3.new(1, 1, 1),
+					FillTransparency = 0.5,
+					OutlineColor = Color3.new(1, 1, 1),
+					OutlineTransparency = 0,
+				}),
+
+				-- Existing UI...
+				e("ImageLabel", {
+					Size = UDim2.new(0.5, 0, 0, 40),
+					AutomaticSize = Enum.AutomaticSize.XY,
+					Position = UDim2.new(0.5, 0, 1, -100),
+					AnchorPoint = Vector2.new(0.5, 1),
+					Image = "rbxassetid://127657596958436",
+					ImageTransparency = 0.6,
+					ImageColor3 = Color3.new(0.768627, 0.549019, 0.549019),
+					ScaleType = Enum.ScaleType.Slice,
+					SliceCenter = Rect.new(8, 8, 92, 92),
+					BackgroundTransparency = 1,
+				}, {
+					e(SmallText, {
+						RichText = true,
+						Size = UDim2.new(1, 0, 1, 0),
+						Text = time:map(textMap),
+						-- Font = Enum.Font.RobotoMono,
+						TextXAlignment = Enum.TextXAlignment.Center,
+						TextYAlignment = Enum.TextYAlignment.Center,
+						MaxTextSize = 24,
+					}),
+				}),
+
+				BBGui = step and (step == 2 or step == 3 or step == 6) and e("BillboardGui", {
+					Adornee = mixerInstance or nil,
+					AlwaysOnTop = true,
+					Size = UDim2.new(0, 1000, 0, 1000),
+				}, {
+					Holderer = e("Frame", {
+						Size = UDim2.new(0, 50, 0, 50),
+						Position = UDim2.new(0.5, 0, 0.5, 0),
+						BackgroundTransparency = 1,
+						AnchorPoint = Vector2.new(0.5, 0.5),
+					}, {
+						Holder = e("Frame", {
+							Size = UDim2.new(0, 50, 0, 50),
+							AutomaticSize = Enum.AutomaticSize.XY,
+							BackgroundTransparency = 1,
+							Position = time:map(positionMap),
+							-- Holder bc rotation only in imagelable
+						}, {
+							Arrow = e("ImageLabel", {
+								Size = UDim2.new(0, 50, 0, 50),
+								AutomaticSize = Enum.AutomaticSize.XY,
+								BackgroundTransparency = 1,
+								Rotation = arrowRotation,
+								Image = "rbxassetid://8152628560",
+							}),
+						}),
+					}),
+				}) or nil,
+				TableBBGui = showTableHighlight and e("BillboardGui", {
+					Adornee = tableInstance or nil,
+					AlwaysOnTop = true,
+					Size = UDim2.new(0, 1000, 0, 1000),
+				}, {
+					Holderer = e("Frame", {
+						Size = UDim2.new(0, 50, 0, 50),
+						Position = UDim2.new(0.5, 0, 0.5, 0),
+						BackgroundTransparency = 1,
+						AnchorPoint = Vector2.new(0.5, 0.5),
+					}, {
+						Holder = e("Frame", {
+							Size = UDim2.new(0, 50, 0, 50),
+							AutomaticSize = Enum.AutomaticSize.XY,
+							BackgroundTransparency = 1,
+							Position = time:map(positionMap),
+							-- Holder bc rotation only in imagelable
+						}, {
+							Arrow = e("ImageLabel", {
+								Size = UDim2.new(0, 50, 0, 50),
+								AutomaticSize = Enum.AutomaticSize.XY,
+								BackgroundTransparency = 1,
+								Rotation = arrowRotation,
+								Image = "rbxassetid://8152628560",
+							}),
+						}),
+					}),
+				}) or nil,
+				step and step == 1 and e("Frame", {
+					Size = UDim2.new(0, 50, 0, 50),
+					AutomaticSize = Enum.AutomaticSize.XY,
+					BackgroundTransparency = 1,
+					Position = time:map(positionMap),
+					Rotation = 0,
+					-- Holder bc rotation only in imagelable
+				}, {
+					e("ImageLabel", {
+						Size = UDim2.new(0, 50, 0, 50),
+						AutomaticSize = Enum.AutomaticSize.XY,
+						-- Position = time:map(positionMap),
+						BackgroundTransparency = 1,
+						Rotation = arrowRotation,
+						Image = "rbxassetid://8152628560",
+					}),
+				}),
+			})
+		or nil
 end
 
 return Tutorial

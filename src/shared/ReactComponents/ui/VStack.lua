@@ -34,6 +34,7 @@ local function VStack(props)
 		ImageColor3 = isImageLabel and props.BackgroundImageColor3 or nil,
 		ImageTransparency = isImageLabel and props.BackgroundImageTransparency or nil,
 		ScaleType = isImageLabel and props.ScaleType,
+		SliceCenter = isImageLabel and props.SliceCenter,
 		TileSize = isImageLabel and props.TileSize,
 		Rotation = props.Rotation,
 		ClipsDescendants = props.ClipsDescendants,
@@ -44,6 +45,7 @@ local function VStack(props)
 		LayoutOrder = props.LayoutOrder,
 		AnchorPoint = props.AnchorPoint,
 		Position = props.Position,
+		ZIndex = props.ZIndex,
 		Active = props.Active,
 		Visible = props.Visible,
 	}, elements)

@@ -10,7 +10,7 @@ local function TableNode(props: {
 	Instance: Instance?,
 })
 	if not props.Instance or not props.TableData or not props.TableData.Slots then
-		warn(`TableNode Failed: not {props.Instance} not {props.TableData} not {props.TableData.Slots}`)
+		-- warn(`TableNode Failed: not {props.Instance} not {props.TableData} not {props.TableData.Slots}`)
 		return nil
 	end
 

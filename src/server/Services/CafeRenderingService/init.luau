@@ -33,12 +33,14 @@ local function BasesManager()
 				local new = table.clone(prev)
 				local baseModels = workspace.Bases:GetChildren()
 
-				for _, base in baseModels do
+				for _, base: CafeTypes.CafeBase in baseModels do
 					local taken = new[base]
 					if taken then
 						continue
 					end
 					new[base] = playerId
+					base:SetAttribute("OwnerId", playerId)
+
 					-- break -- Assigns only one base per player observed
 					return new
 				end

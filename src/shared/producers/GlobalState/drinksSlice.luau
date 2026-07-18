@@ -42,6 +42,7 @@ local actions = {
 			id = payload.id,
 			drinkId = payload.drinkId,
 			stock = payload.stock,
+			variationId = payload.variationId,
 		})
 		return Set(state, playerId, newDrinks)
 	end,

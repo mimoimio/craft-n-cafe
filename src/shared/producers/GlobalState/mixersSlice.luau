@@ -32,10 +32,12 @@ local actions = {
 			return state
 		end
 		local mixerId: string = payload.mixer
-		local mixer = playersMixers[mixerId]
+		local oldMixer = playersMixers[mixerId]
 
+		local mixer = {}
 		mixer.drinkId = payload.drinkId
 		mixer.startTime = payload.startTime
+		mixer.variationId = payload.variationId
 
 		return Set(state, playerId, Set(playersMixers, mixerId, mixer))
 	end,

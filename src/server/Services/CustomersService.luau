@@ -4,9 +4,15 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
+local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConfig)
 
 local SPAWN_INTERVAL = 5
 local rng = Random.new()
+
+type CustomerDrink = {
+	drinkId: string,
+	variationId: string?,
+}
 
 -- Dictionary to track when we last spawned a customer for a player
 local lastSpawnTimes = {}
@@ -59,7 +65,10 @@ function CustomersService.CustomerTakeItems(playerId: string, customerUid: strin
 
 	local drinkLookup = {}
 	for i, drink in pairs(drinks) do
-		drinkLookup[drink.id] = drink.drinkId
+		drinkLookup[drink.id] = {
+			variationId = drink.variationId,
+			drinkId = drink.drinkId,
+		}
 	end
 
 	local availableDrinks = {}
@@ -68,9 +77,11 @@ function CustomersService.CustomerTakeItems(playerId: string, customerUid: strin
 			if drinkUid == "none" then
 				continue
 			end
+			local drink = drinkLookup[drinkUid]
 			table.insert(availableDrinks, {
 				drinkUid = drinkUid,
-				drinkId = drinkLookup[drinkUid],
+				drinkId = drink.drinkId,
+				variationId = drink.variationId,
 			})
 		end
 	end
@@ -91,11 +102,14 @@ function CustomersService.CustomerTakeItems(playerId: string, customerUid: strin
 	end
 
 	local drinksDeducted = {}
-	local drinkIds = {}
+	local drinkEntities = {}
 	for i = 1, drinkCount do
 		local drink = availableDrinks[i]
 		drinksDeducted[drink.drinkUid] = 1
-		table.insert(drinkIds, drink.drinkId)
+		table.insert(drinkEntities, {
+			drinkId = drink.drinkId,
+			variationId = drink.variationId,
+		})
 	end
 
 	local depletedDrinks = {}
@@ -108,7 +122,7 @@ function CustomersService.CustomerTakeItems(playerId: string, customerUid: strin
 
 	GlobalState.customerTakeItems(playerId, {
 		customerUid = customerUid,
-		drinkIds = drinkIds,
+		drinkEntities = drinkEntities,
 		drinksDeducted = drinksDeducted,
 		depletedDrinks = depletedDrinks,
 		timestamp = workspace:GetServerTimeNow(),
@@ -135,13 +149,17 @@ function CustomersService.TendCustomer(player: Player, uid: string)
 		end
 	end
 
-	if not (found and found.drinkIds) then
+	if not (found and found.drinkEntities) then
 		return
 	end
 
 	local total = 0
-	for i, drinkId in ipairs(found.drinkIds) do
-		total += getPrice(drinkId)
+	for i, customerDrink: CustomerDrink in ipairs(found.drinkEntities) do
+		local variationId = customerDrink.variationId
+		local variation = variationId and VariationsConfig[variationId] or nil
+		local mult = variation and variation.Multiplier or 1
+
+		total += getPrice(customerDrink.drinkId) * mult
 	end
 
 	GlobalState.playerReceivePayment(playerId, {
@@ -195,14 +213,13 @@ function CustomersService.initialize()
 							local success = CustomersService.CustomerTakeItems(playerId, customer.id)
 							if not success then
 								-- Cafe empty, they leave empty handed
-								GlobalState.playerReceivePayment(playerId, {
+								GlobalState.customerLeaveEmptyHanded(playerId, {
 									customerUid = customer.id,
-									Cash = 0,
 									timestamp = workspace:GetServerTimeNow(),
 								})
 							end
 						end
-					elseif customer.customerAction == "paid" then
+					elseif customer.customerAction == "paid" or customer.customerAction == "emptyHanded" then
 						-- Wait 2 seconds for visual cleanup before removing entity
 						if timeInState >= 2 then
 							GlobalState.removeCustomer(playerId, customer.id)

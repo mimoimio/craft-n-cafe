@@ -19,6 +19,10 @@ local HStack = require(Primitives.HStack)
 
 -- Point this to your new VFX setup
 local IngredientVFXContainer = require(script.Parent.IngredientVFXContainer)
+local CLOCK =
+	[[<font family="rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json"><b>clock</b></font>]]
+local STOCK =
+	[[<font family="rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json">three-stacked-squares-tilted</font>]]
 
 local player = game.Players.LocalPlayer
 local playerId: string? = player and tostring(player.UserId) or "0"
@@ -34,8 +38,23 @@ local function MixerPanel(props: {
 
 	-- Reference to the selected ingredients UI to act as the target position
 	local targetRef = React.useRef(nil)
-	local ingredients, setIngredients = useState((not player) and { espresso = 1 } or {})
+	local ingredients, setIngredients = useState((not player) and { espresso = 1, water = 1 } or {})
+	local discoveredDrinks, setDiscoveredDrinks = useState((not player) and { espresso = true } or {})
 
+	--  listen to discoveredDrinks
+	useEffect(function()
+		local unsub = GlobalState:subscribe(function(newState)
+			if not (newState.Ingredients and newState.DiscoveredDrinks[playerId]) then
+				return
+			end
+			setDiscoveredDrinks(newState.DiscoveredDrinks[playerId])
+		end)
+		local state = GlobalState:getState()
+		if state.DiscoveredDrinks and state.DiscoveredDrinks[playerId] then
+			setDiscoveredDrinks(state.DiscoveredDrinks[playerId])
+		end
+		return unsub
+	end, {})
 	--  listen to ingredients
 	useEffect(function()
 		local unsub = GlobalState:subscribe(function(newState)
@@ -108,8 +127,8 @@ local function MixerPanel(props: {
 	end
 
 	local ingredientElements = {}
-	for i, config in ipairs(CoffeeModule.IngredientConfigs) do
-		local id = config.Id
+	for id, amount in ingredients do
+		local config = CoffeeModule.IngredientLookup[id]
 		local totalAvailable = ingredients[id] or 0
 		local amountUsed = usedIngredients[id] or 0
 		local amountLeft = totalAvailable - amountUsed
@@ -203,12 +222,26 @@ local function MixerPanel(props: {
 		})
 	end
 
-	return e("Frame", {
+	local min = resultConfig and resultConfig.Duration // 60 or nil
+	local sec = resultConfig and resultConfig.Duration % 60 or nil
+	local stocks = resultConfig and resultConfig.InitialStock
+	local durationText = resultConfig
+			and `<font size="14">$$$</font><font size="18">: {resultConfig.Price} $\n{CLOCK}: {min > 0 and `{min} min ` or ""}{sec} sec </font>\n<font size="18">{STOCK}: {stocks}x</font>`
+		or ""
+	local new = not discoveredDrinks[resultConfig and resultConfig.Id]
+	local resultLabelText = resultConfig and (not new and resultConfig.DisplayName or "???") or ""
+
+	return e("ImageLabel", {
 		Size = UDim2.new(1, 0, 1, 0),
 		BackgroundTransparency = 1,
 		Visible = panelOpen or false,
 		Position = UDim2.new(0.5, 0, 0.5, 0),
 		AnchorPoint = Vector2.new(0.5, 0.5),
+		Image = "rbxassetid://127657596958436",
+		ImageTransparency = 0.6,
+		ImageColor3 = Color3.new(0.768627, 0.549019, 0.549019),
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(8, 8, 92, 92),
 	}, {
 		UISizeConstraint = e("UISizeConstraint", {
 			MinSize = Vector2.new(300, 200),
@@ -220,7 +253,7 @@ local function MixerPanel(props: {
 		}),
 		e(VStack, {
 			Size = UDim2.new(1, 0, 1, 0),
-			BackgroundTransparency = 0.8,
+			BackgroundTransparency = 1,
 			Padding = {
 				Top = UDim.new(0, 12),
 				Right = UDim.new(0, 12),
@@ -341,26 +374,30 @@ local function MixerPanel(props: {
 
 				Controls = e(VStack, {
 					Size = UDim2.new(1, 0, 1, 0),
-					Spacing = UDim.new(0, 10),
+					Spacing = UDim.new(0, 2),
 					LayoutOrder = 4,
 					AutomaticSize = Enum.AutomaticSize.None,
 					HorizontalFlex = Enum.UIFlexAlignment.None,
+					VerticalFlex = Enum.UIFlexAlignment.SpaceBetween,
 					HorizontalAlignment = Enum.HorizontalAlignment.Center,
+					Padding = { All = UDim.new() },
 					-- BackgroundTransparency = 0,
 				}, {
 					Controls = e(HStack, {
 						Size = UDim2.new(0, 0, 0, 0),
-						Spacing = UDim.new(0, 10),
+						Spacing = UDim.new(0, 8),
 						LayoutOrder = 4,
 						AutomaticSize = Enum.AutomaticSize.XY,
 						VerticalFlex = Enum.UIFlexAlignment.None,
 						HorizontalFlex = Enum.UIFlexAlignment.None,
-						-- BackgroundTransparency = 0,
+						BackgroundTransparency = 1,
+						Padding = { All = UDim.new() },
 						HorizontalAlignment = Enum.HorizontalAlignment.Center,
+						VerticalAlignment = Enum.VerticalAlignment.Bottom,
 					}, {
 						CraftButton = e(SmallButton, {
 							Text = "Craft!",
-							Size = UDim2.new(0, 80, 0, 40),
+							Size = UDim2.new(0, 60, 0, 30),
 							BackgroundColor3 = resultConfig and Color3.new(0.5, 1, 0) or nil,
 							[React.Event.Activated] = function()
 								if resultConfig and activeMixerId then
@@ -372,7 +409,10 @@ local function MixerPanel(props: {
 									end
 								end
 							end,
+							TextTransparency = resultConfig and 0 or 0.8,
+							TextThickness = resultConfig and 1 or 0.6,
 							LayoutOrder = 2,
+							s,
 						}),
 						ClearButton = e(SmallButton, {
 							Text = "Clear",
@@ -384,40 +424,85 @@ local function MixerPanel(props: {
 						}),
 					}),
 
-					ResultFrame = e("Frame", {
+					ResultFrame = e("ImageLabel", {
 						Size = UDim2.new(1, 0, 0, 100),
 						LayoutOrder = 1,
 						BackgroundTransparency = 1,
 					}, {
-						config = e("ImageLabel", {
+						ResultImageFrame = e("Frame", {
 							Size = UDim2.new(0, 100, 0, 100),
 							Position = UDim2.new(0.5, 0, 0, 0),
 							BackgroundTransparency = 1,
 							AnchorPoint = Vector2.new(0.5, 0),
-							Image = resultConfig and resultConfig.Image,
 						}, {
-							Duration = resultConfig and e(SmallText, {
-								Text = string.format(
-									"Duration: (%dm %ds)\nInitialStock: (%d)",
-									resultConfig.Duration // 60,
-									resultConfig.Duration % 60,
-									resultConfig.InitialStock
-								),
-								Size = UDim2.new(1, 0, 0, 50),
-								Position = UDim2.new(0, 0, 1, 0),
-								AnchorPoint = Vector2.new(0, 0),
-								LayoutOrder = 1,
+							Background = e("ImageLabel", {
+								Size = UDim2.new(0, 100, 0, 100),
+								Position = UDim2.new(0.5, 0, 0, 0),
+								BackgroundTransparency = 1,
+								AnchorPoint = Vector2.new(0.5, 0),
+								Image = "rbxassetid://127657596958436",
+								ImageColor3 = Color3.new(0.768627, 0.549019, 0.549019),
+								ScaleType = Enum.ScaleType.Slice,
+								SliceCenter = Rect.new(8, 8, 92, 92),
+								ZIndex = 1,
+							}, {}),
+							ResultLabel = resultConfig and e(SmallText, {
+								Text = resultLabelText,
+								Size = UDim2.new(1, 0, 0, 0),
+								TextSize = 16,
+								Position = UDim2.new(0.5, 0, 1, -8),
+								AnchorPoint = Vector2.new(0.5, 1),
+								RichText = true,
+								TextXAlignment = Enum.TextXAlignment.Center,
+								ZIndex = 8,
 							}),
+							Duration = resultConfig and e(SmallText, {
+								Text = durationText,
+								MinTextSize = 14,
+								-- MaxTextSize = 32,
+								TextSize = 18,
+								Size = UDim2.new(1, 0, 0, 0),
+								Position = UDim2.new(0.5, 0, 1, 0),
+								AnchorPoint = Vector2.new(0.5, 0),
+								RichText = true,
+								TextXAlignment = Enum.TextXAlignment.Left,
+								ZIndex = 2,
+							}),
+							ResultImage = e("ImageLabel", {
+								Size = UDim2.new(0, 100, 0, 100),
+								Position = UDim2.new(0.5, 0, 0, 0),
+								BackgroundTransparency = 1,
+								AnchorPoint = Vector2.new(0.5, 0),
+								Image = resultConfig and resultConfig.Image,
+								ZIndex = 3,
+							}, {}),
 
-							Count = e(SmallText, {
+							-- Count = e(SmallText, {
+							-- 	Visible = resultConfig and true or false,
+							-- 	Size = UDim2.new(0, 30, 0, 30),
+							-- 	AnchorPoint = Vector2.new(0.25, 0.25),
+							-- 	Text = `Price: ${resultConfig and resultConfig.Price} `,
+							-- 	-- TextTransparency = transparency,
+							-- 	BackgroundTransparency = 1,
+							-- 	TextXAlignment = Enum.TextXAlignment.Center,
+							-- 	-- BackgroundColor3 = Color3.new(1, 0, 0),
+							-- 	ZIndex = 4,
+							-- }, {
+							-- 	UICorner = e("UICorner", {
+							-- 		CornerRadius = UDim.new(0, 4),
+							-- 	}),
+							-- }),
+							New = new and e(SmallText, {
 								Visible = resultConfig and true or false,
 								Size = UDim2.new(0, 30, 0, 30),
-								AnchorPoint = Vector2.new(0.25, 0.25),
-								Text = resultConfig and `{resultConfig.InitialStock}x` or "",
-								-- TextTransparency = transparency,
-								BackgroundTransparency = 0,
+								AnchorPoint = Vector2.new(0.75, 0.25),
+								Text = "NEW!",
+								Position = UDim2.new(1, 0, 0, 0),
 								TextXAlignment = Enum.TextXAlignment.Center,
-								BackgroundColor3 = Color3.new(1, 0, 0),
+								-- BackgroundColor3 = Color3.new(0.152941, 0.788235, 0.184313),
+								TextColor3 = Color3.new(0.152941, 0.788235, 0.184313),
+								TextStrokeColor3 = Color3.new(1, 1, 1),
+								ZIndex = 5,
 							}, {
 								UICorner = e("UICorner", {
 									CornerRadius = UDim.new(0, 4),

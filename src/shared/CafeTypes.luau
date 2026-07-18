@@ -4,6 +4,12 @@ export type CafeBase = Model & {
 	Cafe: Cafe?,
 	Part: Part, -- the primary part to pivot the cafe at
 	Entrance: Part, -- the platform npc spawns in
+	Mailbox: Model & {
+		Mailbox: Part & {
+			TriggerPrompt: ProximityPrompt,
+		},
+	},
+	GetAttribute: (attribute: string & "OwnerId") -> string,
 }
 export type IngredientId = string
 export type Cafe = Model & {
@@ -16,6 +22,7 @@ export type Cafe = Model & {
 	Cashier: Model & {
 		Part: Part,
 	},
+	Entrance: Part,
 }
 
 --Tables
@@ -31,7 +38,7 @@ export type Slots = Model & {
 	Slot2: Slot,
 	Slot3: Slot,
 	Slot4: Slot,
-	Parent: Table, 
+	Parent: Table,
 }
 export type Slot = Model & {
 	PlacePart: Part & {

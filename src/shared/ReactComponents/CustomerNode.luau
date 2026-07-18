@@ -15,7 +15,10 @@ local function CustomerNode(props: {
 	CustomerData: {
 		id: string,
 		customerId: string,
-		drinkIds: { string },
+		drinkEntities: {
+			drinkId: string,
+			variationId: string?,
+		},
 	},
 	Instance: CafeTypes.CustomerRig,
 })

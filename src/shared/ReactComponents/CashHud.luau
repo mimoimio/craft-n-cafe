@@ -64,7 +64,7 @@ local function CashToast(props: {
 			AnchorPoint = Vector2.new(0.5, 0),
 			AutomaticSize = Enum.AutomaticSize.XY,
 			-- You can conditionally color this based on the message (e.g., green for +, red for -)
-			TextColor3 = Color3.fromRGB(85, 255, 85),
+			TextColor3 = Color3.fromRGB(255, 238, 164),
 		}),
 	})
 end
@@ -182,7 +182,7 @@ local function CashHud(props: {
 				Text = Mionum.new(coins or 0):toString(),
 				RichText = true,
 				TextSize = 42,
-				TextColor3 = Color3.new(1, 1, 0),
+				TextColor3 = Color3.new(1, 1, 1),
 				OnMount = props.OnMount,
 				Size = UDim2.new(0, 200, 0, 50),
 				AutomaticSize = Enum.AutomaticSize.XY,

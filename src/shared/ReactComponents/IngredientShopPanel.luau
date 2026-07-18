@@ -16,6 +16,9 @@ local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local ShopCycle = require(ReplicatedStorage.Shared.ShopCycle)
 
+local ROBUX =
+	[[<font family="rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json">robux</font>]]
+
 local Primitives = ReplicatedStorage.Shared.ReactComponents.ui
 local DefaultPanel = require(script.Parent.DefaultPanel)
 local DefaultScrollFrame = require(script.Parent.DefaultScrollFrame)
@@ -127,16 +130,19 @@ local function IngredientShopPanel(props: {
 		shopItems[id] = e("ImageButton", {
 			AutomaticSize = Enum.AutomaticSize.XY,
 			[React.Event.Activated] = function()
-				setSelected(id)
+				local selectedId = selected:getValue()
+
+				setSelected(selectedId ~= id and id or nil)
 			end,
-			Image = "rbxassetid://135201205917919",
+			Image = "rbxassetid://127657596958436",
+			SliceCenter = Rect.new(8, 8, 92, 92),
+			ScaleType = Enum.ScaleType.Slice,
+			-- Image = "rbxassetid://135201205917919",
 			LayoutOrder = i,
-			ImageColor3 = Color3.new(1, 0, 0),
+			ImageColor3 = Color3.new(0.658823, 0.164705, 0.164705),
+			BackgroundTransparency = 1,
 		}, {
-			UICorner = e("UICorner", {
-				CornerRadius = UDim.new(0, 12),
-			}),
-			Content = e(HStack, {
+			Content = e(VStack, {
 				Spacing = UDim.new(0, 4),
 				HorizontalFlex = Enum.UIFlexAlignment.Fill,
 				VerticalFlex = Enum.UIFlexAlignment.Fill,
@@ -144,55 +150,112 @@ local function IngredientShopPanel(props: {
 				AutomaticSize = Enum.AutomaticSize.XY,
 				Padding = { All = UDim.new(0, 12) },
 			}, {
-				Left = e(VStack, {
-					Size = UDim2.new(0, 100, 0, 100),
+				Content = e(HStack, {
+					Spacing = UDim.new(0, 4),
+					HorizontalFlex = Enum.UIFlexAlignment.Fill,
+					VerticalFlex = Enum.UIFlexAlignment.Fill,
+					HorizontalAlignment = Enum.HorizontalAlignment.Center,
 					AutomaticSize = Enum.AutomaticSize.XY,
-					HorizontalFlex = Enum.UIFlexAlignment.None,
-					VerticalFlex = Enum.UIFlexAlignment.None,
-					LayoutOrder = 1,
-					BackgroundTransparency = 1,
+					Padding = { All = UDim.new(0, 12) },
 				}, {
-					Icon = e("ImageLabel", {
+					Left = e(VStack, {
 						Size = UDim2.new(0, 100, 0, 100),
-						Image = config.Image,
-						BackgroundTransparency = 1,
-						ImageColor3 = locked and Color3.new() or nil,
-						ImageTransparency = locked and 0.5 or nil,
+						AutomaticSize = Enum.AutomaticSize.XY,
+						HorizontalFlex = Enum.UIFlexAlignment.None,
+						VerticalFlex = Enum.UIFlexAlignment.None,
 						LayoutOrder = 1,
+						BackgroundTransparency = 1,
+						BackgroundImage = "rbxassetid://127657596958436",
+						SliceCenter = Rect.new(8, 8, 92, 92),
+						BackgroundImageColor3 = Color3.new(0.854901, 0.741176, 0.741176),
+						ScaleType = Enum.ScaleType.Slice,
+					}, {
+						Icon = e("ImageLabel", {
+							Size = UDim2.new(0, 100, 0, 100),
+							Image = config.Image,
+							BackgroundTransparency = 1,
+							ImageColor3 = locked and Color3.new() or nil,
+							ImageTransparency = locked and 0.5 or nil,
+							LayoutOrder = 1,
+						}),
+					}),
+					Right = e(VStack, {
+						Spacing = UDim.new(0, 12),
+						Size = UDim2.new(0, 200, 0, 100),
+						AutomaticSize = Enum.AutomaticSize.None,
+						VerticalFlex = Enum.UIFlexAlignment.None,
+						HorizontalFlex = Enum.UIFlexAlignment.Fill,
+						Padding = { All = UDim.new(0, 12) },
+						VerticalAlignment = Enum.VerticalAlignment.Top,
+						LayoutOrder = 2,
+					}, {
+						Label = e(SmallText, {
+							Text = `{config.DisplayName}`,
+							-- Text = `{locked and "???" or config.DisplayName}`,
+							Size = UDim2.new(0, 200, 0, 0),
+							LayoutOrder = 1,
+							TextSize = 20,
+							TextWrapped = true,
+							TextXAlignment = Enum.TextXAlignment.Left,
+							TextTransparency = locked and 0.5 or nil,
+						}),
+						Stocks = e(SmallText, {
+							Text = `Stocks: {amount} left`,
+							Size = UDim2.new(0, 200, 0, 0),
+							LayoutOrder = 2,
+							TextSize = 16,
+							TextWrapped = true,
+							TextTransparency = locked and 0.5 or nil,
+							TextXAlignment = Enum.TextXAlignment.Left,
+						}),
 					}),
 				}),
-				Right = e(VStack, {
-					Spacing = UDim.new(0, 12),
-					Size = UDim2.new(0, 200, 0, 100),
-					AutomaticSize = Enum.AutomaticSize.None,
-					VerticalFlex = Enum.UIFlexAlignment.None,
+				Under = e(HStack, {
+					Size = UDim2.new(1, 0, 0, 0),
+					Position = UDim2.new(0, 0, 1, 0),
+					Visible = selected:map(function(selectedId)
+						return selectedId == id
+					end),
+					AutomaticSize = Enum.AutomaticSize.XY,
 					HorizontalFlex = Enum.UIFlexAlignment.Fill,
-					Padding = { All = UDim.new(0, 12) },
-					VerticalAlignment = Enum.VerticalAlignment.Top,
-					LayoutOrder = 2,
+					Spacing = UDim.new(0, 8),
 				}, {
-					Label = e(SmallText, {
-						Text = `{locked and "???" or config.DisplayName}`,
-						Size = UDim2.new(0, 200, 0, 0),
-						LayoutOrder = 2,
-						TextSize = 12,
-						TextWrapped = true,
-						TextXAlignment = Enum.TextXAlignment.Left,
-						TextTransparency = locked and 0.5 or nil,
-					}),
-					Price = e(SmallText, {
-						Text = `({locked and "???" or config.Cost} $)\t\t({amount} left)`,
-						Size = UDim2.new(0, 200, 0, 0),
-						LayoutOrder = 2,
-						TextSize = 16,
-						TextWrapped = true,
-						TextTransparency = locked and 0.5 or nil,
-						TextXAlignment = Enum.TextXAlignment.Left,
-					}),
+
 					BuyBtn = e(SmallButton, {
-						Text = locked and "Locked" or "Buy",
-						Size = UDim2.new(0, 0, 0, 30),
+						Text = locked and "Locked" or `Buy {config.Cost}$`,
+						TextSize = 24,
+						Size = UDim2.new(1, 0, 0, 0),
 						TextColor3 = locked and Color3.new(0.5, 0.5, 0.5) or nil,
+						LayoutOrder = 3,
+						BackgroundColor3 = Color3.new(0.5, 1, 0.5),
+						[React.Event.Activated] = function()
+							Remotes.BuyIngredient:FireServer(id)
+						end,
+						Visible = selected:map(function(selectedId)
+							return selectedId == id or false
+						end),
+					}),
+					BuyRbx = e(SmallButton, {
+						RichText = true,
+						Text = ` {ROBUX} Buy 1x`,
+						TextSize = 24,
+						Size = UDim2.new(0, 180, 0, 0),
+						TextWrapped = false,
+						LayoutOrder = 3,
+						BackgroundColor3 = Color3.new(0.5, 1, 0.5),
+						[React.Event.Activated] = function()
+							Remotes.BuyIngredient:FireServer(id)
+						end,
+						Visible = selected:map(function(selectedId)
+							return selectedId == id or false
+						end),
+					}),
+					BuyRbx10 = e(SmallButton, {
+						RichText = true,
+						Text = ` {ROBUX} Buy 10x`,
+						TextSize = 24,
+						Size = UDim2.new(0, 180, 0, 0),
+						TextWrapped = false,
 						LayoutOrder = 3,
 						BackgroundColor3 = Color3.new(0.5, 1, 0.5),
 						[React.Event.Activated] = function()

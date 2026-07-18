@@ -5,18 +5,20 @@ local e = React.createElement
 local SmallText = function(props)
 	local children = props.children or {}
 	children.UITextSizeConstraint = e("UITextSizeConstraint", {
-		MaxTextSize = props.TextSize or 18,
-		MinTextSize = props.TextSize or 18,
+		MaxTextSize = props.MaxTextSize or props.TextSize or 18,
+		MinTextSize = props.MinTextSize or props.TextSize or 18,
 	})
 	return e("TextLabel", {
 		AutomaticSize = props.AutomaticSize or Enum.AutomaticSize.XY,
 		BackgroundTransparency = props.BackgroundTransparency or 1,
 		BackgroundColor3 = props.BackgroundColor3,
-		TextColor3 = Color3.new(1, 1, 1),
+		TextColor3 = props.TextColor3 or Color3.new(1, 1, 1),
 		TextXAlignment = props.TextXAlignment or Enum.TextXAlignment.Left,
 		TextYAlignment = props.TextYAlignment or Enum.TextYAlignment.Bottom,
 		TextStrokeTransparency = props.TextStrokeTransparency or 0,
+		TextStrokeColor3 = props.TextStrokeColor3 or Color3.new(),
 		TextTransparency = props.TextTransparency or 0,
+		TextTruncate = props.TextTruncate,
 		Text = props.Text,
 		AnchorPoint = props.AnchorPoint,
 		Position = props.Position,

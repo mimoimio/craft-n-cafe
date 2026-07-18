@@ -242,14 +242,20 @@ Remotes.start.OnServerEvent:Connect(function(player)
 		warn(`player({playerId}) already started`)
 		return
 	end
-	local playersShop = state.Shop
+	-- local playersShop = state.Shop
 
 	-- Require ShopService to access the deterministic generator
 	local ShopService = require(game.ServerScriptService.Server.Services.ShopService)
-	local currentSeed = tostring(ShopCycle.getCurrentState().seed)
+	local shopCycleState = ShopCycle.getCurrentState()
+
+	local currentSeed = shopCycleState.seed
+	local seedString = tostring(currentSeed)
 	local generatedShop = ShopService.GenerateDeterministicShop(currentSeed)
 
+	local VariationService = require(game.ServerScriptService.Server.Services.VariationService)
+	local variation = VariationService.GetCurrentVariationEvent() or nil
 	GlobalState.startPlayerSession(playerId, profile.Data, {
+		variationEvent = variation and variation.VariationId or nil,
 		newestShop = generatedShop,
 		newestSeed = currentSeed,
 	})

@@ -24,8 +24,10 @@ local function SmallButton(props)
 		Size = props.Size or UDim2.new(0, 48, 0, 48),
 		Rotation = props.Rotation,
 		Visible = props.Visible,
+		TextTruncate = props.TextTruncate,
 		Position = props.Position,
 		AnchorPoint = props.AnchorPoint,
+		Active = props.Active,
 		BackgroundColor3 = props.BackgroundColor3,
 		BackgroundTransparency = bgTransparency,
 		BorderSizePixel = 0,
@@ -45,6 +47,8 @@ local function SmallButton(props)
 			setScale(1)
 			-- SoundController.Sound("drop_001")
 		end,
+		[React.Event.MouseButton1Down] = props[React.Event.MouseButton1Down],
+		[React.Event.MouseButton1Up] = props[React.Event.MouseButton1Up],
 	}
 
 	if buttonClass == "ImageButton" then
@@ -57,15 +61,16 @@ local function SmallButton(props)
 	else
 		buttonProps.Text = props.Text or ""
 		buttonProps.RichText = props.RichText
+		buttonProps.TextTransparency = props.TextTransparency
+		buttonProps.TextStrokeTransparency = props.TextStrokeTransparency or 1
 		buttonProps.TextWrapped = (props.TextWrapped == nil or props.TextWrapped == true) and true or false
 		buttonProps.TextSize = props.TextSize or 16
-		buttonProps.TextStrokeTransparency = props.TextStrokeTransparency or 1
 		buttonProps.Font = props.Font or Enum.Font.FredokaOne
 
 		buttonProps.TextColor3 = props.TextColor3 or Color3.fromRGB(255, 255, 255)
 		props.children = props.children or {}
 		props.children.UIStoke = e("UIStroke", {
-			Thickness = 1,
+			Thickness = props.TextThickness,
 		})
 	end
 

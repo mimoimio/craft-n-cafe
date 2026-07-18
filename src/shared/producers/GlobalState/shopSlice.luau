@@ -7,6 +7,7 @@ local Types = require(ReplicatedStorage.Shared.Types)
 
 local Dictionary = Sift.Dictionary
 local Set = Dictionary.set
+local Merge = Dictionary.merge
 local RemoveKey = Dictionary.removeKey
 
 -- /// TYPES ///
@@ -24,23 +25,26 @@ local actions = {
 		data: PlayerData,
 		payload: Types.StartPlayerSessionPayload
 	)
-		local newestSeed = payload.newestSeed
+		local newestSeed = tonumber(payload.newestSeed)
+		local seedString = tostring(newestSeed)
+
 		local savedShops = data.Shop or {}
 		local currentShop = savedShops[newestSeed]
 
 		-- If the player hasn't seen this cycle yet, assign the deterministic shop
 		if not currentShop then
 			savedShops = {
-				[newestSeed] = payload.newestShop,
+				[seedString] = payload.newestShop,
 			}
 		else
 			-- Clean up old memory; we only care about their progress in the current active seed
 			savedShops = {
-				[newestSeed] = currentShop,
+				[seedString] = currentShop,
 			}
 		end
 
 		return Set(state, playerId, {
+			variationEvent = payload.variationEvent,
 			currentSeed = newestSeed,
 			shops = savedShops,
 		})
@@ -51,16 +55,25 @@ local actions = {
 	end,
 
 	refreshShop = function(state: ShopState, playerId: string, payload: Types.RefreshShopPayload)
-		local playerState = state[playerId]
-		if not playerState then
+		local playersShopState = state[playerId]
+		if not playersShopState then
 			return state
 		end
 
-		local newShops = Dictionary.copy(playerState.shops)
-		newShops[payload.newestSeed] = payload.newestShop
+		local newestSeed = tonumber(payload.newestSeed)
+		local seedString = tostring(newestSeed)
+
+		if newestSeed == playersShopState.currentSeed then
+			print(`is the same seed`)
+			return state
+		end
+
+		local newShops = {}
+		newShops[seedString] = payload.newestShop
 
 		return Set(state, playerId, {
-			currentSeed = payload.newestSeed,
+			variationEvent = payload.variationEvent,
+			currentSeed = newestSeed,
 			shops = newShops,
 		})
 	end,
@@ -71,8 +84,10 @@ local actions = {
 			warn(`shopSlice: buyIngredient: not playerState`)
 			return state
 		end
-
-		local shop = playerState.shops[payload.seed]
+		-- retrieving seed from player's shops dictionary. Since it's a key, use string
+		local seed = tonumber(payload.seed)
+		local seedString = tostring(seed)
+		local shop = playerState.shops[seedString]
 		if not shop or not shop[payload.ingredientId] then
 			warn(`shopSlice: buyIngredient: not shop`)
 			return state
@@ -82,14 +97,18 @@ local actions = {
 		local newStock = math.max(0, currentStock - payload.amount)
 
 		-- Deep update the specific ingredient's stock
-		return Set(state, playerId, {
-			currentSeed = playerState.currentSeed,
-			shops = Dictionary.set(
-				playerState.shops,
-				payload.seed,
-				Dictionary.set(shop, payload.ingredientId, newStock)
-			),
-		})
+		return Set(
+			state,
+			playerId,
+			Merge(playerState, {
+				currentSeed = playerState.currentSeed,
+				shops = Set(
+					playerState.shops,
+					seedString, -- string, cuz key
+					Dictionary.set(shop, payload.ingredientId, newStock)
+				),
+			})
+		)
 	end,
 }
 

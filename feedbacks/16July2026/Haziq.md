@@ -1,0 +1,2 @@
+1. Haziq played the first 10 minutes without ever combining ingredients. Instead he just exclusively use one, either espresso, milk, or water. But he did it and got faster than Sab. like in 10 minutes his concentrated loop got his cafe to level 2 in less than 10 minutes. But what I observe, is Haziq when he sees the loop, he sticks to it, rigorously. Like how he does with his Grab job.
+2. Didn't know about combining ingredients

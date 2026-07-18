@@ -7,6 +7,8 @@ export type PlayerData = {
 	Mixers: { [string]: MixerEntity },
 	Ingredients: { [string]: number },
 	Customers: { CustomerEntity },
+	DiscoveredDrinks: { [string]: true },
+	Shop: {},
 }
 export type PlayerId = string
 -- Stats
@@ -42,6 +44,7 @@ export type DrinkEntity = {
 	id: string,
 	stock: number,
 	drinkId: string,
+	variationId: string?,
 }
 export type DrinksState = { [string]: { DrinkEntity } }
 
@@ -64,7 +67,8 @@ export type ShopEntity = {
 }
 export type ShopState = {
 	[PlayerId]: {
-		currentSeed: string,
+		variationEvent: string?,
+		currentSeed: number,
 		shops: {
 			[Seed]: ShopEntity,
 		},
@@ -88,6 +92,7 @@ export type IngredientsState = {
 export type MixerEntity = {
 	drinkId: string,
 	startTime: number?,
+	variationId: string?,
 
 	-- for the future
 	mixerLevel: number,
@@ -103,7 +108,10 @@ export type MixersState = {
 export type CustomerEntity = {
 	id: string,
 	customerId: string?,
-	drinkIds: { string }?,
+	drinkEntities: {
+		drinkId: string,
+		variationId: string?,
+	}?,
 	customerAction: string,
 	actionStartTime: number, -- FSM Timestamp tracker
 }
@@ -123,6 +131,7 @@ export type MixDrinkPayload = {
 	ingredients: { string },
 	mixer: string,
 	startTime: number,
+	variationId: string,
 }
 export type LevelUpPayload = {
 	level: number,
@@ -138,6 +147,7 @@ export type BuyIngredientBulkPayload = {
 export type PickUpPayload = {
 	id: string,
 	drinkId: string,
+	variationId: string,
 	stock: number,
 	mixer: string,
 }
@@ -146,7 +156,10 @@ export type CustomerItemPayload = {
 	drinksDeducted: {
 		[string]: number,
 	},
-	drinkIds: { string },
+	drinkEntities: {
+		drinkId: string,
+		variationId: string?,
+	},
 	depletedDrinks: { [string]: boolean },
 	timestamp: number, -- Added to pass workspace:GetServerTimeNow() purely
 }
@@ -161,18 +174,20 @@ export type PlaceDrinkPayload = {
 	drinkUid: string,
 }
 export type StartPlayerSessionPayload = {
+	variationEvent: string?,
 	newestShop: ShopEntity,
-	newestSeed: string,
+	newestSeed: number,
 }
 export type RefreshShopPayload = {
+	variationEvent: string?,
 	newestShop: ShopEntity,
-	newestSeed: string,
+	newestSeed: number,
 }
 export type BuyIngredientPayload = {
 	ingredientId: string,
 	amount: number,
 	cost: number,
-	seed: string,
+	seed: number,
 }
 export type CombinedActions = {
 	startPlayerSession: (playerId: PlayerId, data: PlayerData, payload: StartPlayerSessionPayload) -> (),
@@ -210,6 +225,13 @@ export type CombinedActions = {
 			timestamp: number, -- Added
 		}
 	) -> (),
+	customerLeaveEmptyHanded: (
+		playerId: PlayerId,
+		payload: {
+			customerUid: string,
+			timestamp: number, -- Added
+		}
+	) -> (),
 
 	removeCustomer: (playerId: PlayerId, uid: string) -> (),
 	completeTutorial: (playerId: PlayerId) -> (),
@@ -243,6 +265,15 @@ export type IngredientConfig = {
 	Cost: number,
 	ItemTip: string,
 	Image: string?,
+}
+export type VariationConfig = {
+	VariationId: "none" | "copper" | "silver" | "gold" | "diamond",
+	DisplayName: "" | "Copper" | "Silver" | "Gold" | "Diamond",
+	Multiplier: number,
+	ColorPrimary: Color3,
+	ColorSecondary: Color3?,
+	Weight: number,
+	Image: number?,
 }
 
 return {}

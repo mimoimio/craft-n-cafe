@@ -82,12 +82,13 @@ local function IngredientShopPanel(props: {})
 			prevDrinkRef.current[drinkId] = true
 			local id = (tick())
 			setActiveDrinks(function(prev)
-				local clone = table.clone(prev)
-				table.insert(clone, {
-					id = tostring(id),
-					drinkId = drinkId,
-					StartTime = id,
-				})
+				-- local clone = table.clone(prev)
+				-- table.insert(clone, {
+				-- 	id = tostring(id),
+				-- 	drinkId = drinkId,
+				-- 	StartTime = id,
+				-- })
+				props.closeAllPanels()
 				return { {
 					id = tostring(id),
 					drinkId = drinkId,
@@ -121,44 +122,44 @@ local function IngredientShopPanel(props: {})
 						table.remove(clone, index)
 						return clone
 					end)
-					if true then
-						return -- just remove immediately
-					end
-					if drink.EndTime then
-						return
-					end
-					setActiveDrinks(function(prev)
-						local clone = table.clone(prev)
-						index = i
-						for i, activeDrink in clone do
-							warn("son")
-							if activeDrink.id ~= drink.id then
-								continue
-							end
-							index = i
-						end
-						if not index then
-							return prev
-						end
-						clone[index].EndTime = tick()
-						return clone
-					end)
-					task.wait(1)
-					setActiveDrinks(function(prev)
-						local clone = table.clone(prev)
-						index = i
-						for i, activeDrink in clone do
-							if activeDrink.id ~= drink.id then
-								continue
-							end
-							index = i
-						end
-						if not index then
-							return prev
-						end
-						table.remove(clone, index)
-						return clone
-					end)
+					-- if true then
+					-- 	return -- just remove immediately
+					-- end
+					-- if drink.EndTime then
+					-- 	return
+					-- end
+					-- setActiveDrinks(function(prev)
+					-- 	local clone = table.clone(prev)
+					-- 	index = i
+					-- 	for i, activeDrink in clone do
+					-- 		warn("son")
+					-- 		if activeDrink.id ~= drink.id then
+					-- 			continue
+					-- 		end
+					-- 		index = i
+					-- 	end
+					-- 	if not index then
+					-- 		return prev
+					-- 	end
+					-- 	clone[index].EndTime = tick()
+					-- 	return clone
+					-- end)
+					-- task.wait(1)
+					-- setActiveDrinks(function(prev)
+					-- 	local clone = table.clone(prev)
+					-- 	index = i
+					-- 	for i, activeDrink in clone do
+					-- 		if activeDrink.id ~= drink.id then
+					-- 			continue
+					-- 		end
+					-- 		index = i
+					-- 	end
+					-- 	if not index then
+					-- 		return prev
+					-- 	end
+					-- 	table.remove(clone, index)
+					-- 	return clone
+					-- end)
 				end)
 			end,
 			Image = config.Image,

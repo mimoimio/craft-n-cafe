@@ -13,6 +13,7 @@ local Primitives = ReplicatedStorage.Shared.ReactComponents.ui
 local ShopCycle = require(ReplicatedStorage.Shared.ShopCycle)
 local HStack = require(Primitives.HStack)
 local SmallButton = require(Primitives.SmallButton)
+local SmallText = require(Primitives.SmallText)
 
 local e = React.createElement
 local useState = React.useState
@@ -26,86 +27,91 @@ local CashHud = require(script.Parent.CashHud)
 local MixerPanel = require(script.Parent.MixerPanel)
 local IngredientShopPanel = require(script.Parent.IngredientShopPanel)
 local SettingsPanel = require(script.Parent.SettingsPanel)
-local CustomersPanel = require(script.Parent.CustomersPanel)
 local CoinVFXContainer = require(script.Parent.CoinVFXContainer)
 local RecipePanel = require(script.Parent.RecipePanel)
 local CafePanel = require(script.Parent.CafePanel)
 local MixerManager = require(script.Parent.MixerManager) -- Injected manager
 local CustomerManager = require(script.Parent.CustomerManager) -- Injected manager
 local TableManager = require(script.Parent.TableManager) -- Injected manager
+local Mailbox = require(script.Parent.Mailbox) -- Injected manager
 local VStack = require(script.Parent.ui.VStack)
 
 local player = game.Players.LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
-local getStats = function(state: GlobalState.GlobalState): {}?
-	if not state then
-		return
-	end
-	local stats = state.Stats
-	return stats[playerId]
-end
 
 local function onMountShopButton(button: GuiButton?)
 	UIState.setShopButton(button)
 end
 
 local function Main(props)
-	local state, setState = useState(nil)
-	local activePanel, setActivePanel = useState(nil) -- "Shop", "Customers", or nil
-	local activeCoins, setActiveCoins = useState({})
-	local coins, setCoins = useState(nil)
 	local admin, setAdmin = useState(false)
+	local tutorialDone, setTutorialDone = useState((player and nil) or (not player and false))
 
 	local textRef = React.useRef(nil)
+
 	local cashRef = React.useRef(nil)
+	local finalCash, setFinalCash = useState(nil)
+	local activeCoins, setActiveCoins = useState({})
 
-	local stats = getStats(state)
+	local cash, setCash = useState(nil)
 
-	-- Keep global state in sync
+	local closeAllPanels = React.useCallback(function()
+		toggle("none")
+	end, {})
+	local time, setTime = React.useBinding("")
+
 	useEffect(function()
-		local unsub = GlobalState:subscribe(function(newState)
-			setState(newState)
+		local unsub = GlobalState:subscribe(function(newState: GlobalState.GlobalState)
+			local playersStats = newState.Stats[playerId]
+			if playersStats then
+				setTutorialDone(playersStats.TutorialCompleted or false)
+			end
 		end)
 
-		setState(GlobalState:getState())
-
-		return function()
-			unsub()
+		local newState = GlobalState:getState()
+		local playersStats = newState.Stats[playerId]
+		if playersStats then
+			setTutorialDone(playersStats.TutorialCompleted or false)
 		end
+
+		return unsub
 	end, {})
 
-	--listen to UIState's panel
 	useEffect(function()
-		local unsub = UIState:subscribe(function(newState: UIState.UIState)
-			setActivePanel(newState.panel)
+		local unsub = GlobalState:subscribe(function(newState: GlobalState.GlobalState)
+			local playersStats = newState.Stats[playerId]
+			if playersStats and playersStats.Cash then
+				setCash(playersStats.Cash)
+			end
 		end)
-		local state = UIState:getState()
-		if state.panel then
-			setActivePanel(state.panel)
+
+		local newState = GlobalState:getState()
+		local playersStats = newState.Stats[playerId]
+		if playersStats and playersStats.Cash then
+			setCash(playersStats.Cash)
 		end
-		return function()
-			unsub()
-		end
+
+		return unsub
 	end, {})
 
 	-- Handle Cash & VFX updates
 	useEffect(function()
-		if not (stats and stats.Cash) then
+		if not cash then
 			return
 		end
 
 		if not cashRef.current then
-			cashRef.current = stats.Cash
-			setCoins(stats.Cash)
+			cashRef.current = cash
+			setFinalCash(cash)
 			return
 		end
 
 		local id = tostring(tick())
-		local diff = stats.Cash - cashRef.current
+		local diff = cash - cashRef.current
 
 		if diff <= 0 then
-			setCoins(stats.Cash)
-			cashRef.current = stats.Cash
+			setFinalCash(cash)
+			cashRef.current = cash
 			return
 		end
 
@@ -115,7 +121,7 @@ local function Main(props)
 			for i = 1, 2 do
 				nextCoins[id .. i] = {
 					id = id .. i,
-					amount = (not done) and (stats.Cash - cashRef.current) or nil,
+					amount = (not done) and (cash - cashRef.current) or nil,
 					startPos = workspace.CurrentCamera.ViewportSize / 2,
 					hudPos = textRef.current
 							and textRef.current.AbsolutePosition + textRef.current.AbsoluteSize / 2 + GuiService:GetGuiInset()
@@ -124,16 +130,11 @@ local function Main(props)
 				done = true
 			end
 
-			cashRef.current = stats.Cash
+			cashRef.current = cash
 			return nextCoins
 		end)
-	end, { stats and stats.Cash })
+	end, { cash })
 
-	local closeAllPanels = React.useCallback(function()
-		toggle("none")
-	end, {})
-
-	local time, setTime = React.useBinding("")
 	useEffect(function()
 		local t = task.spawn(function()
 			while task.wait(0.5) do
@@ -156,16 +157,17 @@ local function Main(props)
 		AnchorPoint = Vector2.new(0.5, 1),
 	})
 
+	-- local upgradeCafeTutorial = cash > 400 and not UpgradeCafeCompleted
+
 	return e("Frame", {
 		Transparency = 1,
 		Size = UDim2.new(1, 0, 1, 0),
 	}, {
 		-- Background Manager mapping to the 3D world (Invisible)
-		MixerManager = e(MixerManager, {
-			onInteract = toggleMixerInteract,
-		}),
-
+		MixerManager = e(MixerManager),
 		CustomerManager = e(CustomerManager),
+		Tables = e(TableManager),
+		Mailbox = e(Mailbox),
 
 		-- Active Panel Overlay
 		ActiveOverlay = e("Frame", {
@@ -189,13 +191,12 @@ local function Main(props)
 			}),
 		}),
 
-		Tables = e(TableManager),
 		-- HUD Elements
 		Cash = e(CashHud, {
 			OnMount = function(rbx)
 				textRef.current = rbx
 			end,
-			coins = coins,
+			coins = finalCash,
 		}),
 		timehud = timehud,
 
@@ -233,7 +234,7 @@ local function Main(props)
 			ShopButton = e(SmallButton, {
 				LayoutOrder = 3,
 				Image = "rbxassetid://112161362547076",
-				BackgroundTransparency = 1,
+				-- BackgroundTransparency = 1,
 				TextSize = 32,
 				Size = UDim2.new(0, 50, 0, 50),
 				[React.Event.Activated] = function()
@@ -244,13 +245,47 @@ local function Main(props)
 			recipeButton = e(SmallButton, {
 				LayoutOrder = 4,
 				-- Image = "rbxassetid://112161362547076",
-				Text = "Recipe",
+				Text = "",
+				ButtonClass = "ImageButton",
 				BackgroundTransparency = 0,
 				TextSize = 12,
 				Size = UDim2.new(0, 50, 0, 50),
+				BackgroundColor3 = Color3.new(0.5, 0.5, 0.5),
 				[React.Event.Activated] = function()
 					toggle("recipe")
 				end,
+				AutomaticSize = Enum.AutomaticSize.None,
+				Padding = { All = UDim.new() },
+			}, {
+				e("Frame", {
+					Size = UDim2.new(0, 50, 0, 46),
+					BackgroundColor3 = Color3.new(0.8, 0.8, 0.8),
+				}, {
+					UIStroke = e("UIStroke", {
+						Thickness = 2,
+						BorderStrokePosition = Enum.BorderStrokePosition.Inner,
+						Color = Color3.new(0.6, 0.6, 0.6),
+					}),
+					UICorner = e("UICorner", {
+						CornerRadius = UDim.new(0, 8),
+					}),
+
+					e(SmallText, {
+						Text = "Recipe",
+						Size = UDim2.new(0, 50, 0, 46),
+						BackgroundTransparency = 1,
+						TextWrapped = true,
+						AutomaticSize = Enum.AutomaticSize.None,
+						TextXAlignment = Enum.TextXAlignment.Center,
+						TextYAlignment = Enum.TextYAlignment.Center,
+						TextSize = 12,
+					}, {}),
+				}),
+				UIStroke = e("UIStroke", {
+					Thickness = 2,
+					Color = Color3.new(0.5, 0.5, 0.5),
+					BorderStrokePosition = Enum.BorderStrokePosition.Inner,
+				}),
 			}),
 		}),
 		CoinVFXContainer = e(CoinVFXContainer, {
@@ -264,7 +299,7 @@ local function Main(props)
 						return prevCoins
 					end
 
-					setCoins(function(prev)
+					setFinalCash(function(prev)
 						SoundController.Sound("handleCoins")
 						return prev + (coin.amount or 0)
 					end)
@@ -287,10 +322,11 @@ local function Main(props)
 			end,
 			MinTextSize = 8,
 		}),
-		admin = admin and e(require(script.Parent.ConsoleApp), { state = state }),
-		e(require(script.Parent.DiscoveredDrink), { state = state }),
-		e(require(script.Parent.LevelUp), { state = state }),
-		e(require(script.Parent.Tutorial)),
+		admin = admin and e(require(script.Parent.ConsoleApp)),
+		e(require(script.Parent.DiscoveredDrink), { closeAllPanels = closeAllPanels }),
+		e(require(script.Parent.LevelUp)),
+		e(require(script.Parent.SpecialEvent)),
+		Tutorial = tutorialDone == false and e(require(script.Parent.Tutorial)) or nil,
 	})
 end
 
