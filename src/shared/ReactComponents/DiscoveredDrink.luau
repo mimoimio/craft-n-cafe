@@ -9,6 +9,7 @@ local useEffect = React.useEffect
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
+local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConfig)
 
 local Primitives = ReplicatedStorage.Shared.ReactComponents.ui
 local DefaultPanel = require(script.Parent.DefaultPanel)
@@ -21,8 +22,6 @@ local HStack = require(Primitives.HStack)
 local player = game.Players.LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
 local function IngredientShopPanel(props: {})
-	local shopItems = {}
-	local selected, setSelected = useBinding(nil)
 	local discoveredDrinks, setDiscoveredDrinks = useState((not player) and {})
 	local activeDrinks, setActiveDrinks = useState({})
 	local t, setT = useBinding(tick())
@@ -40,15 +39,15 @@ local function IngredientShopPanel(props: {})
 			task.delay(1, function()
 				setDiscoveredDrinks(function(prev)
 					local clone = table.clone(prev)
-					clone.americano = true
-					clone.icedamericano = true
+					clone.double = {}
+					clone.double.americano = true
 					return clone
 				end)
 				task.delay(1, function()
 					setDiscoveredDrinks(function(prev)
 						local clone = table.clone(prev)
-						clone.latte = true
-						clone.icedlatte = true
+						clone.starlight = {}
+						clone.starlight.latte = true
 						return clone
 					end)
 				end)
@@ -75,34 +74,73 @@ local function IngredientShopPanel(props: {})
 			prevDrinkRef.current = discoveredDrinks
 			return
 		end
-		for drinkId, _ in discoveredDrinks do
-			if prevDrinkRef.current[drinkId] then
-				continue
+		for variationId, drinksOfVariation in discoveredDrinks do
+			if not prevDrinkRef.current[variationId] then
+				prevDrinkRef.current[variationId] = {}
 			end
-			prevDrinkRef.current[drinkId] = true
-			local id = (tick())
-			setActiveDrinks(function(prev)
-				-- local clone = table.clone(prev)
-				-- table.insert(clone, {
-				-- 	id = tostring(id),
-				-- 	drinkId = drinkId,
-				-- 	StartTime = id,
-				-- })
-				props.closeAllPanels()
-				return { {
-					id = tostring(id),
-					drinkId = drinkId,
-					StartTime = id,
-				} }
-			end)
+
+			for drinkId, _ in drinksOfVariation do
+				if prevDrinkRef.current[variationId][drinkId] then
+					continue
+				end
+				prevDrinkRef.current[variationId][drinkId] = true
+				local id = (tick())
+				setActiveDrinks(function(prev)
+					-- local clone = table.clone(prev)
+					-- table.insert(clone, {
+					-- 	id = tostring(id),
+					-- 	drinkId = drinkId,
+					-- 	StartTime = id,
+					-- })
+					-- props.closeAllPanels()
+					return {
+						{
+							id = tostring(id),
+							variationId = variationId,
+							drinkId = drinkId,
+							StartTime = id,
+						},
+					}
+				end)
+				break
+			end
 		end
 		return
 	end, { discoveredDrinks })
 
 	local children = {}
+
 	for i, drink in activeDrinks do
 		local config = CoffeeModule.Config[drink.drinkId]
-
+		local variation = drink.variationId and VariationsConfig[drink.variationId] or nil
+		local textSizeMap = function(n)
+			local start = math.min(1, (n - drink.StartTime))
+			start = 1 - ((1 - start) ^ 10)
+			return start * 32
+		end
+		local transMap = function(n)
+			local start = math.min(1, (n - drink.StartTime))
+			start = 1 - ((1 - start) ^ 10)
+			return start
+		end
+		local ColorGradient = variation
+				and ColorSequence.new({
+					ColorSequenceKeypoint.new(0, variation.ColorPrimary),
+					ColorSequenceKeypoint.new(0.22, variation.ColorPrimary),
+					ColorSequenceKeypoint.new(0.255, Color3.new(1, 1, 1)),
+					ColorSequenceKeypoint.new(0.3, Color3.new(1, 1, 1)),
+					ColorSequenceKeypoint.new(0.35, variation.ColorPrimary),
+					ColorSequenceKeypoint.new(0.399, variation.ColorPrimary),
+					ColorSequenceKeypoint.new(0.4, Color3.new(1, 1, 1)),
+					ColorSequenceKeypoint.new(0.6, Color3.new(1, 1, 1)),
+					ColorSequenceKeypoint.new(0.601, variation.ColorPrimary),
+					ColorSequenceKeypoint.new(0.62, variation.ColorPrimary),
+					ColorSequenceKeypoint.new(0.655, Color3.new(1, 1, 1)),
+					ColorSequenceKeypoint.new(0.7, Color3.new(1, 1, 1)),
+					ColorSequenceKeypoint.new(0.9, variation.ColorPrimary),
+					ColorSequenceKeypoint.new(1, variation.ColorPrimary),
+				})
+			or nil
 		children[drink.id] = e("ImageButton", {
 			AutomaticSize = Enum.AutomaticSize.None,
 			[React.Event.Activated] = function()
@@ -122,44 +160,7 @@ local function IngredientShopPanel(props: {})
 						table.remove(clone, index)
 						return clone
 					end)
-					-- if true then
 					-- 	return -- just remove immediately
-					-- end
-					-- if drink.EndTime then
-					-- 	return
-					-- end
-					-- setActiveDrinks(function(prev)
-					-- 	local clone = table.clone(prev)
-					-- 	index = i
-					-- 	for i, activeDrink in clone do
-					-- 		warn("son")
-					-- 		if activeDrink.id ~= drink.id then
-					-- 			continue
-					-- 		end
-					-- 		index = i
-					-- 	end
-					-- 	if not index then
-					-- 		return prev
-					-- 	end
-					-- 	clone[index].EndTime = tick()
-					-- 	return clone
-					-- end)
-					-- task.wait(1)
-					-- setActiveDrinks(function(prev)
-					-- 	local clone = table.clone(prev)
-					-- 	index = i
-					-- 	for i, activeDrink in clone do
-					-- 		if activeDrink.id ~= drink.id then
-					-- 			continue
-					-- 		end
-					-- 		index = i
-					-- 	end
-					-- 	if not index then
-					-- 		return prev
-					-- 	end
-					-- 	table.remove(clone, index)
-					-- 	return clone
-					-- end)
 				end)
 			end,
 			Image = config.Image,
@@ -189,9 +190,10 @@ local function IngredientShopPanel(props: {})
 				BackgroundTransparency = 1,
 				Size = t:map(function(n)
 					local start = math.min(1, (n - drink.StartTime))
+					start = 1 - ((1 - start) ^ 10)
 					local End = drink.EndTime and math.min(1, (drink.EndTime - n + 1))
-					return drink.EndTime and UDim2.new(0, End * 200, 0, End * 200)
-						or UDim2.new(0, start * 200, 0, start * 200)
+					return drink.EndTime and UDim2.new(0, End * 300, 0, End * 300)
+						or UDim2.new(0, start * 300, 0, start * 300)
 				end),
 				SizeConstraint = Enum.SizeConstraint.RelativeXX,
 				-- ImageColor3 = Color3.new(1, 0, 0),
@@ -249,8 +251,7 @@ local function IngredientShopPanel(props: {})
 			}),
 			e(SmallText, {
 				Text = `<font size="32">{CoffeeModule.Config[drink.drinkId].DisplayName}</font>`,
-				MaxTextSize = 32,
-				MinTextSize = 18,
+				TextSize = t:map(textSizeMap),
 				RichText = true,
 				TextTransparency = t:map(function(n)
 					local start = math.min(1, (n - drink.StartTime))
@@ -261,8 +262,52 @@ local function IngredientShopPanel(props: {})
 				Position = UDim2.new(0.5, 0, 0.5, 0),
 				ZIndex = 5,
 			}),
+			e(SmallText, {
+				TextXAlignment = Enum.TextXAlignment.Center,
+				-- BackgroundTransparency = 0,
+				Text = variation and variation.VariationId ~= "none" and variation.DisplayName or "",
+				TextColor3 = variation and variation.ColorPrimary or Color3.new(1, 1, 1),
+				TextSize = t:map(textSizeMap),
+				LayoutOrder = 2,
+				Active = false,
+				TextTransparency = t:map(function(n)
+					local start = math.min(1, (n - drink.StartTime))
+					local End = drink.EndTime and math.min(1, (drink.EndTime - n + 1))
+					return drink.EndTime and start or End
+				end),
+				ZIndex = 20,
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.new(0.5, 0, 0.5, 40),
+			}, {
+				UIStroke = e("UIStroke", {
+					Thickness = 4,
+					Color = Color3.new(0.070588, 0.070588, 0.168627),
+				}, {
+
+					UIGradient = e("UIGradient", {
+						Color = ColorGradient,
+						Rotation = 78,
+					}),
+				}),
+				UIGradient = e("UIGradient", {
+					Color = ColorGradient,
+					Rotation = 69,
+				}),
+				UIPadding = e("UIPadding", {
+					PaddingTop = UDim.new(0, 4),
+					PaddingBottom = UDim.new(0, 4),
+					PaddingLeft = UDim.new(0, 4),
+					PaddingRight = UDim.new(0, 4),
+				}),
+			}),
 		})
 	end
+	-- useEffect(function()
+	-- warn("dds", discoveredDrinks)
+	-- end, { discoveredDrinks })
+	-- useEffect(function()
+	-- warn("activedds", activeDrinks)
+	-- end, { activeDrinks })
 	local isactive = activeDrinks and type(activeDrinks) == "table" and #activeDrinks > 0
 	return isactive
 		and e("ScreenGui", {

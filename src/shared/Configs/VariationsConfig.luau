@@ -14,14 +14,14 @@ local VariationsConfig = {
 		DisplayName = "None",
 		Multiplier = 1,
 		ColorPrimary = Color3.new(0, 0, 0),
-		Weight = 34 ^ 3,
+		Weight = 34 ^ 2,
 	},
 	double = {
 		VariationId = "double",
 		DisplayName = "Double Shot",
 		Multiplier = 2,
 		ColorPrimary = Color3.new(0.894117, 0.239215, 0.239215),
-		Weight = 21 ^ 3,
+		Weight = 21 ^ 2,
 		Image = "rbxassetid://5975764560",
 	},
 	gold = {
@@ -29,7 +29,7 @@ local VariationsConfig = {
 		DisplayName = "Golden",
 		Multiplier = 3,
 		ColorPrimary = Color3.new(0.894117, 0.796078, 0.239215),
-		Weight = 13 ^ 3,
+		Weight = 13 ^ 2,
 		Image = "rbxassetid://5975764560",
 	},
 	diamond = {
@@ -37,7 +37,7 @@ local VariationsConfig = {
 		DisplayName = "Diamond",
 		Multiplier = 4,
 		ColorPrimary = Color3.new(0.015686, 0.592156, 0.858823),
-		Weight = 8 ^ 3,
+		Weight = 8 ^ 2,
 		Image = "rbxassetid://10051960116",
 	},
 	starlight = {
@@ -46,7 +46,7 @@ local VariationsConfig = {
 		Multiplier = 5,
 		ColorPrimary = Color3.new(0.549019, 0.152941, 1),
 		Image = "rbxassetid://10051928285",
-		Weight = 5 ^ 3,
+		Weight = 5 ^ 2,
 	},
 }
 

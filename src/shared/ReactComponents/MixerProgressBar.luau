@@ -10,6 +10,40 @@ local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConf
 local e = React.createElement
 local useCallback = React.useCallback
 
+-- local DURATION = 5
+-- local function delayedRevealSizeMap(startTimeRef, sec: number, finalSize: UDim2, startSize: UDim2?)
+-- 	return function(t)
+-- 		local startTime = startTimeRef.current -- Read the live value every tick!
+
+-- 		if not startTime or startTime == math.huge then
+-- 			return startSize or UDim2.new(0, 0, 0, 0) -- Return a default hidden size
+-- 		end
+
+-- 		if t > startTime then
+-- 			if t > startTime + sec then
+-- 				local elapsed = (t - startTime - sec)
+-- 				elapsed = math.min(elapsed, DURATION) / DURATION
+-- 				-- elapsed ^= 10
+-- 				elapsed = 1 - ((1 - elapsed) ^ 20)
+-- 				local size = UDim2.new(
+-- 					startSize.X.Scale + (elapsed * (finalSize.X.Scale - startSize.X.Scale)),
+-- 					startSize.X.Offset + (elapsed * (finalSize.X.Offset - startSize.X.Offset)),
+-- 					startSize.Y.Scale + (elapsed * (finalSize.Y.Scale - startSize.Y.Scale)),
+-- 					startSize.Y.Offset + (elapsed * (finalSize.Y.Offset - startSize.Y.Offset))
+-- 				)
+-- 				-- warn(size)
+-- 				return size
+-- 			end
+-- 		end
+
+-- 		return startSize or UDim2.new(0, 0, 0, 0) -- Make sure to always return a UDim2, not nil!
+-- 	end
+-- end
+
+local imageMap = function(p)
+	return p < 1 and "rbxassetid://125013557801199" or "rbxassetid://12402862092"
+end
+
 local function MixerProgressBar(props: {
 	Adornee: Instance,
 	StartTime: number,
@@ -54,6 +88,8 @@ local function MixerProgressBar(props: {
 				ColorSequenceKeypoint.new(1, variation.ColorPrimary),
 			})
 		or nil
+
+	local mappedImage = props.progress and props.progress:map(imageMap) or ""
 
 	return e(VStack, {
 		-- Size = UDim2.new(0, 100, 0, 100),
@@ -139,27 +175,27 @@ local function MixerProgressBar(props: {
 						Position = UDim2.new(0.5, 0, 0, 0),
 						AnchorPoint = Vector2.new(0.5, 0),
 					}, {}),
-					ImageLeft = e("ImageLabel", {
+					ImageLeft = e("Frame", {
 						Size = UDim2.new(0.5, 0, 1, 0),
 						Active = false,
 						SizeConstraint = Enum.SizeConstraint.RelativeXX,
-						BackgroundColor3 = Color3.fromRGB(30, 30, 38),
 						BackgroundTransparency = 1,
-						BorderSizePixel = 0,
-						-- ImageColor3 = bg,
-						ScaleType = Enum.ScaleType.Fit,
 						ZIndex = 9,
 						Position = UDim2.new(0, 0, 0.5, 0),
 						AnchorPoint = Vector2.new(0, 0.5),
 						ClipsDescendants = true,
 					}, {
-						ImageLeft = e("ImageLabel", {
+						e("ImageLabel", {
 							Size = UDim2.new(2, 0, 2, 0),
 							SizeConstraint = Enum.SizeConstraint.RelativeXX,
 							BackgroundColor3 = Color3.fromRGB(30, 30, 38),
 							BackgroundTransparency = 1,
+							ImageTransparency = props.progress:map(function(p)
+								return p < 0.5 and 1 or 0
+							end),
 							BorderSizePixel = 0,
-							Image = "rbxassetid://125013557801199",
+							-- Image = "rbxassetid://12402862092",125013557801199
+							Image = mappedImage,
 							ImageColor3 = variation and variation.ColorPrimary or nil,
 							ScaleType = Enum.ScaleType.Fit,
 							ZIndex = 9,
@@ -180,28 +216,24 @@ local function MixerProgressBar(props: {
 							}),
 						}),
 					}),
-					ImageRight = e("ImageLabel", {
+					ImageRight = e("Frame", {
 						Size = UDim2.new(0.5, 0, 1, 0),
 						SizeConstraint = Enum.SizeConstraint.RelativeXX,
 						Active = false,
-						BackgroundColor3 = Color3.fromRGB(30, 30, 38),
 						BackgroundTransparency = 1,
-						BorderSizePixel = 0,
-						-- ImageColor3 = bg,
-						ScaleType = Enum.ScaleType.Fit,
 						ZIndex = 9,
 						Position = UDim2.new(1, 0, 0.5, 0),
 						AnchorPoint = Vector2.new(1, 0.5),
 						ClipsDescendants = true,
 					}, {
-						ImageLeft = e("ImageLabel", {
+						e("ImageLabel", {
 							Size = UDim2.new(2, 0, 2, 0),
 							SizeConstraint = Enum.SizeConstraint.RelativeXX,
 							BackgroundColor3 = Color3.fromRGB(30, 30, 38),
 							Active = false,
 							BackgroundTransparency = 1,
 							BorderSizePixel = 0,
-							Image = "rbxassetid://125013557801199",
+							Image = mappedImage,
 							ImageColor3 = variation and variation.ColorPrimary or nil,
 							ScaleType = Enum.ScaleType.Fit,
 							ZIndex = 9,

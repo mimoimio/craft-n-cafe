@@ -5,6 +5,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 local LevelConfig = require(ReplicatedStorage.Shared.Configs.LevelConfig)
+local MixerConfig = require(ReplicatedStorage.Shared.Configs.MixerConfig)
 local Types = require(ReplicatedStorage.Shared.Types)
 local ShopCycle = require(ReplicatedStorage.Shared.ShopCycle)
 
@@ -120,13 +121,36 @@ function ShopService.LevelUp(player: Player)
 		cost = cost,
 		unlockedTables = unlockedTables,
 		unlockedIngredients = unlockedIngredients,
-		unlockedMixers = unlockedMixers,
+		-- unlockedMixers = unlockedMixers,
+	})
+end
+function ShopService.BuyMixer(player: Player, mixerName: string)
+	-- Your existing LevelUp logic remains completely unchanged here
+	local playerId = tostring(player.UserId)
+	local state = GlobalState:getState()
+	local playersStats = state.Stats[playerId]
+
+	if not playersStats then
+		return
+	end
+
+	local cost = MixerConfig[mixerName]
+
+	if playersStats.Cash < cost then
+		print("not enough")
+		return
+	end
+
+	GlobalState.buyMixer(playerId, {
+		cost = cost,
+		mixerId = mixerName,
 	})
 end
 
 function ShopService.initialize()
 	Remotes.BuyIngredient.OnServerEvent:Connect(ShopService.BuyIngredient)
 	Remotes.LevelUp.OnServerEvent:Connect(ShopService.LevelUp)
+	-- Remotes.BuyMixer.OnServerEvent:Connect(ShopService.BuyMixer)
 
 	-- Spin up a background thread to watch for seed changes!
 	task.spawn(function()

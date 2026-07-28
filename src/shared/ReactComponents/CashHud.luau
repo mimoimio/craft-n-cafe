@@ -123,9 +123,9 @@ local function CashHud(props: {
 		if prevCoins.current ~= nil then
 			local diff = coins - prevCoins.current
 			if diff > 0 then
-				addToast("+" .. tostring(diff) .. "$")
+				addToast("+" .. tostring(Mionum.new(diff):toString()) .. "$")
 			elseif diff < 0 then
-				addToast(tostring(diff)) -- Already has negative sign
+				addToast(tostring(Mionum.new(diff):toString())) -- Already has negative sign
 			end
 		end
 		prevCoins.current = coins

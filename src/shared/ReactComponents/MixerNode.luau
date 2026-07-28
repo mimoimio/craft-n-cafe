@@ -10,6 +10,8 @@ local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local toggleMixerInteract = UIState.toggleMixerInteract
 local MixerProgressBar = require(script.Parent.MixerProgressBar)
 local VStack = require(script.Parent.ui.VStack)
+local ReactFlow = require(ReplicatedStorage.Packages.ReactFlow)
+local useSpring = ReactFlow.useSpring
 local SmallButton = require(script.Parent.ui.SmallButton)
 local TAP_ICON =
 	`<font family="rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json">hand-half-ellipse</font>`
@@ -18,6 +20,56 @@ local e = React.createElement
 local useEffect = React.useEffect
 local useState = React.useState
 local useRef = React.useRef
+
+local function delayedRevealTransMap(startTime, sec: number, minTransparency: number?) -- from 1 to 0
+	return function(t)
+		if not startTime then
+			return 1
+		end
+		if t > startTime then
+			if t > startTime + sec then
+				local elapsed = math.min(t - startTime - sec, 1)
+				elapsed ^= 10
+				elapsed = 1 - elapsed
+
+				if minTransparency then
+					elapsed = math.max(minTransparency, elapsed)
+				end
+				return elapsed
+			end
+		end
+		return 1
+	end
+end
+
+local DURATION = 1
+
+local function delayedRevealSizeMap(startTimeRef, sec: number, finalSize: UDim2)
+	return function(t)
+		local startTime = startTimeRef.current -- Read the live value every tick!
+
+		if not startTime or startTime == math.huge then
+			return UDim2.new(0, 0, 0, 0) -- Return a default hidden size
+		end
+
+		if t > startTime then
+			if t > startTime + sec then
+				local elapsed = (t - startTime - sec)
+				elapsed = math.min(elapsed, DURATION) / DURATION
+				-- elapsed ^= 10
+				elapsed = 1 - ((1 - elapsed) ^ 20)
+				return UDim2.new(
+					elapsed * finalSize.X.Scale,
+					elapsed * finalSize.X.Offset,
+					elapsed * finalSize.Y.Scale,
+					elapsed * finalSize.Y.Offset
+				)
+			end
+		end
+
+		return UDim2.new(0, 0, 0, 0) -- Make sure to always return a UDim2, not nil!
+	end
+end
 
 local function MixerNode(props: {
 	MixerName: string,
@@ -36,29 +88,27 @@ local function MixerNode(props: {
 	local duration = (config and config.Duration) or nil
 	local startTime = props.MixerData.startTime
 	local mobile = useRef(false)
+	local buttonShownStart = useRef(math.huge)
 
 	React.useEffect(function()
 		local running = true
 		local t = task.spawn(function()
 			while running do
-				task.wait(1 / 15)
-				if not (startTime and duration) then
-					continue
-				end
+				task.wait()
 				local now = workspace:GetServerTimeNow()
-				local timePassed = now - startTime
-				local p = math.clamp(timePassed / duration, 0, 1)
-
-				setProgress(p)
-				setTime(now)
-
-				if p >= 1 then
-					if finishRangRef.current == true then
-						continue
+				if startTime and duration then
+					local timePassed = now - startTime
+					local p = math.clamp(timePassed / duration, 0, 1)
+					setProgress(p)
+					if p >= 1 then
+						if finishRangRef.current ~= true then
+							SoundController.Sound("Success")
+						end
+						finishRangRef.current = true
 					end
-					finishRangRef.current = true
-					SoundController.Sound("Success")
 				end
+				-- warn("updating")
+				setTime(now)
 			end
 		end)
 
@@ -107,6 +157,33 @@ local function MixerNode(props: {
 		end
 	end, { props.Instance })
 
+	local variationId = props.MixerData and props.MixerData.variationId or "none"
+	local prevVariationRef = useRef(nil)
+	useEffect(function()
+		if not variationId then
+			return
+		end
+		if prevVariationRef.current == nil then
+			-- first mounted
+			prevVariationRef.current = variationId
+			return
+		end
+		if prevVariationRef.current == variationId then
+			return
+		end
+		-- only if (previously is nothing) and (variationid not "none")
+
+		if variationId == "double" then
+			SoundController.Sound("Fun Jingle A")
+		elseif variationId == "gold" then
+			SoundController.Sound("Premium Jingle")
+		elseif variationId == "diamond" then
+			SoundController.Sound("crystal_jingle")
+		elseif variationId == "starlight" then
+			SoundController.Sound("Stick RPG 2 Item Get! Jingle")
+		end
+	end, { variationId })
+
 	-- 2. Bind the ProximityPrompt safely
 	useEffect(function()
 		if not prompt then
@@ -124,8 +201,8 @@ local function MixerNode(props: {
 						local elapsed = now - startTime
 						local left = startTime + duration - now
 						if left > 30 then
-							warn("skippable")
-							-- Remotes.SkipMix:FireServer(props.MixerName)
+							-- warn("skippable")
+							Remotes.SkipMix:FireServer(props.MixerName)
 							return
 						end
 					end
@@ -152,7 +229,7 @@ local function MixerNode(props: {
 			conn2:Disconnect()
 			conn3:Disconnect()
 		end
-	end, { prompt, isOccupied, props.MixerName })
+	end, { prompt, isOccupied, props.MixerName, startTime })
 
 	-- set UIState's mixernodeshown
 	useEffect(function()
@@ -202,28 +279,37 @@ local function MixerNode(props: {
 		})
 	end
 	local textMap = React.useCallback(function(t)
-		if not (startTime and duration) then
-			return "Craft"
+		if startTime and duration then
+			local now = t
+			local timePassed = now - startTime
+			local p = math.clamp(timePassed / duration, 0, 1)
+			local timeLeft = duration - timePassed
+			if p >= 1 then
+				return `{mobile.current and TAP_ICON or `[E]`} Pick Up`
+			elseif timeLeft > 30 then
+				return `{mobile.current and TAP_ICON or `[E]`} Skip?`
+			else
+				return `Mixing...`
+			end
 		end
-		local now = t
-		local timePassed = now - startTime
-		local p = math.clamp(timePassed / duration, 0, 1)
-		local timeLeft = duration - timePassed
-
-		if p >= 1 then
-			return `{mobile.current and TAP_ICON or `[E]`} Pick Up`
-		elseif timeLeft > 30 then
-			return `{mobile.current and TAP_ICON or `[E]`} Skip?`
-		else
-			return `Mixing...`
-		end
-		return
+		return `{mobile.current and TAP_ICON or `[E]`} Mix`
 	end, { startTime, duration })
+	useEffect(function()
+		if not shown then
+			buttonShownStart.current = math.huge
+			return
+		end
+		buttonShownStart.current = workspace:GetServerTimeNow()
+		return function()
+			buttonShownStart.current = math.huge
+		end
+	end, { shown })
 
+	local mappedSize = time:map(delayedRevealSizeMap(buttonShownStart, 0, UDim2.new(1, 0, 1 / 4, 0)))
 	return e("BillboardGui", {
 		Adornee = props.Instance,
 		Size = UDim2.new(6, 0, 6, 0),
-		StudsOffset = Vector3.new(0, progressBar and 2 or -3, 0),
+		StudsOffset = Vector3.new(0, progressBar and 2 or 0, 0),
 		AlwaysOnTop = true,
 		MaxDistance = 50,
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
@@ -241,6 +327,7 @@ local function MixerNode(props: {
 			Size = UDim2.new(1, 0, 1, 0),
 			BackgroundColor3 = Color3.new(0.15, 0.15, 0.15),
 			HorizontalFlex = Enum.UIFlexAlignment.None,
+			VerticalFlex = Enum.UIFlexAlignment.None,
 			AnchorPoint = Vector2.new(0.5, 0),
 			Position = UDim2.new(0.5, 0, 0, 0),
 		}, {
@@ -250,10 +337,12 @@ local function MixerNode(props: {
 				ZIndex = 100,
 				LayoutOrder = 2,
 				Visible = shown,
+				RichText = true,
 				TextWrapped = false,
 				Active = true,
-				Size = UDim2.new(1, 0, 1 / 4, 0),
+				Size = mappedSize,
 				TextSize = 24,
+				AutomaticSize = Enum.AutomaticSize.None,
 				TextTruncate = Enum.TextTruncate.SplitWord,
 				[React.Event.MouseButton1Down] = function()
 					if prompt then
@@ -268,14 +357,20 @@ local function MixerNode(props: {
 			}) or nil,
 		}) or nil,
 		WhenEmpty = not progressBar and e(SmallButton, {
-			Text = duration and startTime and time:map(textMap) or "Craft",
+			Text = time:map(textMap),
 			LayoutOrder = 2,
 			Visible = shown,
 			TextWrapped = false,
+			RichText = true,
+			AutomaticSize = Enum.AutomaticSize.None,
 			TextSize = 24,
+			Position = UDim2.new(0.5, 0, 0.5, 0),
+			AnchorPoint = Vector2.new(0.5, 0),
 			ZIndex = 100,
 			TextTruncate = Enum.TextTruncate.SplitWord,
-			Size = UDim2.new(1, 0, 1 / 4, 0),
+			-- Size = UDim2.new(1, 0, 1 / 4, 0),
+			Size = mappedSize,
+			-- Size = mappedButtonSize,
 			[React.Event.MouseButton1Down] = function()
 				if prompt then
 					prompt:InputHoldBegin()

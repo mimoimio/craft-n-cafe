@@ -38,7 +38,7 @@ local function VStack(props)
 		TileSize = isImageLabel and props.TileSize,
 		Rotation = props.Rotation,
 		ClipsDescendants = props.ClipsDescendants,
-
+		ref = props.OnMount,
 		AutomaticSize = props.AutomaticSize or Enum.AutomaticSize.None,
 		BackgroundTransparency = props.BackgroundTransparency or 1,
 		BackgroundColor3 = props.BackgroundColor3,

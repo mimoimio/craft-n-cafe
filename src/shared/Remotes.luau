@@ -84,4 +84,9 @@ return {
 	ToggleCafeOpen = CreateRemote("ToggleCafeOpen"),
 	Add500 = CreateRemote("Add500"),
 	CompleteTutorial = CreateRemote("CompleteTutorial"),
+	SkipMix = CreateRemote("SkipMix"),
+	ClaimDaily = CreateRemote("ClaimDaily"),
+	Restock = CreateRemote("Restock"),
+	RollIngredient = CreateRemote("RollIngredient"),
+	BuyIngredientFromSpawner = CreateRemote("BuyIngredientFromSpawner"),
 }

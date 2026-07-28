@@ -4,6 +4,8 @@ local Mionum = require(ReplicatedStorage.Packages.Mionum)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
+local ReactFlow = require(ReplicatedStorage.Packages.ReactFlow)
+local useSpring = ReactFlow.useSpring
 
 local e = React.createElement
 local useState = React.useState
@@ -80,16 +82,42 @@ local function CafePanel(props: {})
 		end
 	end
 
+	local position, setPosition = useSpring({
+		start = -1,
+		target = -1,
+		speed = 1,
+		damper = 1,
+	})
+
+	useEffect(function()
+		if panelOpen then
+			setPosition({
+				target = 0,
+				speed = 30,
+				damper = 0.6,
+			})
+		else
+			setPosition({
+				target = -1,
+				speed = 30,
+				damper = 0.6,
+			})
+		end
+	end, { panelOpen })
+
 	return e(DefaultPanel, {
 		Title = "Cafe",
 		Size = UDim2.new(0.5, 0, 1, 0),
 		-- MinSize = Vector2.new(500, 320),
 		MaxSize = Vector2.new(500, 500),
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 0.5, 0),
+		Position = position:map(function(n)
+			return UDim2.new(0.5 - n, 0, 0.5, 0)
+		end),
 		OnClose = props.OnClose,
 		BackgroundImageTransparency = 0,
-		Open = panelOpen,
+
+		-- Open = panelOpen,
 	}, {
 		Grid = e(VStack, {
 			-- CellSize = UDim2.new(1, -20, 0, 150),

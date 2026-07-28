@@ -66,7 +66,76 @@ function TablesService.PlaceDrink(player: Player, drinkUid: string?, tableUid: s
 	})
 end
 
+function TablesService.Restock(player: Player)
+	local playerId = tostring(player.UserId)
+	local state = GlobalState:getState()
+
+	local drinks = state.Drinks[playerId]
+	local tables = state.Tables[playerId]
+
+	if not drinks or not tables then
+		log(`Restock Failed: player({playerId})'s Drinks or Tables not found`)
+		return
+	end
+
+	-- 1. Find all placed drink UIDs
+	local placedUids = {}
+	for _, tableEntity in tables do
+		for _, drinkUid in tableEntity.Slots do
+			if drinkUid ~= "none" then
+				placedUids[drinkUid] = true
+			end
+		end
+	end
+
+	-- 2. Map placed drinks to their signature (drinkId + variationId)
+	-- We only store the first one we find to merge everything into it.
+	local placedSignatureMap = {}
+	for _, drink in drinks do
+		if placedUids[drink.id] then
+			local signature = `{drink.drinkId}_{tostring(drink.variationId)}`
+			if not placedSignatureMap[signature] then
+				placedSignatureMap[signature] = drink.id
+			end
+		end
+	end
+
+	-- 3. Calculate stock additions and removals
+	local stockToAdd = {}
+	local drinksToRemove = {}
+	local hasChanges = false
+
+	for _, drink in drinks do
+		if not placedUids[drink.id] then
+			-- This is an unplaced drink
+			local signature = `{drink.drinkId}_{tostring(drink.variationId)}`
+			local targetPlacedUid = placedSignatureMap[signature]
+
+			-- If there is a matching placed drink, we merge the stock
+			if targetPlacedUid then
+				stockToAdd[targetPlacedUid] = (stockToAdd[targetPlacedUid] or 0) + drink.stock
+				drinksToRemove[drink.id] = true
+				hasChanges = true
+			end
+		end
+	end
+
+	-- 4. Dispatch the action if we have valid merges
+	if hasChanges then
+		GlobalState.restockDrinks(playerId, {
+			stockToAdd = stockToAdd,
+			drinksToRemove = drinksToRemove,
+		})
+	else
+		log(`Restock: No unplaced drinks matched with placed drinks for player({playerId})`)
+	end
+end
+
+-- Remember to connect this function to a RemoteEvent in initialize()
+
 function TablesService.initialize()
 	Remotes.PlaceDrink.OnServerEvent:Connect(TablesService.PlaceDrink)
+	Remotes.Restock.OnServerEvent:Connect(function(player) end)
+	Remotes.Restock.OnServerEvent:Connect(TablesService.Restock)
 end
 return TablesService

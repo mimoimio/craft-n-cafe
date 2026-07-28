@@ -1,9 +1,11 @@
 --!strict
 -- Shared/producers/UIState.luau
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Reflex = require(ReplicatedStorage.Packages.Reflex)
 local Types = require(ReplicatedStorage.Shared.Types)
+local CafeTypes = require(ReplicatedStorage.Shared.CafeTypes)
 local Sift = require(ReplicatedStorage.Packages.Sift)
 local Dictionary = Sift.Dictionary
 local Set = Dictionary.set
@@ -17,6 +19,9 @@ export type UIState = {
 	isEspressoInserted: boolean,
 	tableSlotNodeShown: boolean,
 	shopButton: GuiButton,
+	cafeButton: GuiButton,
+	cafeBase: CafeTypes.CafeBase?,
+	shopPromptShown: boolean,
 }
 export type UIActions = {
 	toggle: (panel: string) -> (),
@@ -25,6 +30,9 @@ export type UIActions = {
 	setIsEspressoInserted: (is: boolean) -> (),
 	setTableSlotNodeShown: (is: boolean) -> (),
 	setShopButton: (shopButton: GuiButton) -> (),
+	setCafeButton: (cafeButton: GuiButton) -> (),
+	setCafeBase: (model: Model) -> (),
+	setShopPromptShown: (is: boolean) -> (),
 }
 local initialState = {
 	panel = "none",
@@ -32,13 +40,21 @@ local initialState = {
 	mixerNodeShown = nil,
 	isEspressoInserted = false,
 	tableSlotNodeShown = false,
+	cafeBase = nil,
 }
 local producer = Reflex.createProducer(initialState, {
 	toggle = function(state: UIState, panel: string)
+		local newPanel
 		if state.panel == panel then
-			return Set(state, "panel", "none")
+			newPanel = "none"
+		else
+			newPanel = panel
 		end
-		return Set(state, "panel", panel)
+
+		if newPanel == "none" then
+			GuiService.SelectedObject = nil
+		end
+		return Set(state, "panel", newPanel)
 	end,
 	toggleMixerInteract = function(state: UIState, mixerName: string)
 		return Merge(state, {
@@ -47,7 +63,7 @@ local producer = Reflex.createProducer(initialState, {
 		})
 	end,
 	setMixerNodeShown = function(state: UIState, mixerName: string)
-		return Merge(state, "mixerNodeShown", mixerName)
+		return Set(state, "mixerNodeShown", mixerName)
 	end,
 	setIsEspressoInserted = function(state: UIState, is: boolean)
 		return Set(state, "isEspressoInserted", is and true or false)
@@ -56,8 +72,16 @@ local producer = Reflex.createProducer(initialState, {
 		return Set(state, "tableSlotNodeShown", is and true or false)
 	end,
 	setShopButton = function(state: UIState, shopButton: GuiButton?)
-		warn(`setting shop button: {shopButton}`)
 		return Set(state, "shopButton", shopButton)
+	end,
+	setCafeButton = function(state: UIState, cafeButton: GuiButton?)
+		return Set(state, "cafeButton", cafeButton)
+	end,
+	setCafeBase = function(state: UIState, model: Model?)
+		return Set(state, "cafeBase", model)
+	end,
+	setShopPromptShown = function(state: UIState, is: boolean)
+		return Set(state, "shopPromptShown", is)
 	end,
 }) :: Reflex.Producer<UIState, UIActions>
 

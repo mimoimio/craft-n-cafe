@@ -3,6 +3,7 @@ local GuiService = game:GetService("GuiService")
 local React = require(ReplicatedStorage.Packages.React)
 local e = React.createElement
 local useState = React.useState
+local useRef = React.useRef
 local useEffect = React.useEffect
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
@@ -39,7 +40,7 @@ local function MixerPanel(props: {
 	-- Reference to the selected ingredients UI to act as the target position
 	local targetRef = React.useRef(nil)
 	local ingredients, setIngredients = useState((not player) and { espresso = 1, water = 1 } or {})
-	local discoveredDrinks, setDiscoveredDrinks = useState((not player) and { espresso = true } or {})
+	local discoveredDrinks, setDiscoveredDrinks = useState((not player) and { starlight = { espresso = true } } or {})
 
 	--  listen to discoveredDrinks
 	useEffect(function()
@@ -87,9 +88,16 @@ local function MixerPanel(props: {
 	end, {})
 
 	-- listen to panel
+	local panelRef = useRef(nil)
 	useEffect(function()
 		local unsub = UIState:subscribe(function(state: UIState.UIState)
-			setPanelOpen(state.panel == "mixer")
+			local isOpen = state.panel == "mixer"
+			if isOpen and panelRef.current then 
+				game:GetService("GamepadService"):EnableGamepadCursor(panelRef.current)
+			else
+				game:GetService("GamepadService"):DisableGamepadCursor()
+			end
+			setPanelOpen(isOpen)
 		end)
 		return unsub
 	end, {})
@@ -228,7 +236,14 @@ local function MixerPanel(props: {
 	local durationText = resultConfig
 			and `<font size="14">$$$</font><font size="18">: {resultConfig.Price} $\n{CLOCK}: {min > 0 and `{min} min ` or ""}{sec} sec </font>\n<font size="18">{STOCK}: {stocks}x</font>`
 		or ""
-	local new = not discoveredDrinks[resultConfig and resultConfig.Id]
+	-- local new = not discoveredDrinks[resultConfig and resultConfig.Id]
+	local new = true
+	for variationId, drinksOfVariation in discoveredDrinks do
+		if drinksOfVariation[resultConfig and resultConfig.Id] then
+			new = false
+			break
+		end
+	end
 	local resultLabelText = resultConfig and (not new and resultConfig.DisplayName or "???") or ""
 
 	return e("ImageLabel", {
@@ -254,6 +269,7 @@ local function MixerPanel(props: {
 		e(VStack, {
 			Size = UDim2.new(1, 0, 1, 0),
 			BackgroundTransparency = 1,
+			OnMount = panelRef,
 			Padding = {
 				Top = UDim.new(0, 12),
 				Right = UDim.new(0, 12),

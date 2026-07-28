@@ -58,7 +58,9 @@ local function SmallButton(props)
 		buttonProps.ImageTransparency = props.ImageTransparency or 0
 		buttonProps.ImageColor3 = props.ImageColor3 or props.TextColor3
 		buttonProps.ScaleType = props.ScaleType or Enum.ScaleType.Fit
+		buttonProps.SliceCenter = props.SliceCenter
 	else
+		buttonProps.TextScaled = props.TextScaled
 		buttonProps.Text = props.Text or ""
 		buttonProps.RichText = props.RichText
 		buttonProps.TextTransparency = props.TextTransparency
@@ -77,14 +79,21 @@ local function SmallButton(props)
 	local overlayColor = props.KeybindColor3 or props.TextColor3 or Color3.fromRGB(255, 255, 255)
 
 	props.children = props.children or {}
-	props.children.UICorner = e("UICorner", { CornerRadius = props.CornerRadius or UDim.new(0, 8) })
-	props.children.UITextSizeConstraint = e("UITextSizeConstraint", {
-		MaxTextSize = props.MaxTextSize or props.TextSize or 18,
-		MinTextSize = props.MinTextSize or props.TextSize or 18,
+	props.children.UICorner = props.Rounded ~= false
+			and e("UICorner", { CornerRadius = props.CornerRadius or UDim.new(0, 8) })
+		or nil
+	props.children.SCALE = props.HoverScale == true and e("UIScale", {
+		Scale = scale,
 	})
-	props.children.UIScale = e("UIScale", {
+	props.children.UITextSizeConstraint = not props.TextScaled
+			and e("UITextSizeConstraint", {
+				MaxTextSize = props.MaxTextSize or props.TextSize or 18,
+				MinTextSize = props.MinTextSize or props.TextSize or 18,
+			})
+		or nil
+	props.children.UIScale = props.Scale and e("UIScale", {
 		Scale = props.Scale,
-	})
+	}) or props.children.UIScale
 	props.children.Padding = e("UIPadding", {
 		PaddingTop = props.Padding and (props.Padding.All or props.Padding.Top) or UDim.new(0, 4),
 		PaddingBottom = props.Padding and (props.Padding.All or props.Padding.Bottom) or UDim.new(0, 4),

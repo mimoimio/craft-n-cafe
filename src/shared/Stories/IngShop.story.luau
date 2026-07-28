@@ -8,24 +8,6 @@ local ConsoleApp = require(game.ReplicatedStorage.Shared.ReactComponents.Console
 local DrinksPanel = require(game.ReplicatedStorage.Shared.ReactComponents.DrinksPanel)
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local IngredientShopPanel = require(game.ReplicatedStorage.Shared.ReactComponents.IngredientShopPanel)
-local function App(props)
-	local drinks, setDrinks = useState({
-		{
-			id = "abc",
-			drinkId = "americano",
-			stock = 5,
-		},
-		{
-			id = "bcd",
-			drinkId = "latte",
-			stock = 5,
-		},
-	})
-	return e(DrinksPanel, {
-		Drinks = drinks,
-	})
-end
-
 local function story(frame: Frame)
 	local root = ReactRoblox.createRoot(frame)
 	root:render(e(IngredientShopPanel))

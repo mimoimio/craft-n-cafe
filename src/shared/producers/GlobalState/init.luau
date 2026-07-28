@@ -12,6 +12,8 @@ local mixersSlice = require(script.mixersSlice)
 local customersSlice = require(script.customersSlice)
 local discoveredDrinksSlice = require(script.discoveredDrinksSlice)
 local shopSlice = require(script.shopSlice)
+local dailySlice = require(script.dailySlice)
+local spawnerSlice = require(script.spawnerSlice)
 
 export type CombinedActions = Types.CombinedActions
 
@@ -24,6 +26,8 @@ export type GlobalState = {
 	Customers: customersSlice.CustomersState,
 	DiscoveredDrinks: discoveredDrinksSlice.DiscoveredDrinksState,
 	Shop: shopSlice.ShopState,
+	Daily: dailySlice.DailyState,
+	Spawner: spawnerSlice.SpawnerState,
 }
 
 export type Stats = statsSlice.StatsState
@@ -39,6 +43,8 @@ local producer = Reflex.combineProducers({
 	Customers = customersSlice,
 	DiscoveredDrinks = discoveredDrinksSlice,
 	Shop = shopSlice,
+	Daily = dailySlice,
+	Spawner = spawnerSlice,
 }) :: Reflex.Producer<GlobalState, CombinedActions>
 
 return producer

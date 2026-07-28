@@ -1,5 +1,7 @@
 -- Shared/ReactComponents/LevelUp.luau
+local ContextActionService = game:GetService("ContextActionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 local React = require(ReplicatedStorage.Packages.React)
 local e = React.createElement
 local useState = React.useState
@@ -8,23 +10,88 @@ local useRef = React.useRef
 local useEffect = React.useEffect
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
+local LevelConfig = require(ReplicatedStorage.Shared.Configs.LevelConfig)
+local IngredientsConfig = require(ReplicatedStorage.Shared.Configs.IngredientsConfig)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
+local UIState = require(ReplicatedStorage.Shared.producers.UIState)
+local SoundController = require(ReplicatedStorage.Shared.Controllers.SoundController)
 
 local Primitives = ReplicatedStorage.Shared.ReactComponents.ui
 local DefaultPanel = require(script.Parent.DefaultPanel)
 local DefaultScrollFrame = require(script.Parent.DefaultScrollFrame)
 local SmallButton = require(Primitives.SmallButton)
-local SmallText = require(Primitives.SmallText)
+local st = require(Primitives.SmallText)
 local VStack = require(Primitives.VStack)
 local HStack = require(Primitives.HStack)
 
+local SmallText = function(props)
+	props = props or {}
+	props.children = props.children or {}
+	table.insert(
+		props.children,
+		e("UIStroke", {
+			Thickness = 2,
+			Transparency = props.Transparency
+				or props.TextTransparency
+				or props.ImageTransparency
+				or props.BackgroundImageTransparency,
+		})
+	)
+	return e(st, props, props.children)
+end
+
+local INTER_DELAY = 0.4
+
 local player = game.Players.LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
+
+local function delayedRevealTransMap(startTime, sec: number, minTransparency: number?) -- from 1 to 0
+	return function(t)
+		if not startTime then
+			return 1
+		end
+		if t > startTime then
+			if t > startTime + sec then
+				local elapsed = math.min(t - startTime - sec, 1)
+				elapsed ^= 10
+				elapsed = 1 - elapsed
+
+				if minTransparency then
+					elapsed = math.max(minTransparency, elapsed)
+				end
+				return elapsed
+			end
+		end
+		return 1
+	end
+end
+local function delayedRevealSizeMap(startTime, sec: number, finalSize: UDim2)
+	return function(t)
+		if not startTime then
+			return
+		end
+		if t > startTime then
+			if t > startTime + sec then
+				local elapsed = math.min(t - startTime - sec, 1)
+				elapsed ^= 10
+				-- elapsed = 1 - elapsed
+				return UDim2.new(
+					elapsed * finalSize.X.Scale,
+					elapsed * finalSize.X.Offset,
+					elapsed * finalSize.Y.Scale,
+					elapsed * finalSize.Y.Offset
+				)
+			end
+		end
+		return
+	end
+end
 
 local function LevelUp(props: {})
 	local playersLevel, setPlayersLevel = useState(1)
 	local isActive, setIsActive = useState(nil)
 	local t, setT = useBinding(tick())
+	local startTime, setStartTime = useState(math.huge)
 
 	useEffect(function()
 		local unsub = GlobalState:subscribe(function(state: GlobalState.GlobalState)
@@ -40,13 +107,13 @@ local function LevelUp(props: {})
 		setPlayersLevel(_playersStats and _playersStats.Level or 1)
 		if not player then
 			task.delay(1, function()
-				setPlayersLevel(2)
+				setPlayersLevel(6)
 			end)
 		end
 
 		local timer = task.spawn(function()
 			while task.wait() do
-				setT(tick())
+				setT(workspace:GetServerTimeNow())
 			end
 		end)
 		return function()
@@ -56,6 +123,7 @@ local function LevelUp(props: {})
 	end, {})
 
 	local prevLevelRef = useRef(nil)
+	local shown, setShown = useState(false)
 	useEffect(function()
 		if not playersLevel then
 			return
@@ -64,22 +132,223 @@ local function LevelUp(props: {})
 			prevLevelRef.current = playersLevel
 			return
 		end
+		if prevLevelRef.current and playersLevel and prevLevelRef.current < playersLevel then
+			setStartTime(workspace:GetServerTimeNow())
+			setIsActive(true)
+			SoundController.Sound("Strike Up the Band (sting)")
+			UIState.toggle("none")
+		end
 	end, { playersLevel })
 
-	if prevLevelRef.current and playersLevel and prevLevelRef.current < playersLevel then
+	local sizeMap = React.useCallback(function(t)
+		if not startTime then
+			return UDim.new()
+		end
+		if workspace:GetServerTimeNow() > startTime then
+			local now = workspace:GetServerTimeNow()
+			if now > startTime + 1 then
+				local elapsed = math.min(now - startTime - 1, 1)
+				elapsed ^= 2
+				return UDim2.new(0, 200 * elapsed, 0, 40 * elapsed)
+			end
+		end
+	end, { startTime })
+	local visMap = React.useCallback(function(t)
+		if not startTime then
+			return
+		end
+		if workspace:GetServerTimeNow() > startTime then
+			if workspace:GetServerTimeNow() > startTime + 1 then
+				return true
+			end
+		end
+	end, { startTime })
+	local transMap = React.useCallback(function(t)
+		if not startTime then
+			return 1
+		end
+		local now = workspace:GetServerTimeNow()
+		if now > startTime then
+			if now > startTime + 1 then
+				local elapsed = math.min(now - startTime - 1, 1)
+				elapsed ^= 10
+				elapsed = 1 - elapsed
+				return elapsed
+			end
+		end
+		return 1
+	end, { startTime })
+	local ingredients = {}
+	for i, unlockedIngredients in LevelConfig[playersLevel] and LevelConfig[playersLevel].NewIngredients or {} do
+		if not startTime then
+			continue
+		end
+		local config = CoffeeModule.IngredientLookup[unlockedIngredients]
+		ingredients[i .. unlockedIngredients] = e("ImageLabel", {
+			-- Text = config.DisplayName,
+			-- TextSize = 18,
+			-- TextXAlignment = Enum.TextXAlignment.Center,
+			BackgroundTransparency = 1,
+			Size = t:map(delayedRevealSizeMap(startTime, 0.6 + INTER_DELAY * i, UDim2.new(0, 40, 0, 50))),
+			Image = config and config.Image,
+			ImageTransparency = t:map(delayedRevealTransMap(startTime, 0.6 + INTER_DELAY * i)),
+		}, {
+			e(SmallText, {
+				Text = config and config.DisplayName,
+				TextWrapped = true,
+				TextSize = 18,
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromScale(0.5, 0.5),
+				TextXAlignment = Enum.TextXAlignment.Center,
+				Size = t:map(delayedRevealSizeMap(startTime, 0.6 + INTER_DELAY * i, UDim2.new(0, 150, 0, 50))),
+				TextTransparency = t:map(delayedRevealTransMap(startTime, 0.6 + INTER_DELAY * i)),
+			}),
+		})
+	end
+
+	if isActive then
 		return e("ScreenGui", {
 			IgnoreGuiInset = true,
+			ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		}, {
-			e(SmallButton, {
-				Text = "You've leveled up!!!!!11!!",
-				[React.Event.Activated] = function()
-					prevLevelRef.current = playersLevel
-					setIsActive(function(prev)
-						return not prev
-					end)
-				end,
-				BackgroundColor3 = Color3.new(),
+			e("Frame", {
 				Size = UDim2.new(1, 0, 1, 0),
+				BackgroundColor3 = Color3.new(),
+				BackgroundTransparency = t:map(delayedRevealTransMap(startTime, 0, 0.2)),
+				ClipsDescendants = false,
+				ZIndex = 1,
+			}),
+			e(VStack, {
+				ClipsDescendants = false,
+				Size = UDim2.new(1, 0, 1, 0),
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromScale(0.5, 0.5),
+				VerticalFlex = Enum.UIFlexAlignment.None,
+				HorizontalFlex = Enum.UIFlexAlignment.None,
+				SizeConstraint = Enum.SizeConstraint.RelativeXX,
+				VerticalAlignment = Enum.VerticalAlignment.Center,
+				-- BackgroundImage = "rbxassetid://12402866426",
+				-- BackgroundImage = "rbxassetid://9376967285",
+				BackgroundImage = "rbxassetid://14197626379",
+				-- BackgroundImage = "rbxassetid://12402913998",
+				-- BackgroundImage = "rbxassetid://12402885547",
+				-- BackgroundImage = "rbxassetid://37037765",
+				-- BackgroundImage = "rbxassetid://127657596958436",
+				BackgroundImageColor3 = Color3.new(0.419607, 0.505882, 0.878431),
+				-- ScaleType = Enum.ScaleType.Slice,
+				-- SliceCenter = Rect.new(8, 8, 92, 92),
+				Spacing = UDim.new(0, 8),
+				ZIndex = 10,
+				BackgroundImageTransparency = t:map(delayedRevealTransMap(startTime, 0)),
+			}, {
+				e("UIAspectRatioConstraint", {
+					AspectRatio = 1,
+				}),
+				e(SmallText, {
+					TextTransparency = t:map(delayedRevealTransMap(startTime, 0)),
+					Text = `You've Leveled Up!`,
+					TextXAlignment = Enum.TextXAlignment.Center,
+				}),
+				e("Frame", {
+					BackgroundTransparency = 1,
+					Size = UDim2.new(1, 0, 0, 0),
+					AutomaticSize = Enum.AutomaticSize.XY,
+				}, {
+					e(VStack, {
+						Size = UDim2.new(0, 0, 0, 0),
+						AnchorPoint = Vector2.new(0.5, 0.5),
+						Position = UDim2.fromScale(0.5, 0.5),
+						VerticalFlex = Enum.UIFlexAlignment.None,
+						VerticalAlignment = Enum.VerticalAlignment.Center,
+						-- BackgroundImage = "rbxassetid://127657596958436",
+						-- BackgroundImageColor3 = Color3.new(0.933333, 0.933333, 0.184313),
+						AutomaticSize = Enum.AutomaticSize.XY,
+						ScaleType = Enum.ScaleType.Slice,
+						SliceCenter = Rect.new(8, 8, 92, 92),
+						BackgroundTransparency = 1,
+					}, {
+						e(SmallText, {
+							Text = `LEVEL`,
+							TextTransparency = t:map(delayedRevealTransMap(startTime, 0)),
+							Size = UDim2.new(1, 0, 0, 0),
+							TextSize = 38,
+							TextXAlignment = Enum.TextXAlignment.Center,
+						}),
+					}),
+				}),
+				e(SmallText, {
+					TextTransparency = t:map(delayedRevealTransMap(startTime, 0)),
+					Text = `{playersLevel}`,
+					TextSize = 64,
+					TextXAlignment = Enum.TextXAlignment.Center,
+				}),
+				e(SmallText, {
+					TextTransparency = t:map(delayedRevealTransMap(startTime, 0)),
+					Text = `You unlocked:`,
+					TextSize = 18,
+					TextXAlignment = Enum.TextXAlignment.Center,
+				}),
+				e(HStack, {
+					AutomaticSize = Enum.AutomaticSize.XY,
+					Size = UDim2.new(),
+					Spacing = UDim.new(0, 8),
+				}, {
+					e(SmallText, {
+						Text = `+{LevelConfig[playersLevel] and #LevelConfig[playersLevel].Tables} Tables`,
+						TextSize = 18,
+						Size = t:map(delayedRevealSizeMap(startTime, INTER_DELAY, UDim2.new(0, 40, 0, 40))),
+						TextXAlignment = Enum.TextXAlignment.Center,
+						TextTransparency = t:map(delayedRevealTransMap(startTime, INTER_DELAY)),
+					}),
+					e(SmallText, {
+						Text = `+{LevelConfig[playersLevel] and #LevelConfig[playersLevel].Mixers} Mixers`,
+						TextSize = 18,
+						Size = t:map(delayedRevealSizeMap(startTime, 0.4, UDim2.new(0, 40, 0, 40))),
+						TextXAlignment = Enum.TextXAlignment.Center,
+						TextTransparency = t:map(delayedRevealTransMap(startTime, 0.4)),
+					}),
+				}),
+
+				e(SmallText, {
+					Text = `Unlocked Ingredients:`,
+					TextSize = 18,
+					TextXAlignment = Enum.TextXAlignment.Center,
+					TextTransparency = t:map(delayedRevealTransMap(startTime, 0.6)),
+				}),
+				e(HStack, {
+					AutomaticSize = Enum.AutomaticSize.XY,
+					Spacing = UDim.new(0, 50),
+					Size = UDim2.new(),
+				}, ingredients),
+				e(SmallButton, {
+					[React.Event.Activated] = function()
+						prevLevelRef.current = playersLevel
+						setIsActive(false)
+						setStartTime(math.huge)
+					end,
+					Image = "rbxassetid://127657596958436",
+					ImageColor3 = Color3.new(0.933333, 0.933333, 0.184313),
+					BackgroundTransparency = 1,
+					ScaleType = Enum.ScaleType.Slice,
+					SliceCenter = Rect.new(8, 8, 92, 92),
+					AutomaticSize = Enum.AutomaticSize.None,
+					Rounded = false,
+					Visible = t:map(visMap),
+					Size = t:map(delayedRevealSizeMap(startTime, 2, UDim2.new(0, 200, 0, 40))),
+					-- Size = t:map(sizeMap),
+				}, {
+					Son = e(SmallText, {
+						AutomaticSize = Enum.AutomaticSize.None,
+						Text = `Aight`,
+						AnchorPoint = Vector2.new(0.5, 0.5),
+						Position = UDim2.fromScale(0.5, 0.5),
+						Size = t:map(delayedRevealSizeMap(startTime, 2, UDim2.new(0, 200, 0, 40))),
+						TextTransparency = t:map(delayedRevealTransMap(startTime, 2)),
+						TextSize = 38,
+
+						TextXAlignment = Enum.TextXAlignment.Center,
+					}),
+				}),
 			}),
 		})
 	end

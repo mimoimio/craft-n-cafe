@@ -1,7 +1,10 @@
 -- Shared/ReactComponents/IngredientShopPanel.luau
+local GuiService = game:GetService("GuiService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
 local SoundController = require(ReplicatedStorage.Shared.Controllers.SoundController)
+local ReactFlow = require(ReplicatedStorage.Packages.ReactFlow)
+local useSpring = ReactFlow.useSpring
 local Toasts = require(ReplicatedStorage.Shared.ReactComponents.Toasts)
 local useToast = Toasts.useToast
 local e = React.createElement
@@ -49,7 +52,8 @@ local function IngredientShopPanel(props: {
 	end, {})
 	useEffect(function()
 		local unsub = UIState:subscribe(function(state: UIState.UIState)
-			setPanelOpen(state.panel == "ingredientShop")
+			local isOpen = state.panel == "ingredientShop"
+			setPanelOpen(isOpen)
 		end)
 		return unsub
 	end, {})
@@ -139,6 +143,10 @@ local function IngredientShopPanel(props: {
 			ScaleType = Enum.ScaleType.Slice,
 			-- Image = "rbxassetid://135201205917919",
 			LayoutOrder = i,
+			-- (a::ImageButton).SelectionGained:Connect()
+			[React.Event.SelectionGained] = function(rbx)
+				warn(rbx)
+			end,
 			ImageColor3 = Color3.new(0.658823, 0.164705, 0.164705),
 			BackgroundTransparency = 1,
 		}, {
@@ -167,14 +175,17 @@ local function IngredientShopPanel(props: {
 						BackgroundTransparency = 1,
 						BackgroundImage = "rbxassetid://127657596958436",
 						SliceCenter = Rect.new(8, 8, 92, 92),
-						BackgroundImageColor3 = Color3.new(0.854901, 0.741176, 0.741176),
+						BackgroundImageColor3 = (locked or amount <= 0) and Color3.new(0.501960, 0.494117, 0.494117)
+							or Color3.new(0.854901, 0.741176, 0.741176),
 						ScaleType = Enum.ScaleType.Slice,
 					}, {
 						Icon = e("ImageLabel", {
 							Size = UDim2.new(0, 100, 0, 100),
 							Image = config.Image,
 							BackgroundTransparency = 1,
-							ImageColor3 = locked and Color3.new() or nil,
+							ImageColor3 = locked and Color3.new()
+								or amount <= 0 and Color3.new(0.854901, 0.741176, 0.741176)
+								or nil,
 							ImageTransparency = locked and 0.5 or nil,
 							LayoutOrder = 1,
 						}),
@@ -200,7 +211,7 @@ local function IngredientShopPanel(props: {
 							TextTransparency = locked and 0.5 or nil,
 						}),
 						Stocks = e(SmallText, {
-							Text = `Stocks: {amount} left`,
+							Text = (amount <= 0 and "OUT OF STOCK" or `Stocks: {amount} left`),
 							Size = UDim2.new(0, 200, 0, 0),
 							LayoutOrder = 2,
 							TextSize = 16,
@@ -218,16 +229,18 @@ local function IngredientShopPanel(props: {
 					end),
 					AutomaticSize = Enum.AutomaticSize.XY,
 					HorizontalFlex = Enum.UIFlexAlignment.Fill,
+					VerticalFlex = Enum.UIFlexAlignment.Fill,
 					Spacing = UDim.new(0, 8),
 				}, {
 
 					BuyBtn = e(SmallButton, {
 						Text = locked and "Locked" or `Buy {config.Cost}$`,
-						TextSize = 24,
-						Size = UDim2.new(1, 0, 0, 0),
+						TextSize = 18,
+						Size = UDim2.new(1, 0, 0, 50),
 						TextColor3 = locked and Color3.new(0.5, 0.5, 0.5) or nil,
 						LayoutOrder = 3,
-						BackgroundColor3 = Color3.new(0.5, 1, 0.5),
+						BackgroundColor3 = (locked or amount <= 0) and Color3.new(0.5, 0.5, 0.5)
+							or Color3.new(0.5, 1, 0.5),
 						[React.Event.Activated] = function()
 							Remotes.BuyIngredient:FireServer(id)
 						end,
@@ -238,7 +251,7 @@ local function IngredientShopPanel(props: {
 					BuyRbx = e(SmallButton, {
 						RichText = true,
 						Text = ` {ROBUX} Buy 1x`,
-						TextSize = 24,
+						TextSize = 18,
 						Size = UDim2.new(0, 180, 0, 0),
 						TextWrapped = false,
 						LayoutOrder = 3,
@@ -253,7 +266,7 @@ local function IngredientShopPanel(props: {
 					BuyRbx10 = e(SmallButton, {
 						RichText = true,
 						Text = ` {ROBUX} Buy 10x`,
-						TextSize = 24,
+						TextSize = 18,
 						Size = UDim2.new(0, 180, 0, 0),
 						TextWrapped = false,
 						LayoutOrder = 3,
@@ -270,18 +283,46 @@ local function IngredientShopPanel(props: {
 		})
 	end
 
+	local position, setPosition = useSpring({
+		start = -1,
+		target = -1,
+		speed = 1,
+		damper = 1,
+	})
+
+	useEffect(function()
+		if panelOpen then
+			setPosition({
+				target = 0,
+				speed = 30,
+				damper = 0.6,
+			})
+		else
+			setPosition({
+				target = -1,
+				speed = 30,
+				damper = 0.6,
+			})
+		end
+	end, { panelOpen })
+
 	return e(DefaultPanel, {
 		Title = "Ingredient Shop",
 		Size = UDim2.new(0.5, 0, 1, 0),
 		-- MinSize = Vector2.new(500, 320),
 		MaxSize = Vector2.new(500, 500),
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 0.5, 0),
-		OnClose = props.OnClose,
+		Position = position:map(function(n)
+			return UDim2.new(0.5, 0, 0.5 - 2 * n, 0)
+		end),
+		OnClose = function()
+			-- props.OnClose()
+			UIState.toggle("none")
+		end,
 		BackgroundImageTransparency = 0,
 		-- BackgroundImage = "",
 		-- BackgroundTransparency = 0,
-		Open = panelOpen,
+		-- Open = panelOpen,
 	}, {
 		e("Frame", {
 			BackgroundTransparency = 1,

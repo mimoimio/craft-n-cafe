@@ -17,6 +17,7 @@ local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 local SmallText = require(script.Parent.ui.SmallText)
+local HStack = require(script.Parent.ui.HStack)
 
 type Everything = {
 	EspressoBought: boolean,
@@ -41,6 +42,9 @@ local getEspressoBought = function()
 		return false
 	end
 	if not (playersIngredients.espresso and playersIngredients.espresso > 0) then
+		return false
+	end
+	if not (playersIngredients.water and playersIngredients.water > 0) then
 		return false
 	end
 	return true
@@ -85,7 +89,6 @@ local getIsMixerFilled = function()
 	end
 	return true
 end
-
 local getDrinkBrewed = function()
 	local state: GlobalState.GlobalState = GlobalState:getState()
 	local playersMixers = state.Mixers[playerId]
@@ -102,7 +105,6 @@ local getDrinkBrewed = function()
 	end
 	return true
 end
-
 local getIsDrinkPickedUp = function()
 	local state: GlobalState.GlobalState = GlobalState:getState()
 	local playersDrinks = state.Drinks[playerId]
@@ -114,12 +116,10 @@ local getIsDrinkPickedUp = function()
 	end
 	return true
 end
-
 local getTableSlotNodeShown = function(s)
 	local state: UIState.UIState = UIState:getState()
 	return state.tableSlotNodeShown
 end
-
 local getATableSlotFilled = function()
 	local state: GlobalState.GlobalState = GlobalState:getState()
 	local playersTables = state.Tables[playerId]
@@ -317,7 +317,7 @@ local function Tutorial(props)
 				Remotes.ToggleCafeOpen:FireServer()
 			end
 			setStep(9)
-			setText("Wait until a customer comes in")
+			setText("Wait until a customer comes in and buy it")
 			return
 		end
 		if everything.IsDrinkPickedUp and everything.TableSlotNodeShown then
@@ -345,13 +345,13 @@ local function Tutorial(props)
 
 		if everything.IsEspressoInserted then
 			setStep(4)
-			setText("Click Craft")
+			setText("Click Water, then Craft!")
 			return
 		end
 
 		if everything.EspressoBought and everything.IsMixerPanel then
 			setStep(4)
-			setText("Click on the espresso to craft")
+			setText("Click on the Espresso and Water to craft a Americano!")
 			return
 		end
 		if everything.EspressoBought and everything.MixerNodePromptShown then
@@ -368,11 +368,11 @@ local function Tutorial(props)
 
 		if everything.IsShopPanel then
 			setStep(1.1) -- additional. I dont bother to restep everything else
-			setText("Click espresso and buy it")
+			setText("Click espresso and water to buy them")
 			return
 		end
 		setStep(1)
-		setText("Open the shop and Buy an Espresso")
+		setText("Open the shop and Buy an Espresso and Water")
 
 		return
 	end, { everything })
@@ -486,15 +486,33 @@ local function Tutorial(props)
 			local unsub = UIState:subscribe(function(state: UIState.UIState)
 				local shopButton = state.shopButton
 				setArrowTarget(shopButton)
+				setArrow({
+					rotation = 180,
+					positionFromTarget = UDim2.fromOffset((shopButton and shopButton.AbsoluteSize.X or 0) / 2, 100),
+				})
 			end)
 			local shopButton = UIState:getState().shopButton
 			setArrowTarget(shopButton)
 			setArrow({
-				rotation = 90,
-				positionFromTarget = UDim2.fromOffset(100, 0),
+				rotation = 180,
+				positionFromTarget = UDim2.fromOffset((shopButton and shopButton.AbsoluteSize.X or 0) / 2, 100),
 			})
+			local unsub2 = UIState:subscribe(function(state: UIState.UIState)
+				local shopPromptShown = state.shopPromptShown
+				if shopPromptShown then
+					setArrowTarget(nil)
+					setArrow(nil)
+				else
+					setArrowTarget(shopButton)
+					setArrow({
+						rotation = 180,
+						positionFromTarget = UDim2.fromOffset((shopButton and shopButton.AbsoluteSize.X or 0) / 2, 100),
+					})
+				end
+			end)
 			return function()
 				unsub()
+				unsub2()
 			end
 		elseif step == 2 or step == 3 then
 			-- Handled natively via the ScreenGui Highlight below
@@ -535,6 +553,49 @@ local function Tutorial(props)
 		return basePos + UDim2.fromOffset(math.sin(t * 5) * xMag * 50, math.sin(t * 5) * yMag * 50)
 	end, { arrow, arrowTarget })
 
+	local cafeButton, setCafeButton = useState(nil)
+	useEffect(function()
+		local unsub = UIState:subscribe(function(state: UIState.UIState)
+			setCafeButton(state.cafeButton)
+		end)
+		setCafeButton(UIState:getState().cafeButton)
+		return unsub
+	end, {})
+
+	local arrowOnCafeButton = React.useMemo(function()
+		if not cafeButton then
+			warn()
+			return
+		end
+		if step ~= 2 then
+			return
+		end
+		local currentAbsPos = cafeButton and cafeButton.AbsolutePosition or Vector2.new()
+		local posFromTarget = UDim2.new(0, 50, 0, 100)
+		local basePos = UDim2.fromOffset(currentAbsPos.X, currentAbsPos.Y) + posFromTarget
+		return e("Frame", {
+			Size = UDim2.new(0, 50, 0, 50),
+			AutomaticSize = Enum.AutomaticSize.XY,
+			BackgroundTransparency = 1,
+			Position = time:map(function(t)
+				local xMag, yMag = math.cos((180 - 90) * math.pi / 180), math.sin((180 - 90) * math.pi / 180)
+				return basePos + UDim2.fromOffset(math.sin(t * 5) * xMag * 50, math.sin(t * 5) * yMag * 50)
+			end),
+			Rotation = 0,
+			-- Holder bc rotation only in imagelable
+		}, {
+			e("ImageLabel", {
+				Size = UDim2.new(0, 50, 0, 50),
+				AutomaticSize = Enum.AutomaticSize.XY,
+				-- Position = time:map(positionMap),
+				BackgroundTransparency = 1,
+				Rotation = 180,
+				Image = "rbxassetid://8152628560",
+			}),
+		})
+		-- end, { step == 2, cafeButton })
+	end, { step == 2, cafeButton })
+
 	local arrowRotation = arrow and arrow.rotation or 0
 
 	-- Determine if the highlight should be visible right now
@@ -569,6 +630,12 @@ local function Tutorial(props)
 					OutlineColor = Color3.new(1, 1, 1),
 					OutlineTransparency = 0,
 				}),
+				MixerBeam = showMixerHighlight and e(require(script.Parent.PointerBeam), {
+					Adornee = mixerInstance:FindFirstChildWhichIsA("Model") or mixerInstance,
+				}),
+				TableBeam = showTableHighlight and e(require(script.Parent.PointerBeam), {
+					Adornee = tableInstance or nil,
+				}),
 				TableHighlight = showTableHighlight and e("Highlight", {
 					Adornee = tableInstance or nil,
 					FillColor = Color3.new(1, 1, 1),
@@ -581,7 +648,7 @@ local function Tutorial(props)
 				e("ImageLabel", {
 					Size = UDim2.new(0.5, 0, 0, 40),
 					AutomaticSize = Enum.AutomaticSize.XY,
-					Position = UDim2.new(0.5, 0, 1, -100),
+					Position = UDim2.new(0.5, 0, 1, -20),
 					AnchorPoint = Vector2.new(0.5, 1),
 					Image = "rbxassetid://127657596958436",
 					ImageTransparency = 0.6,
@@ -598,6 +665,87 @@ local function Tutorial(props)
 						TextXAlignment = Enum.TextXAlignment.Center,
 						TextYAlignment = Enum.TextYAlignment.Center,
 						MaxTextSize = 24,
+					}),
+					step and step < 5 and e(SmallText, {
+						RichText = true,
+						Size = UDim2.new(0, 0, 0, 0),
+						Text = "Let's make an Americano!",
+						Position = UDim2.new(0.5, 0, -1, -2),
+						-- Font = Enum.Font.RobotoMono,
+						TextXAlignment = Enum.TextXAlignment.Center,
+						AnchorPoint = Vector2.new(0.5, 1),
+						TextYAlignment = Enum.TextYAlignment.Center,
+						TextSize = 24,
+						LayoutOrder = 2,
+					}),
+					step and step < 5 and e(HStack, {
+						-- Size = UDim2.fromOffset(mainSize, mainSize),
+						AnchorPoint = Vector2.new(0.5, 1),
+						-- Image = "rbxassetid://127657596958436",
+						-- BackgroundTransparency = 0,
+						ZIndex = 100,
+						Size = UDim2.new(1, 0, 1, 0),
+						HorizontalAlignment = Enum.HorizontalAlignment.Center,
+						ScaleType = Enum.ScaleType.Slice,
+						SliceCenter = Rect.new(8, 8, 92, 92),
+						Spacing = UDim.new(0, 8),
+						Position = UDim2.new(0.5, 0, 0, 0),
+					}, {
+						e("ImageLabel", {
+							-- Size = UDim2.fromOffset(mainSize, mainSize),
+							AnchorPoint = Vector2.new(0.5, 1),
+							Image = "rbxassetid://127657596958436",
+							BackgroundTransparency = 1,
+							ZIndex = 100,
+							Size = UDim2.new(0, 50, 0, 50),
+							ScaleType = Enum.ScaleType.Stretch,
+							LayoutOrder = 1,
+						}, {
+							e("ImageLabel", {
+								Image = CoffeeModule.Config.espresso.Image,
+								BackgroundTransparency = 1,
+								Rotation = time:map(function(t)
+									return math.sin(t * math.pi * 2) * 15
+								end),
+								ZIndex = 100,
+								Size = UDim2.new(0, 50, 0, 50),
+								ScaleType = Enum.ScaleType.Stretch,
+								LayoutOrder = 1,
+							}, {}),
+						}),
+
+						e(SmallText, {
+							RichText = true,
+							Size = UDim2.new(0, 0, 0, 0),
+							Text = "+",
+							-- Font = Enum.Font.RobotoMono,
+							TextXAlignment = Enum.TextXAlignment.Center,
+							TextYAlignment = Enum.TextYAlignment.Center,
+							TextSize = 32,
+							LayoutOrder = 2,
+						}),
+
+						e("ImageLabel", {
+							-- Size = UDim2.fromOffset(mainSize, mainSize),
+							Image = "rbxassetid://127657596958436",
+							BackgroundTransparency = 1,
+							ZIndex = 100,
+							Size = UDim2.new(0, 50, 0, 50),
+							ScaleType = Enum.ScaleType.Stretch,
+							LayoutOrder = 3,
+						}, {
+							e("ImageLabel", {
+								Image = CoffeeModule.Config.water.Image,
+								Rotation = time:map(function(t)
+									return math.sin(t * math.pi * 2) * 15
+								end),
+								BackgroundTransparency = 1,
+								ZIndex = 100,
+								Size = UDim2.new(0, 50, 0, 50),
+								ScaleType = Enum.ScaleType.Stretch,
+								LayoutOrder = 1,
+							}, {}),
+						}),
 					}),
 				}),
 
@@ -665,17 +813,22 @@ local function Tutorial(props)
 					Rotation = 0,
 					-- Holder bc rotation only in imagelable
 				}, {
-					e("ImageLabel", {
+					arrow and e("ImageLabel", {
 						Size = UDim2.new(0, 50, 0, 50),
 						AutomaticSize = Enum.AutomaticSize.XY,
 						-- Position = time:map(positionMap),
 						BackgroundTransparency = 1,
 						Rotation = arrowRotation,
 						Image = "rbxassetid://8152628560",
-					}),
+					}) or nil,
 				}),
+				arrowOnCafeButton,
 			})
 		or nil
 end
 
-return Tutorial
+-- return Tutorial
+
+return function()
+	return e(React.Fragment)
+end

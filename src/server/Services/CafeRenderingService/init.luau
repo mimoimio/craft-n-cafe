@@ -89,6 +89,8 @@ local function BasesManager()
 		})
 	end
 
+	children.recipeHint = e(require(ReplicatedStorage.Shared.ReactComponents.RecipeHint))
+
 	return e(React.Fragment, nil, children) -- Ensure children are rendered in a Fragment
 end
 

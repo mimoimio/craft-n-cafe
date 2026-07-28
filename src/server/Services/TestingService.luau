@@ -12,7 +12,7 @@ local TestingService = {}
 -- Generates a shop predeterministically based on the cycle seed
 function TestingService.initialize()
 	Remotes.Add500.OnServerEvent:Connect(function(player)
-		GlobalState.Add500(tostring(player.UserId))
+		-- GlobalState.Add500(tostring(player.UserId))
 	end)
 end
 return TestingService

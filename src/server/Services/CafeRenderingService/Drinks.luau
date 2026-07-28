@@ -4,6 +4,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local React = require(ReplicatedStorage.Packages.React)
+local Promise = require(ReplicatedStorage.Packages.Promise)
 local Reflex = require(ReplicatedStorage.Packages.Reflex)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local Types = require(ReplicatedStorage.Shared.Types)
@@ -154,21 +155,29 @@ local function DrinkTool(props: {
 		if not player then
 			return
 		end
+		local tool
+		local promise = Promise.defer(function(resolve, reject)
+			local backpack = player:WaitForChild("Backpack")
 
-		local backpack = player:FindFirstChildOfClass("Backpack")
-		if not backpack then
-			return
-		end
+			if not backpack then
+				return reject("Not backpack")
+			end
 
-		local tool = buildDrinkTool(player, props.Drink)
-		if not tool then
-			return
-		end
+			tool = buildDrinkTool(player, props.Drink)
+			if not tool then
+				return reject("Not tool")
+			end
 
-		tool.Parent = backpack
-
+			tool.Parent = backpack
+			warn(`Parented`)
+		end):catch(function(err)
+			warn(`Error: {error}`)
+		end)
 		return function()
-			tool:Destroy()
+			if tool then
+				tool:Destroy()
+			end
+			promise:cancel()
 		end
 	end, { player, props.Drink.id, props.Drink.drinkId })
 
@@ -226,6 +235,7 @@ local function Drinks(props: {
 
 		local state = GlobalState:getState()
 		setDrinks(state.Drinks[props.PlayerId])
+		setTables(state.Tables[props.PlayerId])
 
 		return function()
 			unsub()

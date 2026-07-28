@@ -23,6 +23,7 @@ export type Cafe = Model & {
 		Part: Part,
 	},
 	Entrance: Part,
+	StandSpots: Model & { Part },
 }
 
 --Tables
@@ -30,7 +31,6 @@ export type Table = Model & {
 	Slots: Slots,
 	PlacePart: Part, -- the PrimaryPart
 	TableModel: Model, -- the cloned table from ReplicatedStorage.Shared.Models for dynamic table models
-	StandSpots: { Part },
 }
 export type Slots = Model & {
 	PlacePart: Part,
@@ -56,9 +56,8 @@ export type Station = Model & {
 	},
 }
 
--- Mixers -- will probably be dynamic too
 export type Mixer = Model & {
-	-- MixerModel: Model,
+	MixerModel: Model?, -- the cloned model
 	Part: Part & { -- the PrimaryPart
 		TriggerPrompt: ProximityPrompt,
 	},
@@ -68,4 +67,10 @@ export type CustomerRig = Model & {
 	TriggerPrompt: ProximityPrompt,
 }
 
+export type Shop = {
+	Building: Model,
+	Part: Part & {
+		TriggerPrompt: ProximityPrompt,
+	},
+}
 return {}

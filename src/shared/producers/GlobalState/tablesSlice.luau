@@ -63,6 +63,7 @@ local actions = {
 		local newTables = Set(playerTables, payload.tableUid, newSlots)
 		return Set(state, playerId, newTables)
 	end,
+
 	customerTakeItems = function(state: TablesState, playerId: string, payload: Types.CustomerItemPayload)
 		local playerTables = state[playerId]
 		if not playerTables then
@@ -104,17 +105,6 @@ local actions = {
 		return state
 	end,
 	levelUp = function(state: TablesState, playerId: string, payload: Types.LevelUpPayload)
-		--[[
-		in this implementation, I made it mandatory for all levels,
-		all level progressions are mandatory.
-		if not, they might miss a table, and it could break the game,
-		not letting the player use a table that is rendered on their cafe.
-		by making the implementation this way, it is static, and the
-		business logic is validated in the services, levelUp action
-		
-		though, it leaves a worry that one might miss a level and therefore
-		making it broken
-		]]
 		local playerTables = state[playerId]
 		if not playerTables then
 			log(`player {playerId}'s tables not found`)

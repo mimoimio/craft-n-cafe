@@ -94,13 +94,13 @@ local mixers = {
 local costs = {
 	[1] = 0,
 	[2] = 300,
-	[3] = 1000,
-	[4] = 2000,
-	[5] = 5000,
-	[6] = 100_000,
-	[7] = 150_000,
-	[8] = 300_000,
-	[9] = 900_000,
+	[3] = 2000,
+	[4] = 10_000,
+	[5] = 100_000,
+	[6] = 200_000,
+	[7] = 600_000,
+	[8] = 1_000_000,
+	[9] = 2_000_000,
 }
 
 local LevelConfig: {
@@ -211,3 +211,14 @@ or we could do somewhat for every another for the tables
 -- 	},
 -- }
 return LevelConfig
+--[[
+		in this implementation, I made it mandatory for all levels,
+		all level progressions are mandatory.
+		if not, they might miss a table, and it could break the game,
+		not letting the player use a table that is rendered on their cafe.
+		by making the implementation this way, it is static, and the
+		business logic is validated in the services, levelUp action
+		
+		though, it leaves a worry that one might miss a level and therefore
+		making it broken
+		]]

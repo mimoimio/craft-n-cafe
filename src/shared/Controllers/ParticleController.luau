@@ -150,6 +150,7 @@ function ParticleController.initialize()
 	if _initialized then
 		return
 	end
+	print("PARTICLE CONTROLLER INITIALIZED")
 	_initialized = true
 
 	_startHeartbeat()

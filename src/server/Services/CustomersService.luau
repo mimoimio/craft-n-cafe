@@ -5,8 +5,11 @@ local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConfig)
+local Types = require(ReplicatedStorage.Shared.Types)
 
-local SPAWN_INTERVAL = 5
+type DrinkEntity = Types.DrinkEntity
+
+local SPAWN_INTERVAL = 10
 local rng = Random.new()
 
 type CustomerDrink = {
@@ -39,7 +42,11 @@ function CustomersService.SpawnCustomer(playerId: string)
 	if not playersCustomers then
 		return
 	end
-	if type(playersCustomers) == "table" and #playersCustomers >= 3 then
+	local playerStats = state.Stats[playerId]
+
+	local maxCustomersAtOnce = playerStats.MaxCustomersAtOnce
+
+	if type(playersCustomers) == "table" and #playersCustomers >= maxCustomersAtOnce then
 		return
 	end
 
@@ -56,6 +63,7 @@ end
 
 function CustomersService.CustomerTakeItems(playerId: string, customerUid: string)
 	local state = GlobalState:getState()
+	local playersStats = state.Stats[playerId]
 	local tables = state.Tables[playerId]
 	local drinks = state.Drinks[playerId]
 
@@ -63,34 +71,30 @@ function CustomersService.CustomerTakeItems(playerId: string, customerUid: strin
 		return false
 	end
 
-	local drinkLookup = {}
+	local drinkLookup: { [string]: DrinkEntity } = {}
 	for i, drink in pairs(drinks) do
-		drinkLookup[drink.id] = {
-			variationId = drink.variationId,
-			drinkId = drink.drinkId,
-		}
+		drinkLookup[drink.id] = drink
 	end
 
-	local availableDrinks = {}
+	local availableDrinks: { DrinkEntity } = {}
+	local totalDrinkAmount = 0
 	for tableUid, t in pairs(tables) do
 		for slotName, drinkUid in pairs(t.Slots) do
 			if drinkUid == "none" then
 				continue
 			end
 			local drink = drinkLookup[drinkUid]
-			table.insert(availableDrinks, {
-				drinkUid = drinkUid,
-				drinkId = drink.drinkId,
-				variationId = drink.variationId,
-			})
+			table.insert(availableDrinks, drink)
+			totalDrinkAmount += drink.stock
 		end
 	end
 
-	if #availableDrinks < 1 then
+	if totalDrinkAmount < 1 then
 		return false
 	end
+	local MaxDrinksPerCustomer = playersStats.MaxDrinksPerCustomer
 
-	local drinkCount = rng:NextInteger(1, math.min(3, #availableDrinks))
+	local drinkCount = rng:NextInteger(1, math.min(MaxDrinksPerCustomer, totalDrinkAmount))
 	-- maxDrinksPerCustomer: number later use this. first level is nothing
 	-- then a tray
 	-- then a basket
@@ -103,14 +107,42 @@ function CustomersService.CustomerTakeItems(playerId: string, customerUid: strin
 
 	local drinksDeducted = {}
 	local drinkEntities = {}
-	for i = 1, drinkCount do
-		local drink = availableDrinks[i]
-		drinksDeducted[drink.drinkUid] = 1
-		table.insert(drinkEntities, {
-			drinkId = drink.drinkId,
-			variationId = drink.variationId,
-		})
+
+	local drinksTaken = 0
+
+	-- warn(`MaxDrinksPerCustomer: {MaxDrinksPerCustomer}`)
+	local moderate = totalDrinkAmount > 20
+	local lots = totalDrinkAmount > 40
+
+	for i, drink in availableDrinks do
+		local drinksLeft = MaxDrinksPerCustomer - drinksTaken
+		local max = math.min(drink.stock, MaxDrinksPerCustomer, drinksLeft)
+
+		-- the more the available drinks, the lesser the possibility to haul it all
+		-- local skewedToLeast = (rng:NextNumber() * rng:NextNumber() * rng:NextNumber() * max) -- 3x
+		-- local normal = (rng:NextNumber() * rng:NextNumber() * max) -- 2x
+		-- local possibleAmount = lots and skewedToLeast or moderate and normal or max
+
+		local possibleAmount = max
+		local randomAmount = math.round(rng:NextNumber() * possibleAmount)
+
+		if randomAmount < 1 then
+			continue
+		end
+		drinksDeducted[drink.id] = randomAmount
+		for j = 1, randomAmount do
+			table.insert(drinkEntities, {
+				drinkId = drink.drinkId,
+				variationId = drink.variationId,
+			})
+		end
+		drinksTaken += randomAmount
+		if drinksTaken >= MaxDrinksPerCustomer then
+			-- warn(`broke. drinksTaken: {drinksTaken}`)
+			break
+		end
 	end
+	-- warn(`total drinkEntities: {#drinkEntities}`)
 
 	local depletedDrinks = {}
 	for i, drink in pairs(drinks) do
@@ -118,6 +150,10 @@ function CustomersService.CustomerTakeItems(playerId: string, customerUid: strin
 		if deduct and (drink.stock - deduct <= 0) then
 			depletedDrinks[drink.id] = true
 		end
+	end
+
+	if #drinkEntities <= 0 then
+		return false
 	end
 
 	GlobalState.customerTakeItems(playerId, {
@@ -136,6 +172,7 @@ function CustomersService.TendCustomer(player: Player, uid: string)
 	local state = GlobalState:getState()
 	local playersCustomers = state.Customers[playerId]
 	local playersDrinks = state.Drinks[playerId]
+	local playersDiscoveredDrinks = state.DiscoveredDrinks[playerId]
 
 	if not (playersCustomers and playersDrinks) then
 		return
@@ -162,6 +199,15 @@ function CustomersService.TendCustomer(player: Player, uid: string)
 		total += getPrice(customerDrink.drinkId) * mult
 	end
 
+	local bonus = 1
+
+	for variationId, drinksOfVariation in playersDiscoveredDrinks do
+		for drinkId, _ in drinksOfVariation do
+			bonus += 0.05
+		end
+	end
+	total *= bonus
+	total //= 1
 	GlobalState.playerReceivePayment(playerId, {
 		customerUid = uid,
 		Cash = total,
@@ -188,6 +234,8 @@ function CustomersService.initialize()
 					continue
 				end
 
+				local maxCustomersAtOnce = playerStats.MaxCustomersAtOnce
+
 				for i, customer in playersCustomers do
 					if customer.customerAction == "paid" then
 						continue
@@ -198,8 +246,17 @@ function CustomersService.initialize()
 				-- Cafe Open Check. If Spawning is toggled off, skip the spawn. Keep other actions.
 				-- 1. Evaluate Spawning Phase
 				local lastSpawn = lastSpawnTimes[playerId] or 0
-				-- maxCustomersAtOnce: number later
-				if now - lastSpawn >= SPAWN_INTERVAL and #activePlayerCustomers < 3 and playerStats.CafeOpen then
+
+				-- local randomInterval = 0
+				local randomInterval = (
+					SPAWN_INTERVAL - (rng:NextNumber() * rng:NextNumber() * rng:NextNumber() * 8) // 1
+				) -- later I should change random based on something else
+
+				if
+					now - lastSpawn >= randomInterval
+					and #activePlayerCustomers < maxCustomersAtOnce
+					and playerStats.CafeOpen
+				then
 					CustomersService.SpawnCustomer(playerId)
 				end
 
@@ -210,12 +267,13 @@ function CustomersService.initialize()
 					if customer.customerAction == "entering" then
 						-- Wait 5 seconds after they spawn before grabbing drinks
 						if timeInState >= 5 then
-							local success = CustomersService.CustomerTakeItems(playerId, customer.id)
+							local success, reason = CustomersService.CustomerTakeItems(playerId, customer.id)
 							if not success then
 								-- Cafe empty, they leave empty handed
 								GlobalState.customerLeaveEmptyHanded(playerId, {
 									customerUid = customer.id,
 									timestamp = workspace:GetServerTimeNow(),
+									-- reason = reason,
 								})
 							end
 						end

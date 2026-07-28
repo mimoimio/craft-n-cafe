@@ -37,7 +37,7 @@ local function StoryWrapper()
 			Open = true,
 			MixerId = "Mock_Mixer_001",
 			OnClose = function()
-				print("MixerPanel: OnClose callback fired! The player wants to exit the panel.")
+				-- print("MixerPanel: OnClose callback fired! The player wants to exit the panel.")
 			end,
 		}),
 	})

@@ -1,6 +1,8 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 local React = require(ReplicatedStorage.Packages.React)
 local e = React.createElement
+UserInputService:GetLastInputType()
 local function HStack(props)
 	local children = props.children or {}
 	local elements = {
@@ -11,7 +13,7 @@ local function HStack(props)
 			SortOrder = Enum.SortOrder.LayoutOrder,
 			Padding = props.Spacing or UDim.new(0, 0),
 			Wraps = props.Wraps,
-			VerticalFlex = Enum.UIFlexAlignment.None,
+			VerticalFlex = props.VerticalFlex or Enum.UIFlexAlignment.None,
 			HorizontalFlex = props.HorizontalFlex, -- Crucial for tabs!
 		}),
 
@@ -35,6 +37,7 @@ local function HStack(props)
 		SliceCenter = isImageLabel and props.SliceCenter,
 		TileSize = isImageLabel and props.TileSize or UDim2.new(0, 200, 0, 200),
 		Rotation = props.Rotation,
+		ClipsDescendants = props.ClipsDescendants,
 
 		Size = props.Size or UDim2.fromScale(1, 1),
 		AutomaticSize = props.AutomaticSize or Enum.AutomaticSize.None,

@@ -70,6 +70,33 @@ local actions = {
 
 		return Set(state, playerId, Array.removeIndices(newDrinks, table.unpack(indexesToRemove)))
 	end,
+
+	restockDrinks = function(state: DrinksState, playerId: string, payload: Types.RestockDrinksPayload)
+		local playersDrinks = state[playerId]
+		if not playersDrinks then
+			return state
+		end
+
+		local newDrinks = {}
+
+		for _, drink in playersDrinks do
+			-- Only keep the drink if it's not marked for removal
+			if not payload.drinksToRemove[drink.id] then
+				local addition = payload.stockToAdd[drink.id]
+
+				-- If this drink is receiving stock from unplaced drinks, update it
+				if addition then
+					local updatedDrink = Set(drink, "stock", drink.stock + addition)
+					table.insert(newDrinks, updatedDrink)
+				else
+					-- Otherwise, just insert it normally
+					table.insert(newDrinks, drink)
+				end
+			end
+		end
+
+		return Set(state, playerId, newDrinks)
+	end,
 }
 
 return Reflex.createProducer(initialState, actions)

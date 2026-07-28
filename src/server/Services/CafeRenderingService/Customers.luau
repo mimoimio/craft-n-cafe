@@ -67,13 +67,14 @@ local function Customer(props: {
 
 		-- ... [The rest of your mounting effect remains exactly the same]
 		-- Default start is the entrance
-		local targetCF = entranceCF
+		local targetCF = entranceCF + Vector3.new(0, 4, 0)
 
 		-- If a chunk loads while they are already mid-action, spawn them in their current domain
 		if action == "queuing" then
 			-- Queue spans outward from the front of the cashier (using LookVector)
 			-- Assuming Cashier.Part's Front faces the line
-			local lineOffset = cashierCF.LookVector * (4 * (props.numberInLine or 1))
+			local lineOffset = cashierCF.LookVector * 3
+				+ (cashierCF * CFrame.Angles(0, math.pi / -2, 0)).LookVector * (3 * (props.numberInLine or 1 - 1))
 			targetCF = cashierCF + lineOffset
 			-- Make them face the cashier
 			targetCF = CFrame.lookAt(targetCF.Position, cashierCF.Position)
@@ -116,10 +117,12 @@ local function Customer(props: {
 		local rootPart = rig:FindFirstChild("HumanoidRootPart")
 		local action = props.Customer.customerAction
 
-		local tables = props.BaseModel.Cafe.Tables:GetChildren()
-		local random = Random.new():NextInteger(1, #tables)
+		local standSpots = props.BaseModel.Cafe:FindFirstChild("StandSpots")
+		local spots = standSpots:GetChildren()
+		local random = Random.new():NextInteger(1, #spots)
+		local randomSpot = spots[random]
+		local tableCF = randomSpot:GetPivot()
 
-		local tableCF = tables[random]:GetPivot()
 		local entranceCF = props.BaseModel.Entrance:GetPivot()
 		local cashierCF = props.CafeModel.Cashier.Part:GetPivot()
 
@@ -131,7 +134,7 @@ local function Customer(props: {
 		if action == "entering" then
 			prompt.Enabled = false
 			local randomOffset = (math.random() - 0.5) * 10
-			targetPos = tableCF.Position + (tableCF.RightVector * randomOffset) + (tableCF.LookVector * 15)
+			targetPos = tableCF.Position
 		elseif action == "queuing" then
 			prompt.Enabled = (props.numberInLine == 1)
 			local lineOffset = cashierCF.LookVector * (4 * (props.numberInLine or 1))
@@ -140,24 +143,19 @@ local function Customer(props: {
 			prompt.Enabled = false
 			targetPos = entranceCF.Position
 		end
-
 		if action == "queuing" or action == "paid" then
-			holdingAnimationThread = task.spawn(function()
-				local animation = ReplicatedStorage.Shared.Animations:FindFirstChild("HoldCup")
-				while true do
-					-- i dont know how to use animation with the predefined animate script from the rig, so i just keep this on loop
-					--  18:09:02.221  Failed to play animation: rbxassetid://98425830114541. AnimationTrack limit of 64 tracks exceeded for '78f1d549-4714-4cc9-88ff-2770385f77ea', new animations will not be played.  -  Studio
-					-- now how do i deal with this
-					if not (rig and rig.Parent) then
-						return
-					end
-					local animator: Animator = rig.Humanoid.Animator
+			local animation = ReplicatedStorage.Shared.Animations:FindFirstChild("HoldCup")
+			if rig and rig.Parent and animation then
+				local animator: Animator = rig.Humanoid:FindFirstChildOfClass("Animator")
+
+				if animator then
 					holdingAnimation = animator:LoadAnimation(animation)
-					holdingAnimation.Looped = true -- this alone will stop animating with the rig's animate script
+					holdingAnimation.Looped = true
+					-- Priority ensures it plays OVER the default idle/walk animations
+					holdingAnimation.Priority = Enum.AnimationPriority.Action
 					holdingAnimation:Play()
-					task.wait(1)
 				end
-			end)
+			end
 		end
 
 		-- A flag to safely cancel the pathfinding loop if the component unmounts or state changes
@@ -217,7 +215,7 @@ local function Customer(props: {
 	local paid = props.Customer.customerAction and props.Customer.customerAction == "paid"
 	useEffect(function()
 		local drinkEntities = props.Customer.drinkEntities
-		if not (rig and drinkEntities and #drinkEntities > 0) then
+		if not (rig and rig.Parent and drinkEntities and #drinkEntities > 0) then
 			return
 		end
 
@@ -323,7 +321,8 @@ local function Customer(props: {
 		if not (rig and emptyHanded) then
 			return
 		end
-		game:GetService("Chat"):Chat(rig.Head, disappointed[Random.new():NextInteger(1, #disappointed)])
+		-- game:GetService("Chat"):Chat(rig.Head, disappointed[Random.new():NextInteger(1, #disappointed)])
+		game:GetService("Chat"):Chat(rig.Head, "Nevermind...")
 		return
 	end, { rig, emptyHanded })
 

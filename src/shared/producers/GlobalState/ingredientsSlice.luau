@@ -38,6 +38,22 @@ local actions = {
 
 		return Set(state, playerId, playersIngredients)
 	end,
+	claimDailyReward = function(state: IngredientsState, playerId: string, payload: Types.DailyClaimPayload)
+		local playerIngredients = state[playerId]
+
+		if not playerIngredients then
+			warn(`ingredientsSlice player({playerId}) not found`)
+			return state
+		end
+
+		local newIngredients = {}
+		for ingId, amount in payload.ingredients do
+			newIngredients[ingId] = playerIngredients[ingId] or 0 + amount
+		end
+
+		return Set(state, playerId, Merge(playerIngredients, newIngredients))
+	end,
+
 	buyIngredient = function(
 		state: IngredientsState,
 		playerId: string,
@@ -61,6 +77,23 @@ local actions = {
 				payload.ingredientId,
 				(playersIngredients[payload.ingredientId] or 0) + payload.amount
 			)
+		)
+	end,
+	buyIngredientFromSpawner = function(
+		state: IngredientsState,
+		playerId: string,
+		payload: Types.BuyIngredientFromSpawnerPayload
+	)
+		local playersIngredients = state[playerId]
+		if not playersIngredients then
+			warn(`ingredientsSlice player({playerId}) not found`)
+			return state
+		end
+
+		return Set(
+			state,
+			playerId,
+			Set(playersIngredients, payload.ingredientId, (playersIngredients[payload.ingredientId] or 0) + 1)
 		)
 	end,
 }

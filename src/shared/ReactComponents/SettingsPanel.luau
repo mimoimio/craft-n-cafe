@@ -1,8 +1,11 @@
 -- Shared/ReactComponents/IngredientShopPanel.luau
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
+local ReactFlow = require(ReplicatedStorage.Packages.ReactFlow)
 local e = React.createElement
 local useState = React.useState
+local useSpring = ReactFlow.useSpring
+
 local useBinding = React.useBinding
 local useEffect = React.useEffect
 local useRef = React.useRef
@@ -59,7 +62,7 @@ local function IngredientShopPanel(props: {
 		end
 		return unsub
 	end, {})
-	useEffect(function() end, { panelOpen })
+	-- useEffect(function() end, { panelOpen })
 
 	local prevCafeOpenRef = useRef(nil)
 	useEffect(function()
@@ -78,16 +81,42 @@ local function IngredientShopPanel(props: {
 		return
 	end, { stats and stats.CafeOpen })
 
+	local position, setPosition = useSpring({
+		start = -1,
+		target = -1,
+		speed = 1,
+		damper = 1,
+	})
+	useEffect(function()
+		if panelOpen then
+			setPosition({
+				target = 0,
+				speed = 30,
+				damper = 0.6,
+			})
+		else
+			setPosition({
+				target = -1,
+				speed = 30,
+				damper = 0.6,
+			})
+		end
+	end, { panelOpen })
+
 	return e(DefaultPanel, {
 		Title = "Settings",
 		Size = UDim2.new(0.5, 0, 1, 0),
 		-- MinSize = Vector2.new(500, 320),
 		MaxSize = Vector2.new(500, 500),
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 0.5, 0),
-		OnClose = props.OnClose,
+		Position = position:map(function(n)
+			return UDim2.new(0.5, 0, 0.5 - 2 * n, 0)
+		end),
+		OnClose = function()
+			UIState.toggle("none")
+		end,
 		BackgroundImageTransparency = 0,
-		Open = panelOpen,
+		-- Open = panelOpen,
 	}, {
 		DefaultScrollFrame = e(DefaultScrollFrame, {
 			Size = UDim2.new(1, 0, 1, 0),

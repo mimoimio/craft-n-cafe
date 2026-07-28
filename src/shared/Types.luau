@@ -7,10 +7,30 @@ export type PlayerData = {
 	Mixers: { [string]: MixerEntity },
 	Ingredients: { [string]: number },
 	Customers: { CustomerEntity },
-	DiscoveredDrinks: { [string]: true },
+	DiscoveredDrinks: {
+		[VariationId]: {
+			[DrinkId]: true,
+		},
+	},
 	Shop: {},
+	Daily: {},
+	Spawner: {
+		TimePulled: number,
+		IngredientId: string,
+	},
 }
 export type PlayerId = string
+export type VariationId = string
+export type DrinkId = string
+
+-- Spawner
+export type SpawnerState = {
+	[string]: {
+		TimePulled: number?,
+		IngredientId: string?,
+	},
+}
+
 -- Stats
 export type StatsEntity = {
 	Cash: number,
@@ -21,11 +41,15 @@ export type StatsEntity = {
 	Level: number,
 	CafeOpen: boolean, -- New Toggle for Tutorial
 	UnlockedIngredients: { string },
-	DiscoveredDrinks: { [string]: string },
-
+	DiscoveredDrinks: {
+		[VariationId]: {
+			[DrinkId]: true,
+		},
+	},
+	RollCooldown: number,
 	-- for the future
-	maxDrinksPerCustomer: number,
-	maxCustomersAtOnce: number,
+	MaxDrinksPerCustomer: number,
+	MaxCustomersAtOnce: number,
 }
 
 -- Tables
@@ -56,6 +80,7 @@ export type UnlockedIngredientsState = {
 -- Shop
 export type ShopCycle = {
 	seed: number,
+	today: day,
 	position: number,
 	isSpecial: boolean,
 	timeLeft: number,
@@ -73,6 +98,19 @@ export type ShopState = {
 			[Seed]: ShopEntity,
 		},
 	},
+}
+
+-- DailyState
+export type DailyState = {
+	[PlayerId]: DailyEntity,
+}
+export type day = number
+export type DailyEntity = {
+	lastClaimedDaily: day?,
+	lastClaimedRoulette: number?,
+	lastClaimedShop: number?,
+	day: day,
+	today: day?, -- Added to track current server day!
 }
 
 -- DiscoveredDrinksState
@@ -189,6 +227,31 @@ export type BuyIngredientPayload = {
 	cost: number,
 	seed: number,
 }
+export type DailyClaimPayload = {
+	lastClaimedDaily: day,
+	nextDay: number,
+	ingredients: {
+		[string]: number,
+	},
+}
+export type RestockDrinksPayload = {
+	stockToAdd: { [string]: number },
+	drinksToRemove: { [string]: boolean },
+}
+export type RollIngredientPayload = {
+	ingredientId: string,
+	timePulled: number,
+}
+export type BuyIngredientFromSpawnerPayload = {
+	ingredientId: string,
+	cost: number,
+	timePulled: number,
+}
+export type BuyMixerPayload = {
+	mixerId: string,
+	cost: number,
+}
+
 export type CombinedActions = {
 	startPlayerSession: (playerId: PlayerId, data: PlayerData, payload: StartPlayerSessionPayload) -> (),
 	endPlayerSession: (playerId: PlayerId) -> (),
@@ -197,7 +260,8 @@ export type CombinedActions = {
 	buyIngredientBulk: (playerId: PlayerId, payload: BuyIngredientBulkPayload) -> (),
 	refreshShop: (playerId: PlayerId, payload: RefreshShopPayload) -> (),
 	pickUpDrinkFromMixer: (playerId: PlayerId, payload: PickUpPayload) -> (),
-
+	restockDrinks: (playerId: PlayerId, payload: RestockDrinksPayload) -> (),
+	buyMixer: (playerId: PlayerId, payload: BuyMixerPayload) -> (),
 	placeDrinkToTableSlot: (
 		playerId: PlayerId,
 		payload: {
@@ -233,7 +297,10 @@ export type CombinedActions = {
 		}
 	) -> (),
 
+	buyIngredientFromSpawner: (playerId: PlayerId, payload: BuyIngredientFromSpawnerPayload) -> (),
+	rollIngredient: (playerId: PlayerId, payload: RollIngredientPayload) -> (),
 	removeCustomer: (playerId: PlayerId, uid: string) -> (),
+	claimDailyReward: (playerId: PlayerId, DailyClaimPayload) -> (),
 	completeTutorial: (playerId: PlayerId) -> (),
 }
 

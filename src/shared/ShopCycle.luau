@@ -9,6 +9,11 @@ local ShopCycle = {}
 local SMALL_CYCLE_DURATION = 5 * 60 -- 5 mins
 local CYCLES_PER_BIG_CYCLE = 6 -- 6 rotations
 local BIG_CYCLE_DURATION = CYCLES_PER_BIG_CYCLE * SMALL_CYCLE_DURATION
+local CYCLES_PER_DAILY_CYCLE = --
+	6 -- cycles in 30 minutes
+	* 2 -- 2 times 30 minutes equals 1 hour
+	* 24 -- 24 hours
+-- 48 big cycles per day * 6 cycles per big cycles = 288
 
 ShopCycle.SMALL_CYCLE_DURATION = SMALL_CYCLE_DURATION
 ShopCycle.CYCLES_PER_BIG_CYCLE = CYCLES_PER_BIG_CYCLE
@@ -30,6 +35,7 @@ function ShopCycle.getCurrentState(): Types.ShopCycle
 	local isSpecialEvent = (currentPosition == CYCLES_PER_BIG_CYCLE)
 
 	local timeLeft = ((currentSmallSeed + 1) * SMALL_CYCLE_DURATION) - currentTime
+	local currentDay = currentTime / (60 * 60 * 24) // 1
 
 	-- Calculate time to next special event
 	local cyclesUntilSpecial = isSpecialEvent and CYCLES_PER_BIG_CYCLE or (CYCLES_PER_BIG_CYCLE - currentPosition)
@@ -37,6 +43,7 @@ function ShopCycle.getCurrentState(): Types.ShopCycle
 
 	return {
 		seed = currentSmallSeed,
+		today = currentDay,
 		position = currentPosition,
 		isSpecial = isSpecialEvent,
 		timeLeft = timeLeft,

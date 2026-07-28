@@ -72,6 +72,7 @@ local function SlotComponent(
 					continue
 				end
 				desc.CollisionGroup = "Walls"
+				desc.Anchored = true
 			end
 			if placePart then
 				clone:PivotTo(placePart.CFrame)
@@ -79,11 +80,11 @@ local function SlotComponent(
 			local modelBasePart = clone:FindFirstChildWhichIsA("BasePart", true)
 
 			-- no need to unanchor on table
-			-- for _, descendant in clone:GetDescendants() do
-			-- 	if descendant:IsA("BasePart") then
-			-- 		descendant.Anchored = false
-			-- 	end
-			-- end
+			for _, descendant in clone:GetDescendants() do
+				if descendant:IsA("BasePart") then
+					descendant.CanCollide = false
+				end
+			end
 
 			if drinkData.variationId then
 				local variation = VariationsConfig[drinkData.variationId]
@@ -111,7 +112,20 @@ local function SlotComponent(
 					weld.Parent = part
 				end
 			end
-			clone.Parent = props.SlotInstance
+			local tag = props.PlayerId and props.PlayerId .. "DrinkModel" or ""
+			clone:SetAttribute("uid", props.DrinkId)
+			local basePartDescendants = 0
+			for i, desc in clone:GetDescendants() do
+				if not desc:IsA("BasePart") then
+					continue
+				end
+				basePartDescendants += 1
+			end
+			clone:SetAttribute("BasePartDescendants", basePartDescendants)
+			clone:AddTag(tag)
+
+			-- clone.Parent = props.SlotInstance
+			clone.Parent = workspace
 			return function()
 				clone:Destroy()
 			end

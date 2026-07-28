@@ -7,6 +7,8 @@ local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local SoundController = require(ReplicatedStorage.Shared.Controllers.SoundController)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
+local Types = require(ReplicatedStorage.Shared.Types)
+local CafeTypes = require(ReplicatedStorage.Shared.CafeTypes)
 local SmallText = require(script.Parent.ui.SmallText)
 local HStack = require(script.Parent.ui.HStack)
 
@@ -20,7 +22,7 @@ local TAP_ICON =
 local function SlotNode(props: {
 	SlotName: string,
 	DrinkUid: string,
-	Instance: Instance,
+	Instance: CafeTypes.Slot,
 })
 	local playerId = tostring(Players.LocalPlayer.UserId)
 	local drink, setDrink = useState(nil)
@@ -29,7 +31,7 @@ local function SlotNode(props: {
 
 	-- State to hold our asynchronously resolved instances
 	local prompt, setPrompt = useState(nil)
-	local placePart, setPlacePart = useState(nil)
+	local placePart: Part?, setPlacePart = useState(nil)
 
 	-- 1. Asynchronously resolve descendants using Promise to avoid yielding React
 	useEffect(function()

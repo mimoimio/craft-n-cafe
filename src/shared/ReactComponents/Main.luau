@@ -2,6 +2,7 @@
 local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local React = require(ReplicatedStorage.Packages.React)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
@@ -30,18 +31,19 @@ local SettingsPanel = require(script.Parent.SettingsPanel)
 local CoinVFXContainer = require(script.Parent.CoinVFXContainer)
 local RecipePanel = require(script.Parent.RecipePanel)
 local CafePanel = require(script.Parent.CafePanel)
-local MixerManager = require(script.Parent.MixerManager) -- Injected manager
-local CustomerManager = require(script.Parent.CustomerManager) -- Injected manager
-local TableManager = require(script.Parent.TableManager) -- Injected manager
-local Mailbox = require(script.Parent.Mailbox) -- Injected manager
+local MixerManager = require(script.Parent.MixerManager)
+local CustomerManager = require(script.Parent.CustomerManager)
+local Spawner = require(script.Parent.Spawner)
+local TableManager = require(script.Parent.TableManager)
+local Mailbox = require(script.Parent.Mailbox)
+local CafeBase = require(script.Parent.CafeBase)
 local VStack = require(script.Parent.ui.VStack)
 
 local player = game.Players.LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
 
-local function onMountShopButton(button: GuiButton?)
-	UIState.setShopButton(button)
-end
+local onMountShopButton = UIState.setShopButton
+local onMountCafeButton = UIState.setCafeButton
 
 local function Main(props)
 	local admin, setAdmin = useState(false)
@@ -153,8 +155,8 @@ local function Main(props)
 	local timehud = e(require(script.Parent.ui.SmallText), {
 		Text = time,
 		AutomaticSize = Enum.AutomaticSize.XY,
-		Position = UDim2.new(0.5, 0, 0, 0),
-		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(1, 0, 0, 0),
+		AnchorPoint = Vector2.new(1, 0),
 	})
 
 	-- local upgradeCafeTutorial = cash > 400 and not UpgradeCafeCompleted
@@ -166,8 +168,10 @@ local function Main(props)
 		-- Background Manager mapping to the 3D world (Invisible)
 		MixerManager = e(MixerManager),
 		CustomerManager = e(CustomerManager),
+		Spawner = e(Spawner),
 		Tables = e(TableManager),
 		Mailbox = e(Mailbox),
+		CafeBase = e(CafeBase),
 
 		-- Active Panel Overlay
 		ActiveOverlay = e("Frame", {
@@ -198,8 +202,105 @@ local function Main(props)
 			end,
 			coins = finalCash,
 		}),
+		Bonus = e(require(script.Parent.BonusHud)),
 		timehud = timehud,
 
+		Top = e(HStack, {
+			Position = UDim2.new(0.5, 0, 0, 0),
+			AnchorPoint = Vector2.new(0.5, 1),
+			Size = UDim2.new(),
+			AutomaticSize = Enum.AutomaticSize.XY,
+			Spacing = UDim.new(0, 8),
+		}, {
+			ShopButton = e(SmallButton, {
+				BackgroundTransparency = 1,
+				TextSize = 32,
+				ScaleType = Enum.ScaleType.Slice,
+				SliceCenter = Rect.new(8, 8, 92, 92),
+				Size = UDim2.new(0, 160, 0, 40),
+				Image = "rbxassetid://127657596958436",
+				Rounded = false,
+				[React.Event.Activated] = function()
+					Players.LocalPlayer.Character:PivotTo(workspace.Shop:GetPivot())
+					UIState.toggle("none")
+					RunService.RenderStepped:Wait()
+					workspace.CurrentCamera:PivotTo(
+						CFrame.new(
+							workspace.CurrentCamera:GetPivot().Position,
+							workspace.Shop.Building:GetPivot().Position - Vector3.new(0, 3, 0)
+						)
+					)
+				end,
+				ImageColor3 = Color3.new(1, 0.2, 0.2),
+				OnMount = onMountShopButton,
+				LayoutOrder = 1,
+			}, {
+				e(SmallText, {
+					Text = "Shop",
+					Size = UDim2.new(1, 0, 1, 0),
+					BackgroundTransparency = 1,
+					TextWrapped = true,
+					TextSize = 32,
+					AutomaticSize = Enum.AutomaticSize.None,
+					TextXAlignment = Enum.TextXAlignment.Center,
+					TextYAlignment = Enum.TextYAlignment.Center,
+				}, {}),
+			}),
+			Cafe = e(SmallButton, {
+				LayoutOrder = 2,
+				BackgroundTransparency = 1,
+				TextSize = 32,
+				ScaleType = Enum.ScaleType.Slice,
+				SliceCenter = Rect.new(8, 8, 92, 92),
+				Size = UDim2.new(0, 160, 0, 40),
+				Image = "rbxassetid://127657596958436",
+				Rounded = false,
+				[React.Event.Activated] = function()
+					local cf, s = UIState:getState().cafeBase.Cafe:GetBoundingBox()
+					Players.LocalPlayer.Character:PivotTo(cf)
+					UIState.toggle("none")
+				end,
+				ImageColor3 = Color3.new(0, 1, 0.368627),
+				OnMount = onMountCafeButton,
+			}, {
+				e(SmallText, {
+					Text = "Cafe",
+					Size = UDim2.new(1, 0, 1, 0),
+					BackgroundTransparency = 1,
+					TextWrapped = true,
+					TextSize = 32,
+					AutomaticSize = Enum.AutomaticSize.None,
+					TextXAlignment = Enum.TextXAlignment.Center,
+					TextYAlignment = Enum.TextYAlignment.Center,
+				}, {}),
+			}),
+			-- Restock = e(SmallButton, {
+			-- 	LayoutOrder = 2,
+			-- 	BackgroundTransparency = 1,
+			-- 	TextSize = 32,
+			-- 	ScaleType = Enum.ScaleType.Slice,
+			-- 	SliceCenter = Rect.new(8, 8, 92, 92),
+			-- 	Size = UDim2.new(0, 160, 0, 40),
+			-- 	Image = "rbxassetid://127657596958436",
+			-- 	Rounded = false,
+			-- 	[React.Event.Activated] = function()
+			-- 		Remotes.Restock:FireServer()
+			-- 	end,
+			-- 	ImageColor3 = Color3.new(0.960784, 0.949019, 0.352941),
+			-- 	OnMount = onMountCafeButton,
+			-- }, {
+			-- 	e(SmallText, {
+			-- 		Text = "Restock",
+			-- 		Size = UDim2.new(1, 0, 1, 0),
+			-- 		BackgroundTransparency = 1,
+			-- 		TextWrapped = true,
+			-- 		TextSize = 32,
+			-- 		AutomaticSize = Enum.AutomaticSize.None,
+			-- 		TextXAlignment = Enum.TextXAlignment.Center,
+			-- 		TextYAlignment = Enum.TextYAlignment.Center,
+			-- 	}, {}),
+			-- }),
+		}),
 		Left = e(VStack, {
 			VerticalFlex = Enum.UIFlexAlignment.None,
 			HorizontalFlex = Enum.UIFlexAlignment.None,
@@ -231,17 +332,6 @@ local function Main(props)
 					toggle("settings")
 				end,
 			}),
-			ShopButton = e(SmallButton, {
-				LayoutOrder = 3,
-				Image = "rbxassetid://112161362547076",
-				-- BackgroundTransparency = 1,
-				TextSize = 32,
-				Size = UDim2.new(0, 50, 0, 50),
-				[React.Event.Activated] = function()
-					toggle("ingredientShop")
-				end,
-				OnMount = onMountShopButton,
-			}),
 			recipeButton = e(SmallButton, {
 				LayoutOrder = 4,
 				-- Image = "rbxassetid://112161362547076",
@@ -272,6 +362,51 @@ local function Main(props)
 
 					e(SmallText, {
 						Text = "Recipe",
+						Size = UDim2.new(0, 50, 0, 46),
+						BackgroundTransparency = 1,
+						TextWrapped = true,
+						AutomaticSize = Enum.AutomaticSize.None,
+						TextXAlignment = Enum.TextXAlignment.Center,
+						TextYAlignment = Enum.TextYAlignment.Center,
+						TextSize = 12,
+					}, {}),
+				}),
+				UIStroke = e("UIStroke", {
+					Thickness = 2,
+					Color = Color3.new(0.5, 0.5, 0.5),
+					BorderStrokePosition = Enum.BorderStrokePosition.Inner,
+				}),
+			}),
+			daylybutton = e(SmallButton, {
+				LayoutOrder = 4,
+				-- Image = "rbxassetid://112161362547076",
+				Text = "",
+				ButtonClass = "ImageButton",
+				BackgroundTransparency = 0,
+				TextSize = 12,
+				Size = UDim2.new(0, 50, 0, 50),
+				BackgroundColor3 = Color3.new(0.5, 0.5, 0.5),
+				[React.Event.Activated] = function()
+					toggle("daily")
+				end,
+				AutomaticSize = Enum.AutomaticSize.None,
+				Padding = { All = UDim.new() },
+			}, {
+				e("Frame", {
+					Size = UDim2.new(0, 50, 0, 46),
+					BackgroundColor3 = Color3.new(0.8, 0.8, 0.8),
+				}, {
+					UIStroke = e("UIStroke", {
+						Thickness = 2,
+						BorderStrokePosition = Enum.BorderStrokePosition.Inner,
+						Color = Color3.new(0.6, 0.6, 0.6),
+					}),
+					UICorner = e("UICorner", {
+						CornerRadius = UDim.new(0, 8),
+					}),
+
+					e(SmallText, {
+						Text = "Daily",
 						Size = UDim2.new(0, 50, 0, 46),
 						BackgroundTransparency = 1,
 						TextWrapped = true,
@@ -325,7 +460,10 @@ local function Main(props)
 		admin = admin and e(require(script.Parent.ConsoleApp)),
 		e(require(script.Parent.DiscoveredDrink), { closeAllPanels = closeAllPanels }),
 		e(require(script.Parent.LevelUp)),
+		e(require(script.Parent.DailyPanel)),
 		e(require(script.Parent.SpecialEvent)),
+		e(require(script.Parent.DailyClaimPopup)),
+		e(require(script.Parent.ShopPrompt)),
 		Tutorial = tutorialDone == false and e(require(script.Parent.Tutorial)) or nil,
 	})
 end

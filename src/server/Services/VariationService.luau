@@ -13,6 +13,10 @@ function VariationService.GetVariation(): VariationConfig?
 	local total = 0
 	local variationArray: { VariationConfig } = {}
 	for i, variation: VariationConfig in VariationsConfig do
+		-- if variation.VariationId == "none" then
+		-- 	continue
+		-- end
+
 		total += variation.Weight
 		table.insert(variationArray, variation)
 	end

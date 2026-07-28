@@ -1,4 +1,5 @@
 local DATASTORENAME = "DATASTORENAME"
+local DRINKS_MIXED_DATASTORE = "DRINKS_MIXED_DATASTORE"
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -22,9 +23,12 @@ local PROFILE_TEMPLATE: PlayerData = {
 		Sfx = 0.5,
 		Music = 0.5,
 		SecondsPlayed = 0,
-		Cash = 50,
+		Cash = 30,
 		Level = 1,
-		CafeOpen = false,
+		CafeOpen = true,
+		MaxDrinksPerCustomer = 3,
+		MaxCustomersAtOnce = 5,
+		RollCooldown = 2,
 	},
 	Tables = {
 		Table1 = {
@@ -32,14 +36,33 @@ local PROFILE_TEMPLATE: PlayerData = {
 			Slots = { Slot1 = "none", Slot2 = "none", Slot3 = "none", Slot4 = "none" },
 		},
 	},
-	Drinks = {},
+	Drinks = {
+		-- {
+		-- 	id = "abc",
+		-- 	variationId = "starlight",
+		-- 	drinkId = "volcafrappuccino",
+		-- 	stock = 999_999_999,
+		-- },
+		-- {
+		-- 	id = "addbc",
+		-- 	variationId = "starlight",
+		-- 	drinkId = "volcafrappuccino",
+		-- 	stock = 999_999_999,
+		-- },
+	},
 	Mixers = {
 		Mixer1 = { drinkId = "none" },
 	},
-	Ingredients = {},
+	Ingredients = {
+		-- milk = 100,
+	},
 	Customers = {},
 	Shop = { shops = {} }, -- CRITICAL: Added so Reflex updates sync to the Profile!
 	DiscoveredDrinks = {},
+	Daily = {
+		day = 1,
+	},
+	Spawner = {},
 }
 
 -- Recursively clones a table so we don't accidentally pass memory references

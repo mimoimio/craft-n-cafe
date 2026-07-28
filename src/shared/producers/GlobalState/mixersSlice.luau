@@ -53,7 +53,18 @@ local actions = {
 		newMixer.startTime = nil
 		return Set(state, playerId, Set(playersMixers, mixerId, newMixer))
 	end,
-	levelUp = function(state: MixersState, playerId: string, payload: Types.LevelUpPayload)
+	skipMix = function(state: MixersState, playerId: string, payload: Types.PickUpPayload)
+		local playersMixers = state[playerId]
+		if not playersMixers then
+			return state
+		end
+		local mixerId: string = payload.mixer
+		local newMixer = Merge(playersMixers[mixerId], {
+			startTime = payload.newTime,
+		})
+		return Set(state, playerId, Set(playersMixers, mixerId, newMixer))
+	end,
+	buyMixer = function(state: MixersState, playerId: string, payload: Types.BuyMixerPayload)
 		local playerMixers = state[playerId]
 		if not playerMixers then
 			warn(`player {playerId}'s Mixers not found`)
@@ -61,12 +72,9 @@ local actions = {
 		end
 
 		local newMixers = {}
-		for i, mixer: string in payload.unlockedMixers do
-			newMixers[mixer] = {
-				drinkId = "none",
-			}
-		end
-
+		newMixers[payload.mixerId] = {
+			drinkId = "none",
+		}
 		return Set(state, playerId, Merge(playerMixers, newMixers))
 	end,
 }

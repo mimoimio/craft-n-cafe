@@ -31,7 +31,7 @@ local Mailbox = function(props: {})
 			repeat
 				for i, base: CafeTypes.CafeBase in bases do
 					local ownerId = base:GetAttribute("OwnerId")
-					warn(`base ({base}), ownerId({ownerId})`)
+					-- warn(`base ({base}), ownerId({ownerId})`)
 					if not ownerId then
 						continue
 					end
@@ -50,6 +50,7 @@ local Mailbox = function(props: {})
 
 				if not found then
 					task.wait()
+					-- warn("waiting")
 					elapsed = workspace:GetServerTimeNow() - startTime
 					if elapsed >= 10 then
 						return reject("Get base timeout")
@@ -70,6 +71,7 @@ local Mailbox = function(props: {})
 		return function()
 			-- If the component unmounts before WaitForChild finishes, cancel the Promise
 			-- so it stops executing and doesn't attempt to update unmounted state.
+			warn("caceling")
 			promise:cancel()
 		end
 	end, {})

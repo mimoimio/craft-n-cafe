@@ -6,7 +6,10 @@ local useSpring = ReactFlow.useSpring
 local CoffeeConfigArray = require(ReplicatedStorage.Shared.Configs.CoffeeConfig)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 local HStack = require(ReplicatedStorage.Shared.ReactComponents.ui.HStack)
+local VStack = require(ReplicatedStorage.Shared.ReactComponents.ui.VStack)
+local SmallButton = require(ReplicatedStorage.Shared.ReactComponents.ui.SmallButton)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
+local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConfig)
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local player = game.Players.LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
@@ -305,11 +308,12 @@ local function RecipeDetail(props: {
 				TextXAlignment = Enum.TextXAlignment.Left,
 				LayoutOrder = 3,
 			}),
-			ItemTip = config.ItemTip and e("TextLabel", {
+			ItemTip = e("TextLabel", {
 				Size = UDim2.new(1, 0, 0, 0),
 				AutomaticSize = Enum.AutomaticSize.Y,
 				BackgroundTransparency = 1,
-				Text = props.locked and "" or config.ItemTip,
+				-- Text = props.locked and "" or config.ItemTip,
+				Text = `{config.ItemTip or ""}\nPrice: {config.Price}\nMixing Duration: {config.Duration}`,
 				TextColor3 = SUBTEXT,
 				TextSize = 14,
 				TextStrokeTransparency = 0,
@@ -351,8 +355,9 @@ local function RecipePanel(props: {
 })
 	local selected, setSelected = useState(RECIPES[1])
 	local visible, setVisible = useState(false)
-	local discoveredDrinks: { [string]: true }, setDiscoveredDrinks =
-		useState(not player and { espresso = true } or nil)
+	local variationId, setVariationId = useState("none")
+	local discoveredDrinks, setDiscoveredDrinks = useState(not player and { none = { espresso = true } } or nil)
+	local drinksOfVariation: { [string]: true } = discoveredDrinks and discoveredDrinks[variationId] or {}
 
 	useEffect(function()
 		local unsub = GlobalState:subscribe(function(state: GlobalState.GlobalState)
@@ -408,14 +413,14 @@ local function RecipePanel(props: {
 		if visible then
 			setPosition({
 				target = 0,
-				speed = 10,
-				damper = 1,
+				speed = 30,
+				damper = 0.6,
 			})
 		else
 			setPosition({
 				target = -1,
-				speed = 10,
-				damper = 1,
+				speed = 30,
+				damper = 0.6,
 			})
 		end
 	end, { visible })
@@ -433,6 +438,14 @@ local function RecipePanel(props: {
 			PaddingBottom = UDim.new(0, 8),
 		}),
 	}
+	local count = 0
+	for drinkId, _ in drinksOfVariation do
+		count += 1
+	end
+	local varCount = 5
+	local total = varCount * #RECIPES
+	local locked = player and not (drinksOfVariation and drinksOfVariation[selected and selected.Id]) or false
+
 	for i, config in ipairs(RECIPES) do
 		gridItems["item_" .. config.Id] = e(RecipeGridItem, {
 			config = config,
@@ -441,12 +454,26 @@ local function RecipePanel(props: {
 				setSelected(config)
 			end,
 			layoutOrder = i,
-			discovered = discoveredDrinks and discoveredDrinks[config.Id] or false,
+			discovered = (not player) or drinksOfVariation and drinksOfVariation[config.Id] or false,
 		})
 	end
 
-	local locked = not (discoveredDrinks and discoveredDrinks[selected and selected.Id])
 	local bg = (if locked then ITEM_BG_LOCKED else Color3.new(0.980392, 0.341176, 0.145098))
+
+	local buttons = {}
+	for variationId, variation in VariationsConfig do
+		buttons[variationId] = e(SmallButton, {
+			LayoutOrder = variation.Multiplier,
+			OverlayText = variation.DisplayName,
+			BackgroundColor3 = variationId ~= "none" and variation.ColorPrimary
+				or Color3.new(0.768627, 0.549019, 0.549019),
+			Image = variation.Image,
+			[React.Event.Activated] = function()
+				setVariationId(variationId)
+			end,
+		})
+	end
+	local variation = VariationsConfig[variationId]
 
 	return e("ImageLabel", {
 		Size = UDim2.new(0.8, -48, 1, -48),
@@ -463,7 +490,8 @@ local function RecipePanel(props: {
 		BackgroundColor3 = PANEL_BG,
 		BackgroundTransparency = 1,
 		Image = "rbxassetid://127657596958436",
-		ImageColor3 = Color3.new(0.768627, 0.549019, 0.549019),
+		ImageColor3 = variation and variation.VariationId ~= "none" and variation.ColorPrimary
+			or Color3.new(0.768627, 0.549019, 0.549019),
 		ScaleType = Enum.ScaleType.Slice,
 		SliceCenter = Rect.new(8, 8, 92, 92),
 		BorderSizePixel = 0,
@@ -474,6 +502,12 @@ local function RecipePanel(props: {
 		UISizeConstraint = e("UISizeConstraint", {
 			MaxSize = Vector2.new(1000, 1000),
 		}),
+		buttons = e(VStack, {
+			AutomaticSize = Enum.AutomaticSize.XY,
+			AnchorPoint = Vector2.new(1, 0),
+			Spacing = UDim.new(0, 8),
+			Size = UDim2.new(0, 80, 0, 0),
+		}, buttons),
 		-- Centered container
 		Container = e("Frame", {
 			Size = UDim2.new(1, -20, 1, -20),
@@ -507,7 +541,7 @@ local function RecipePanel(props: {
 					Size = UDim2.new(1, -56, 1, 0),
 					Position = UDim2.new(0, 16, 0, 0),
 					BackgroundTransparency = 1,
-					Text = "Recipe Mastery Book",
+					Text = `Recipe Mastery Book ({count}/{#RECIPES})`,
 					TextColor3 = ACCENT,
 					TextSize = 20,
 					Font = Enum.Font.FredokaOne,

@@ -30,16 +30,24 @@ local actions = {
 		return RemoveKey(state, playerId)
 	end,
 	pickUpDrinkFromMixer = function(state: DiscoveredDrinksState, playerId: string, payload: Types.PickUpPayload)
-		local playersDiscovered = state[playerId]
-		if not playersDiscovered then
+		local playersDiscoveredDrinks = state[playerId]
+		if not playersDiscoveredDrinks then
 			warn("discoveredDrinksSlice: pickUpDrinkFromMixer failed: not playersStats")
 			return state
 		end
-		if playersDiscovered[payload.drinkId] then
+
+		local variationId = payload.variationId or "none"
+
+		local drinksOfVariation = playersDiscoveredDrinks[variationId] or {}
+		local drink = drinksOfVariation[payload.drinkId]
+		if drink then
 			-- warn(`already unlocked {payload.drinkId}`)
 			return state
 		end
-		return Set(state, playerId, Set(playersDiscovered, payload.drinkId, true))
+
+		local newDrinksOfVariation = Set(drinksOfVariation, payload.drinkId, true)
+		local newDDs = Set(playersDiscoveredDrinks, variationId, newDrinksOfVariation)
+		return Set(state, playerId, newDDs)
 	end,
 }
 

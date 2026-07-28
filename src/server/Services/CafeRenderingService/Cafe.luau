@@ -58,11 +58,17 @@ local function Cafe(props: {
 		end
 		local cafeTemplate = getCafeTemplate(stats.Level)
 		if cafeTemplate then
-			local clone = cafeTemplate:Clone()
+			local clone: CafeTypes.Cafe = cafeTemplate:Clone()
 			clone:PivotTo(props.BaseModel.Entrance:GetPivot())
 			clone.Name = "Cafe"
 			-- Parent it to the BaseModel so your type definitions hold true in the Explorer!
 			clone.Parent = props.BaseModel
+			for i, spot: Part in clone.StandSpots:GetChildren() do
+				if not spot:IsA("BasePart") then
+					continue
+				end
+				spot.Transparency = 1
+			end
 			for i, desc: Part in clone:GetDescendants() do
 				if not desc:IsA("BasePart") or desc == clone.Part then
 					continue
@@ -107,6 +113,14 @@ local function Cafe(props: {
 			PlayerId = props.PlayerId,
 			CafeModel = clonedCafe,
 			BaseModel = props.BaseModel,
+		})
+		children.RecipeWall = e(require(ReplicatedStorage.Shared.ReactComponents.RecipeWall), {
+			PlayerId = props.PlayerId,
+			BaseModel = props.BaseModel,
+		})
+		children.Spawner = e(require(script.Parent.Spawners), {
+			PlayerId = props.PlayerId,
+			CafeModel = clonedCafe,
 		})
 	end
 	return e(React.Fragment, nil, children)

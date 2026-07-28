@@ -75,8 +75,8 @@ return {
 		Id = "lemon",
 		DisplayName = "Lemon Slice",
 		ItemTip = [[A freshly cut slice of zesty citrus.]],
-		Cost = 15,
-		Max = 1000,
+		Cost = 1000,
+		Max = 5,
 		Min = 1,
 	},
 	{
@@ -96,7 +96,7 @@ return {
 		Min = -2,
 	},
 	{
-		Id = "Cookies",
+		Id = "cookies",
 		DisplayName = "Cookies",
 		ItemTip = [[Crunchy baked treats perfect for crumbling or dunking.]],
 		Cost = 3500,
