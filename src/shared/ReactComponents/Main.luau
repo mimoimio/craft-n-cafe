@@ -178,9 +178,9 @@ local function Main(props)
 			Size = UDim2.new(1, 0, 1, 0),
 			BackgroundTransparency = 1,
 		}, {
-			Shop = e(IngredientShopPanel, {
-				OnClose = closeAllPanels,
-			}),
+			-- Shop = e(IngredientShopPanel, {
+			-- 	OnClose = closeAllPanels,
+			-- }),
 			Settings = e(SettingsPanel, {
 				OnClose = closeAllPanels,
 			}),
@@ -206,46 +206,46 @@ local function Main(props)
 		timehud = timehud,
 
 		Top = e(HStack, {
-			Position = UDim2.new(0.5, 0, 0, 0),
-			AnchorPoint = Vector2.new(0.5, 1),
+			Position = UDim2.new(0.5, 0, 0, 1),
+			AnchorPoint = Vector2.new(0.5, 0.5),
 			Size = UDim2.new(),
 			AutomaticSize = Enum.AutomaticSize.XY,
 			Spacing = UDim.new(0, 8),
 		}, {
-			ShopButton = e(SmallButton, {
-				BackgroundTransparency = 1,
-				TextSize = 32,
-				ScaleType = Enum.ScaleType.Slice,
-				SliceCenter = Rect.new(8, 8, 92, 92),
-				Size = UDim2.new(0, 160, 0, 40),
-				Image = "rbxassetid://127657596958436",
-				Rounded = false,
-				[React.Event.Activated] = function()
-					Players.LocalPlayer.Character:PivotTo(workspace.Shop:GetPivot())
-					UIState.toggle("none")
-					RunService.RenderStepped:Wait()
-					workspace.CurrentCamera:PivotTo(
-						CFrame.new(
-							workspace.CurrentCamera:GetPivot().Position,
-							workspace.Shop.Building:GetPivot().Position - Vector3.new(0, 3, 0)
-						)
-					)
-				end,
-				ImageColor3 = Color3.new(1, 0.2, 0.2),
-				OnMount = onMountShopButton,
-				LayoutOrder = 1,
-			}, {
-				e(SmallText, {
-					Text = "Shop",
-					Size = UDim2.new(1, 0, 1, 0),
-					BackgroundTransparency = 1,
-					TextWrapped = true,
-					TextSize = 32,
-					AutomaticSize = Enum.AutomaticSize.None,
-					TextXAlignment = Enum.TextXAlignment.Center,
-					TextYAlignment = Enum.TextYAlignment.Center,
-				}, {}),
-			}),
+			-- ShopButton = e(SmallButton, {
+			-- 	BackgroundTransparency = 1,
+			-- 	TextSize = 32,
+			-- 	ScaleType = Enum.ScaleType.Slice,
+			-- 	SliceCenter = Rect.new(8, 8, 92, 92),
+			-- 	Size = UDim2.new(0, 160, 0, 40),
+			-- 	Image = "rbxassetid://127657596958436",
+			-- 	Rounded = false,
+			-- 	[React.Event.Activated] = function()
+			-- 		Players.LocalPlayer.Character:PivotTo(workspace.Shop:GetPivot())
+			-- 		UIState.toggle("none")
+			-- 		RunService.RenderStepped:Wait()
+			-- 		workspace.CurrentCamera:PivotTo(
+			-- 			CFrame.new(
+			-- 				workspace.CurrentCamera:GetPivot().Position,
+			-- 				workspace.Shop.Building:GetPivot().Position - Vector3.new(0, 3, 0)
+			-- 			)
+			-- 		)
+			-- 	end,
+			-- 	ImageColor3 = Color3.new(1, 0.2, 0.2),
+			-- 	OnMount = onMountShopButton,
+			-- 	LayoutOrder = 1,
+			-- }, {
+			-- 	e(SmallText, {
+			-- 		Text = "Shop",
+			-- 		Size = UDim2.new(1, 0, 1, 0),
+			-- 		BackgroundTransparency = 1,
+			-- 		TextWrapped = true,
+			-- 		TextSize = 32,
+			-- 		AutomaticSize = Enum.AutomaticSize.None,
+			-- 		TextXAlignment = Enum.TextXAlignment.Center,
+			-- 		TextYAlignment = Enum.TextYAlignment.Center,
+			-- 	}, {}),
+			-- }),
 			Cafe = e(SmallButton, {
 				LayoutOrder = 2,
 				BackgroundTransparency = 1,
@@ -464,6 +464,7 @@ local function Main(props)
 		e(require(script.Parent.SpecialEvent)),
 		e(require(script.Parent.DailyClaimPopup)),
 		e(require(script.Parent.ShopPrompt)),
+		e(require(script.Parent.UpgradePanel)),
 		Tutorial = tutorialDone == false and e(require(script.Parent.Tutorial)) or nil,
 	})
 end

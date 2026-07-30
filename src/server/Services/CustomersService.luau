@@ -3,6 +3,7 @@ local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Promise = require(ReplicatedStorage.Packages.Promise)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConfig)
 local Types = require(ReplicatedStorage.Shared.Types)
@@ -44,9 +45,9 @@ function CustomersService.SpawnCustomer(playerId: string)
 	end
 	local playerStats = state.Stats[playerId]
 
-	local maxCustomersAtOnce = playerStats.MaxCustomersAtOnce
+	local CafeCapacity = playerStats.CafeCapacity
 
-	if type(playersCustomers) == "table" and #playersCustomers >= maxCustomersAtOnce then
+	if type(playersCustomers) == "table" and #playersCustomers >= CafeCapacity then
 		return
 	end
 
@@ -235,6 +236,7 @@ function CustomersService.initialize()
 				end
 
 				local maxCustomersAtOnce = playerStats.MaxCustomersAtOnce
+				local CafeCapacity = playerStats.CafeCapacity
 
 				for i, customer in playersCustomers do
 					if customer.customerAction == "paid" then
@@ -254,10 +256,19 @@ function CustomersService.initialize()
 
 				if
 					now - lastSpawn >= randomInterval
-					and #activePlayerCustomers < maxCustomersAtOnce
+					and #activePlayerCustomers < CafeCapacity
 					and playerStats.CafeOpen
 				then
-					CustomersService.SpawnCustomer(playerId)
+					Promise.defer(function(resolve, reject, onCancel)
+						local amount = math.random() * maxCustomersAtOnce // 1 + 1
+						for i = 1, amount do
+							CustomersService.SpawnCustomer(playerId)
+							task.wait(math.random())
+						end
+						return resolve
+					end):catch(function(err)
+						warn(`spawn cust err: {err}`)
+					end)
 				end
 
 				-- 2. Evaluate FSM Time-Delays for Existing Customers

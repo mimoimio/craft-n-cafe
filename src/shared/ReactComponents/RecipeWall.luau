@@ -47,24 +47,25 @@ local function RecipeGridItem(props: {
 		then (if locked then ITEM_BG_LOCKED_SELECTED else ITEM_SELECTED_BG)
 		elseif hovered then (if locked then Color3.new(0.5, 0.5, 0.5) else Color3.new(1, 0.956862, 0.901960))
 		else (if locked then ITEM_BG_LOCKED else ITEM_BG)
-	return e("ImageButton", {
+	return e("ImageLabel", {
+		-- return e("ImageButton", {
 		Size = UDim2.new(0, 90, 0, 110),
 		BackgroundColor3 = bg,
 		BorderSizePixel = 0,
 		Image = "rbxassetid://103478691850846",
-		AutoButtonColor = true,
+		-- AutoButtonColor = true,
 		-- Text = "",
 		ImageColor3 = bg,
 		LayoutOrder = props.layoutOrder,
-		[React.Event.MouseEnter] = function(...)
-			setHovered(true)
-		end,
-		[React.Event.MouseLeave] = function(...)
-			setHovered(false)
-		end,
-		[React.Event.MouseButton1Click] = function(...)
-			props.onSelect()
-		end,
+		-- [React.Event.MouseEnter] = function(...)
+		-- 	setHovered(true)
+		-- end,
+		-- [React.Event.MouseLeave] = function(...)
+		-- 	setHovered(false)
+		-- end,
+		-- [React.Event.MouseButton1Click] = function(...)
+		-- 	props.onSelect()
+		-- end,
 	}, {
 		UICorner = e("UICorner", { CornerRadius = UDim.new(0, 8) }),
 		UIPadding = e("UIPadding", {
@@ -122,7 +123,7 @@ local variationOrder = {
 
 local function RecipeWall(props: {
 	PlayerId: string,
-	BaseModel: CafeTypes.CafeBase,
+	CafeModel: CafeTypes.Cafe,
 })
 	local selected, setSelected = useState(RECIPES[1])
 	local variationId, setVariationId = useState("none")
@@ -172,6 +173,19 @@ local function RecipeWall(props: {
 	end
 
 	for i, config in ipairs(RECIPES) do
+		local discovered
+
+		if discoveredDrinks then
+			for i, vId in variationOrder do
+				if not discoveredDrinks[vId] then
+					continue
+				end
+				discovered = discoveredDrinks[vId][config.Id] and true or false
+				if discovered then
+					break
+				end
+			end
+		end
 		gridItems["item_" .. config.Id] = e(RecipeGridItem, {
 			config = config,
 			isSelected = selected and selected.Id == config.Id,
@@ -179,31 +193,33 @@ local function RecipeWall(props: {
 				setSelected(config)
 			end,
 			layoutOrder = i,
-			discovered = locked,
+			discovered = discovered,
 		})
 	end
-
 	local bg = (if locked then ITEM_BG_LOCKED else Color3.new(0.980392, 0.341176, 0.145098))
 
-	local buttons = {}
-	for variationId, variation in VariationsConfig do
-		buttons[variationId] = e(SmallButton, {
-			LayoutOrder = variation.Multiplier,
-			OverlayText = variation.DisplayName,
-			BackgroundColor3 = variationId ~= "none" and variation.ColorPrimary
-				or Color3.new(0.768627, 0.549019, 0.549019),
-			Image = variation.Image,
-			[React.Event.Activated] = function()
-				setVariationId(variationId)
-			end,
-		})
-	end
+	-- local buttons = {}
+	-- for variationId, variation in VariationsConfig do
+	-- 	buttons[variationId] = e(SmallButton, {
+	-- 		LayoutOrder = variation.Multiplier,
+	-- 		OverlayText = variation.DisplayName,
+	-- 		BackgroundColor3 = variationId ~= "none" and variation.ColorPrimary
+	-- 			or Color3.new(0.768627, 0.549019, 0.549019),
+	-- 		Image = variation.Image,
+	-- 		[React.Event.Activated] = function()
+	-- 			setVariationId(variationId)
+	-- 		end,
+	-- 	})
+	-- end
 	local variation = VariationsConfig[variationId]
 
 	local adornee, setAdornee = useState(nil)
 	useEffect(function()
+		if not props.CafeModel then
+			return
+		end
 		local promise = Promise.defer(function(resolve, reject)
-			return resolve(props.BaseModel:WaitForChild("RecipeWall"):WaitForChild("Part"))
+			return resolve(props.CafeModel:WaitForChild("RecipeWall"):WaitForChild("Part"))
 		end)
 		promise
 			:andThen(function(Part)
@@ -215,7 +231,7 @@ local function RecipeWall(props: {
 		return function()
 			promise:cancel()
 		end
-	end, { props.BaseModel })
+	end, { props.CafeModel })
 	return adornee
 		and ReactRoblox.createPortal({
 			e("SurfaceGui", {

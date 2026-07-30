@@ -118,8 +118,8 @@ return {
 		Id = "blinkroot",
 		DisplayName = "Blinkroot",
 		ItemTip = [[A dull root that occasionally emits a faint, pulsing glow.]],
-		Cost = 30,
-		Max = 10000,
+		Cost = 10000,
+		Max = 4,
 		Min = -2,
 	},
 	{

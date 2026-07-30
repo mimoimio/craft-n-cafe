@@ -1,6 +1,6 @@
 return {
 	Mixer1 = 0,
-	Mixer2 = 100,
+	Mixer2 = 50,
 	Mixer3 = 1000,
 	Mixer4 = 5000,
 	Mixer5 = 10000,

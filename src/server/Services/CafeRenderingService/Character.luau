@@ -3,6 +3,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RENDERTAG = "RENDEREDOBJECT"
 local React = require(ReplicatedStorage.Packages.React)
+local Promise = require(ReplicatedStorage.Packages.Promise)
 local e = React.createElement
 local useState = React.useState
 local useEffect = React.useEffect
@@ -53,10 +54,16 @@ local function Character(props: {
 				d.CollisionGroup = "Players"
 			end
 		end
-		character:PivotTo(
-			(props.BaseModel.Entrance:GetPivot() + Vector3.new(0, 10, 0)) * CFrame.Angles(0, math.pi / 2, 0)
-		)
-		return function() end
+		local promise = Promise.defer(function()
+			local cafe = props.BaseModel:WaitForChild("Cafe")
+			local cf, _s = cafe:GetBoundingBox()
+			character:PivotTo((cf + Vector3.new(0, 10, 0)) * CFrame.Angles(0, math.pi / 2, 0))
+		end):catch(function(err)
+			warn(`Character pivot error: {tostring(err)}`)
+		end)
+		return function()
+			promise:cancel()
+		end
 	end, { character, props.BaseModel })
 	return e(React.Fragment, nil, children) -- Ensure children are rendered in a Fragment
 end

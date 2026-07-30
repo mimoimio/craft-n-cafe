@@ -215,7 +215,7 @@ local function Customer(props: {
 	local paid = props.Customer.customerAction and props.Customer.customerAction == "paid"
 	useEffect(function()
 		local drinkEntities = props.Customer.drinkEntities
-		if not (rig and rig.Parent and drinkEntities and #drinkEntities > 0) then
+		if not (rig and rig.Parent and drinkEntities and #drinkEntities > 0 and rig:FindFirstChild("Head")) then
 			return
 		end
 
@@ -310,7 +310,7 @@ local function Customer(props: {
 		end
 	end, { rig, paid or props.Customer.customerAction == "queuing" })
 	useEffect(function()
-		if not (rig and paid) then
+		if not (rig and rig.Parent and rig:FindFirstChild("Head") and paid) then
 			return
 		end
 		game:GetService("Chat"):Chat(rig.Head, "THANKS")
@@ -318,7 +318,7 @@ local function Customer(props: {
 	end, { rig, paid })
 	local emptyHanded = props.Customer.customerAction == "emptyHanded"
 	useEffect(function()
-		if not (rig and emptyHanded) then
+		if not (rig and rig.Parent and rig:FindFirstChild("Head") and emptyHanded) then
 			return
 		end
 		-- game:GetService("Chat"):Chat(rig.Head, disappointed[Random.new():NextInteger(1, #disappointed)])

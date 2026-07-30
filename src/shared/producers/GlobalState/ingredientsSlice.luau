@@ -90,11 +90,12 @@ local actions = {
 			return state
 		end
 
-		return Set(
-			state,
-			playerId,
-			Set(playersIngredients, payload.ingredientId, (playersIngredients[payload.ingredientId] or 0) + 1)
-		)
+		local newIngredients = {}
+		for i, ingredient in payload.ingredientIds do
+			newIngredients[ingredient] = (playersIngredients[ingredient] or 0) + 1
+		end
+
+		return Set(state, playerId, Merge(playersIngredients, newIngredients))
 	end,
 }
 

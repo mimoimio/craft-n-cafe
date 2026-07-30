@@ -147,13 +147,13 @@ local function CafePanel(props: {})
 					TextSize = 18,
 				}),
 			}),
-			LevelUp = e(SmallButton, {
-				Text = `Level Up: {ICON}{config and config.Cost and Mionum.new(config.Cost):toString()}`,
-				RichText = true,
-				[React.Event.Activated] = function()
-					Remotes.LevelUp:FireServer()
-				end,
-			}),
+			-- LevelUp = e(SmallButton, {
+			-- 	Text = `Level Up: {ICON}{config and config.Cost and Mionum.new(config.Cost):toString()}`,
+			-- 	RichText = true,
+			-- 	[React.Event.Activated] = function()
+			-- 		Remotes.LevelUp:FireServer()
+			-- 	end,
+			-- }),
 		}),
 	})
 	-- return e(VStack, {

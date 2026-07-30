@@ -27,6 +27,10 @@ function ShopService.GenerateDeterministicShop(seed: number): Types.ShopEntity
 end
 
 function ShopService.BuyIngredient(player: Player, ingredientId: string)
+	if true then
+		print("BuyIngredient in shopservice is discontinued")
+		return
+	end
 	if not ingredientId then
 		warn(`BuyIngredient Failed: ingredientId is nil`)
 		return
@@ -146,10 +150,61 @@ function ShopService.BuyMixer(player: Player, mixerName: string)
 		mixerId = mixerName,
 	})
 end
+function ShopService.UpgradeLuck(player: Player, increment: number?)
+	local playerId = tostring(player.UserId)
+	local state = GlobalState:getState()
+	local playersStats = state.Stats[playerId]
+
+	increment = increment or 1
+
+	if not playersStats then
+		return
+	end
+
+	local cost = 0
+	for i = 1, increment do
+		cost += ((playersStats.Luck + increment) * 10) ^ 1.2 // 1
+	end
+
+	if playersStats.Cash < cost then
+		print("not enough")
+		return
+	end
+
+	GlobalState.upgradeLuck(playerId, {
+		cost = cost,
+		increment = increment,
+	})
+end
+function ShopService.UpgradeCafeCapacity(player: Player, increment: number?)
+	local playerId = tostring(player.UserId)
+	local state = GlobalState:getState()
+	local playersStats = state.Stats[playerId]
+
+	increment = increment or 1
+
+	if not playersStats then
+		return
+	end
+
+	local cost = increment * 100
+
+	if playersStats.Cash < cost then
+		print("not enough")
+		return
+	end
+
+	GlobalState.upgradeCafeCapacity(playerId, {
+		cost = cost,
+		increment = increment,
+	})
+end
 
 function ShopService.initialize()
 	Remotes.BuyIngredient.OnServerEvent:Connect(ShopService.BuyIngredient)
 	Remotes.LevelUp.OnServerEvent:Connect(ShopService.LevelUp)
+	Remotes.UpgradeLuck.OnServerEvent:Connect(ShopService.UpgradeLuck)
+	Remotes.UpgradeCafeCapacity.OnServerEvent:Connect(ShopService.UpgradeCafeCapacity)
 	-- Remotes.BuyMixer.OnServerEvent:Connect(ShopService.BuyMixer)
 
 	-- Spin up a background thread to watch for seed changes!

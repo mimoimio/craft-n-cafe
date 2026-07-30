@@ -6,10 +6,10 @@ local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
 local e = React.createElement
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
-local RecipeWall = require(ReplicatedStorage.Shared.ReactComponents.RecipeWall)
+local UpgradePanel = require(ReplicatedStorage.Shared.ReactComponents.UpgradePanel)
 
 -- We dynamically grab the LocalPlayer ID (or default to "0" if running in a weird Studio context)
--- so that it perfectly aligns with RecipeWall's internal state lookup!
+-- so that it perfectly aligns with UpgradePanel's internal state lookup!
 local localPlayer = Players.LocalPlayer
 local mockPlayerId = localPlayer and tostring(localPlayer.UserId) or "0"
 
@@ -21,7 +21,7 @@ local function StoryWrapper()
 		Size = UDim2.fromScale(1, 1),
 		BackgroundTransparency = 1,
 	}, {
-		RecipeWall = e(RecipeWall, {
+		UpgradePanel = e(UpgradePanel, {
 			PlayerId = "",
 			CafeModel = workspace,
 		}),

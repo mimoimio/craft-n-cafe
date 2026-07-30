@@ -77,6 +77,9 @@ local function Cafe(props: {
 			end
 
 			-- Tell React the model is ready!
+			local tag = props.PlayerId .. "Cafe"
+			clone:AddTag(tag)
+
 			setClonedCafe(clone)
 
 			return function()
@@ -116,7 +119,7 @@ local function Cafe(props: {
 		})
 		children.RecipeWall = e(require(ReplicatedStorage.Shared.ReactComponents.RecipeWall), {
 			PlayerId = props.PlayerId,
-			BaseModel = props.BaseModel,
+			CafeModel = clonedCafe,
 		})
 		children.Spawner = e(require(script.Parent.Spawners), {
 			PlayerId = props.PlayerId,

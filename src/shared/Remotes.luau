@@ -89,4 +89,6 @@ return {
 	Restock = CreateRemote("Restock"),
 	RollIngredient = CreateRemote("RollIngredient"),
 	BuyIngredientFromSpawner = CreateRemote("BuyIngredientFromSpawner"),
+	UpgradeLuck = CreateRemote("UpgradeLuck"),
+	UpgradeCafeCapacity = CreateRemote("UpgradeCafeCapacity"),
 }

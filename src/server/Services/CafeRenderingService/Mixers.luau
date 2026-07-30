@@ -56,6 +56,7 @@ local function Mixer(props: {
 				setMixerModel(nil)
 			end
 		else
+			local text = props.Mixer.Part.TriggerPrompt
 			local buyPromptConn = props.Mixer.Part.TriggerPrompt.Triggered:Connect(function(player: Player)
 				if tostring(player.UserId) ~= props.PlayerId then
 					return

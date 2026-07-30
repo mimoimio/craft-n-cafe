@@ -17,28 +17,45 @@ export type UIState = {
 	activeMixerId: string,
 	mixerNodeShown: string,
 	isEspressoInserted: boolean,
+	isMilkInserted: boolean,
 	tableSlotNodeShown: boolean,
 	shopButton: GuiButton,
 	cafeButton: GuiButton,
 	cafeBase: CafeTypes.CafeBase?,
 	shopPromptShown: boolean,
+	spawnerPromptShown: boolean,
+	spawnerInstance: Model?,
+	espressoButton: GuiButton?,
+	milkButton: GuiButton?,
+	craftButton: GuiButton?,
+	buypadInstance: Model?,
+	firstCustomer: Model?,
 }
 export type UIActions = {
 	toggle: (panel: string) -> (),
 	toggleMixerInteract: (mixerName: string) -> (),
 	setMixerNodeShown: (mixerName: string) -> (),
 	setIsEspressoInserted: (is: boolean) -> (),
+	setIsMilkInserted: (is: boolean) -> (), -- ADD THIS
 	setTableSlotNodeShown: (is: boolean) -> (),
 	setShopButton: (shopButton: GuiButton) -> (),
 	setCafeButton: (cafeButton: GuiButton) -> (),
 	setCafeBase: (model: Model) -> (),
 	setShopPromptShown: (is: boolean) -> (),
+	setSpawnerPromptShown: (is: boolean) -> (),
+	setSpawnerInstance: (model: Model) -> (),
+	setEspressoButton: (button: GuiButton?) -> (),
+	setMilkButton: (button: GuiButton?) -> (),
+	setCraftButton: (button: GuiButton?) -> (),
+	setBuypadInstance: (model: Model?) -> (),
+	setFirstCustomer: (model: Model?) -> (),
 }
 local initialState = {
 	panel = "none",
 	activeMixerId = nil,
 	mixerNodeShown = nil,
 	isEspressoInserted = false,
+	isMilkInserted = false, -- ADD THIS
 	tableSlotNodeShown = false,
 	cafeBase = nil,
 }
@@ -65,6 +82,9 @@ local producer = Reflex.createProducer(initialState, {
 	setMixerNodeShown = function(state: UIState, mixerName: string)
 		return Set(state, "mixerNodeShown", mixerName)
 	end,
+	setIsMilkInserted = function(state: UIState, is: boolean)
+		return Set(state, "isMilkInserted", is and true or false)
+	end,
 	setIsEspressoInserted = function(state: UIState, is: boolean)
 		return Set(state, "isEspressoInserted", is and true or false)
 	end,
@@ -82,6 +102,27 @@ local producer = Reflex.createProducer(initialState, {
 	end,
 	setShopPromptShown = function(state: UIState, is: boolean)
 		return Set(state, "shopPromptShown", is)
+	end,
+	setSpawnerPromptShown = function(state: UIState, is: boolean)
+		return Set(state, "spawnerPromptShown", is)
+	end,
+	setSpawnerInstance = function(state: UIState, spawner: Model)
+		return Set(state, "spawnerInstance", spawner)
+	end,
+	setEspressoButton = function(state: UIState, button: GuiButton?)
+		return Set(state, "espressoButton", button)
+	end,
+	setMilkButton = function(state: UIState, button: GuiButton?)
+		return Set(state, "milkButton", button)
+	end,
+	setCraftButton = function(state: UIState, button: GuiButton?)
+		return Set(state, "craftButton", button)
+	end,
+	setBuypadInstance = function(state: UIState, model: Model?)
+		return Set(state, "buypadInstance", model)
+	end,
+	setFirstCustomer = function(state: UIState, model: Model?)
+		return Set(state, "firstCustomer", model)
 	end,
 }) :: Reflex.Producer<UIState, UIActions>
 

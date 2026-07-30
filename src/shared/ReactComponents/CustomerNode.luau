@@ -3,6 +3,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
+local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local SoundController = require(ReplicatedStorage.Shared.Controllers.SoundController)
 local CafeTypes = require(ReplicatedStorage.Shared.CafeTypes)
 
@@ -21,9 +22,11 @@ local function CustomerNode(props: {
 		},
 	},
 	Instance: CafeTypes.CustomerRig,
+	numberInLine: number,
 })
 	local playerId = tostring(Players.LocalPlayer.UserId)
 	-- 3. Render BillboardGui
+
 	useEffect(function()
 		if not (props.CustomerData and props.CustomerData.customerAction) then
 			return

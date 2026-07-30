@@ -14,7 +14,7 @@ local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local SoundController = {}
 
 -- Sound pool configuration
-local POOL_SIZE = 5 -- Pre-create 5 instances of each sound
+local POOL_SIZE = 10 -- Pre-create 5 instances of each sound
 local soundPools = {} -- {SoundName = {available = {Sound}, inUse = {Sound}}}
 
 -- Volume state
@@ -162,7 +162,9 @@ function SoundController.initialize()
 	task.spawn(function()
 		-- initializeSoundPool("Angry", POOL_SIZE)
 		-- initializeSoundPool("Bubbles", POOL_SIZE)
-		-- initializeSoundPool("Cash", POOL_SIZE)
+		initializeSoundPool("glass_003", POOL_SIZE)
+		initializeSoundPool("glass_004", POOL_SIZE)
+		initializeSoundPool("glass_005", POOL_SIZE)
 		-- initializeSoundPool("Click", POOL_SIZE)
 		-- initializeSoundPool("Cup", POOL_SIZE)
 		-- initializeSoundPool("Done", POOL_SIZE)

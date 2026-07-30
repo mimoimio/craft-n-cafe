@@ -477,14 +477,10 @@ local function RecipePanel(props: {
 
 	return e("ImageLabel", {
 		Size = UDim2.new(0.8, -48, 1, -48),
-		-- BackgroundColor3 = Color3.fromRGB(255, 196, 162),
-		-- BackgroundTransparency = 0.1,
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		-- Position = UDim2.new(0.5, 0, 0.5, 0),
 		Position = position:map(function(n)
 			return UDim2.new(0.5 + n, 0, 0.5 + 0, 0)
 		end),
-		-- BorderSizePixel = 0,
 		ZIndex = 20,
 
 		BackgroundColor3 = PANEL_BG,

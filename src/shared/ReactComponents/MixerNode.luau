@@ -310,6 +310,7 @@ local function MixerNode(props: {
 		Adornee = props.Instance,
 		Size = UDim2.new(6, 0, 6, 0),
 		StudsOffset = Vector3.new(0, progressBar and 2 or 0, 0),
+		ResetOnSpawn = false,
 		AlwaysOnTop = true,
 		MaxDistance = 50,
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,

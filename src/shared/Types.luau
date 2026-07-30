@@ -27,7 +27,7 @@ export type DrinkId = string
 export type SpawnerState = {
 	[string]: {
 		TimePulled: number?,
-		IngredientId: string?,
+		IngredientIds: { string }?,
 	},
 }
 
@@ -50,6 +50,8 @@ export type StatsEntity = {
 	-- for the future
 	MaxDrinksPerCustomer: number,
 	MaxCustomersAtOnce: number,
+	Luck: number,
+	CafeCapacity: number,
 }
 
 -- Tables
@@ -239,16 +241,28 @@ export type RestockDrinksPayload = {
 	drinksToRemove: { [string]: boolean },
 }
 export type RollIngredientPayload = {
-	ingredientId: string,
+	ingredientIds: { string },
 	timePulled: number,
 }
 export type BuyIngredientFromSpawnerPayload = {
-	ingredientId: string,
+	ingredientIds: { string },
 	cost: number,
 	timePulled: number,
 }
 export type BuyMixerPayload = {
 	mixerId: string,
+	cost: number,
+}
+export type UpgradeLuckPayload = {
+	increment: number,
+	cost: number,
+}
+export type UpgradeCafeCapacityPayload = {
+	increment: number,
+	cost: number,
+}
+export type UpgradeMaxCustomerAtOnce = {
+	increment: number,
 	cost: number,
 }
 
@@ -262,6 +276,8 @@ export type CombinedActions = {
 	pickUpDrinkFromMixer: (playerId: PlayerId, payload: PickUpPayload) -> (),
 	restockDrinks: (playerId: PlayerId, payload: RestockDrinksPayload) -> (),
 	buyMixer: (playerId: PlayerId, payload: BuyMixerPayload) -> (),
+	upgradeLuck: (playerId: PlayerId, payload: UpgradeLuckPayload) -> (),
+	upgradeCafeCapacity: (playerId: PlayerId, payload: UpgradeCafeCapacityPayload) -> (),
 	placeDrinkToTableSlot: (
 		playerId: PlayerId,
 		payload: {

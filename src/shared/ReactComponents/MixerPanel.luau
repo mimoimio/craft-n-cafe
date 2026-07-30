@@ -27,7 +27,10 @@ local STOCK =
 
 local player = game.Players.LocalPlayer
 local playerId: string? = player and tostring(player.UserId) or "0"
-
+local layoutOrders = {}
+for i, config in CoffeeModule.IngredientConfigs do
+	layoutOrders[config.Id] = i
+end
 local function MixerPanel(props: {
 	OnClose: () -> (),
 })
@@ -92,7 +95,7 @@ local function MixerPanel(props: {
 	useEffect(function()
 		local unsub = UIState:subscribe(function(state: UIState.UIState)
 			local isOpen = state.panel == "mixer"
-			if isOpen and panelRef.current then 
+			if isOpen and panelRef.current then
 				game:GetService("GamepadService"):EnableGamepadCursor(panelRef.current)
 			else
 				game:GetService("GamepadService"):DisableGamepadCursor()
@@ -106,13 +109,24 @@ local function MixerPanel(props: {
 		setCurrentIngredients({})
 		setPendingIngredients({}) -- Safety clear
 	end, { panelOpen })
+	React.useEffect(function()
+		return function()
+			-- Clean up refs when the MixerPanel is destroyed/unmounted
+			UIState.setEspressoButton(nil)
+			UIState.setMilkButton(nil)
+			UIState.setCraftButton(nil)
+		end
+	end, {})
 
 	React.useEffect(function()
 		if not currentIngredients then
 			return
 		end
-		local is = table.find(currentIngredients, "espresso")
-		UIState.setIsEspressoInserted(is or false)
+		local hasEspresso = table.find(currentIngredients, "espresso") ~= nil
+		local hasMilk = table.find(currentIngredients, "milk") ~= nil
+
+		UIState.setIsEspressoInserted(hasEspresso)
+		UIState.setIsMilkInserted(hasMilk) -- ADD THIS
 	end, { currentIngredients })
 
 	local function removeIngredientAtIndex(index: number)
@@ -145,13 +159,20 @@ local function MixerPanel(props: {
 
 		ingredientElements[id] = e(SmallButton, {
 			OverlayText = config.DisplayName,
+			OnMount = function(rbx)
+				if id == "espresso" then
+					UIState.setEspressoButton(rbx)
+				elseif id == "milk" then
+					UIState.setMilkButton(rbx)
+				end
+			end,
 			OverlayTextSize = 10,
 			OverlayTextWrapped = true,
 			ButtonClass = "ImageButton",
 			Image = config.Image,
 			OverlayTextTransparency = transparency,
 			BackgroundTransparency = transparency,
-			LayoutOrder = i,
+			LayoutOrder = layoutOrders[id],
 			ImageTransparency = transparency,
 			Padding = { All = UDim.new(0, 4) },
 
@@ -428,7 +449,7 @@ local function MixerPanel(props: {
 							TextTransparency = resultConfig and 0 or 0.8,
 							TextThickness = resultConfig and 1 or 0.6,
 							LayoutOrder = 2,
-							s,
+							OnMount = UIState.setCraftButton,
 						}),
 						ClearButton = e(SmallButton, {
 							Text = "Clear",

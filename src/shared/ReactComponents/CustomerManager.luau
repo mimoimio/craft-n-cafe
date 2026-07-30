@@ -4,6 +4,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
+local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 
 local CustomerNode = require(script.Parent.CustomerNode)
 local e = React.createElement
@@ -59,6 +60,7 @@ local function CustomerManager(props)
 
 	for i, customerData in pairs(customersState) do
 		-- warn(i, customerData)
+		UIState.setFirstCustomer(customerInstances[customerData.id])
 		children[customerData.id] = e(CustomerNode, {
 			CustomerUid = customerData.id,
 			CustomerData = customerData,

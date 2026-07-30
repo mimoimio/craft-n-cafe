@@ -131,7 +131,8 @@ local function SlotComponent(
 			end
 		end
 	end, {
-		drinkData and drinkData.drinkId --[[rerender only when drinkId change]],
+		drinkData and drinkData.drinkId --[[rerender only when drinkId change and variationId]],
+		drinkData and drinkData.variationId,
 		props.SlotInstance,
 	})
 	useEffect(function()

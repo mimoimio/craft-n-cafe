@@ -35,7 +35,7 @@ local actions = {
 			state,
 			playerId,
 			Merge(playersSpawner, {
-				IngredientId = payload.ingredientId,
+				IngredientIds = payload.ingredientIds,
 				TimePulled = payload.timePulled,
 			})
 		)
@@ -46,13 +46,7 @@ local actions = {
 		payload: Types.BuyIngredientFromSpawnerPayload
 	)
 		local playersSpawner = state[playerId]
-		return Set(
-			state,
-			playerId,
-			Merge(playersSpawner, {
-				IngredientId = "none",
-			})
-		)
+		return Set(state, playerId, Set(playersSpawner, "IngredientIds", {}))
 	end,
 }
 

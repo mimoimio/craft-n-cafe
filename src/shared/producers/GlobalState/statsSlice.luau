@@ -144,6 +144,36 @@ local actions = {
 
 		return Set(state, playerId, Set(playersStats, "Cash", playersStats.Cash - payload.cost))
 	end,
+	upgradeLuck = function(state: StatsState, playerId: string, payload: Types.UpgradeLuckPayload)
+		local playersStats = state[playerId]
+		if not playersStats then
+			return state
+		end
+
+		return Set(
+			state,
+			playerId,
+			Merge(playersStats, {
+				Luck = (playersStats.Luck or 1) + payload.increment,
+				Cash = playersStats.Cash - payload.cost,
+			})
+		)
+	end,
+	upgradeCafeCapacity = function(state: StatsState, playerId: string, payload: Types.UpgradeCafeCapacityPayload)
+		local playersStats = state[playerId]
+		if not playersStats then
+			return state
+		end
+
+		return Set(
+			state,
+			playerId,
+			Merge(playersStats, {
+				CafeCapacity = (playersStats.CafeCapacity or 1) + payload.increment,
+				Cash = playersStats.Cash - payload.cost,
+			})
+		)
+	end,
 }
 
 return Reflex.createProducer(initialState, actions)

@@ -2,6 +2,9 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Sift = require(ReplicatedStorage.Packages.Sift)
+local Array = Sift.Array
+local ArrayMerge = Array.merge
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 local LevelConfig = require(ReplicatedStorage.Shared.Configs.LevelConfig)
@@ -11,6 +14,7 @@ local ShopCycle = require(ReplicatedStorage.Shared.ShopCycle)
 local SpawnerService = {}
 
 --
+
 function SpawnerService.RollIngredient(player: Player)
 	local playerId = tostring(player.UserId)
 
@@ -22,13 +26,12 @@ function SpawnerService.RollIngredient(player: Player)
 		warn(`RollIngredient Failed: player({playerId}) state not found`)
 		return
 	end
-	-- local lucklevel = playersStats.Luck -- 2.1/100
-	-- local luck = 0.4 + (lucklevel * 2.1 / 100) -- [0.4, 2.5]
-	local z = ((math.random() * math.random()) ^ (1 / 0.4))
-	local num = (z * #CoffeeModule.IngredientConfigs) // 1 + 1
-	-- local z = (math.random() * math.random()) ^ (1 / luck)
-	local config = CoffeeModule.IngredientConfigs[num]
-	-- warn(`{z}){config.Id}`)
+	local lucklevel = playersStats.Luck
+	local luck = 1 + (lucklevel * 1.5 / 100)
+
+	local earlyLuck = 1.2 -- no late
+	local midLuck = 1.8 -- most balanced.
+	local lateLuck = 5 -- no early
 
 	local lastRolled = playersSpawner.TimePulled or 0
 	if not lastRolled then
@@ -41,33 +44,53 @@ function SpawnerService.RollIngredient(player: Player)
 		return
 	end
 
-	-- local currentSeed = playerShopState.currentSeed
-	-- local seedString = tostring(currentSeed)
+	if not playersStats.TutorialCompleted then
+		local ingredients = state.Ingredients[playerId]
+		local espresso = ingredients.espresso
+		local milk = ingredients.milk
 
-	-- -- retrieving seed from player's shops dictionary. Since it's a key, use string
-	-- local currentShop = playerShopState.shops[seedString]
+		warn(`espresso ({espresso}), milk ({milk})`)
 
-	-- if not currentShop then
-	-- 	warn(`BuyIngredient Failed: No active shop for seed {seedString}`)
-	-- 	return
-	-- end
+		if not espresso or espresso < 2 then
+			GlobalState.rollIngredient(playerId, {
+				ingredientIds = { "espresso" },
+				timePulled = workspace:GetServerTimeNow(),
+			})
+			return
+		end
+		if not milk or milk < 1 then
+			GlobalState.rollIngredient(playerId, {
+				ingredientIds = { "milk" },
+				timePulled = workspace:GetServerTimeNow(),
+			})
+			return
+		end
+	end
 
-	-- Stock Validation
-	-- local stock = currentShop[ingredientId] or 0
-	-- if stock <= 0 then
-	-- 	print(`{ingredientId} is currently out of stock!`)
-	-- 	return
-	-- end
+	local ingredientIds = {}
 
-	-- Cash Validation
-	-- local cost = config.Cost
-	-- if playersStats.Cash < cost then
-	-- 	print("Not enough cash to buy ingredient!")
-	-- 	return
-	-- end
+	if luck >= lateLuck then
+		local z = ((math.random() * math.random()) ^ (1 / midLuck))
+		local num = (z * #CoffeeModule.IngredientConfigs) // 1 + 1
+		local config = CoffeeModule.IngredientConfigs[num]
+		table.insert(ingredientIds, config.Id)
+	end
+	if luck >= midLuck then
+		local z = ((math.random() * math.random()) ^ (1 / earlyLuck))
+		local num = (z * #CoffeeModule.IngredientConfigs) // 1 + 1
+		local config = CoffeeModule.IngredientConfigs[num]
+		table.insert(ingredientIds, config.Id)
+	end
+	-- lastly, the unfiltered
+	local z = ((math.random() * math.random()) ^ (1 / luck))
+	local num = (z * #CoffeeModule.IngredientConfigs) // 1 + 1
+	-- get from a drink.
+	local config = CoffeeModule.Array[num]
+	ingredientIds = ArrayMerge(ingredientIds, config.Ingredients)
 
+	-- warn(`{z}){config.Id}`)
 	GlobalState.rollIngredient(playerId, {
-		ingredientId = config.Id,
+		ingredientIds = ingredientIds,
 		-- cost = cost,
 		timePulled = workspace:GetServerTimeNow(),
 	})
@@ -84,23 +107,26 @@ function SpawnerService.BuyIngredientFromSpawner(player: Player)
 		return
 	end
 
-	local id = playersSpawner.IngredientId
+	local ids = playersSpawner.IngredientIds
 
-	local config = CoffeeModule.IngredientLookup[id]
+	local cost
+	for i, id in ids do
+		local config = CoffeeModule.IngredientLookup[id]
+		cost = (cost or 0) + config.Cost
+	end
 
-	if not config then
-		print("not config")
+	if not cost then
+		print("not cost")
 		return
 	end
-	-- Cash Validation
-	local cost = config.Cost
+
 	if playersStats.Cash < cost then
 		print("Not enough cash to buy ingredient!")
 		return
 	end
 
 	GlobalState.buyIngredientFromSpawner(playerId, {
-		ingredientId = config.Id,
+		ingredientIds = ids,
 		cost = cost,
 		timePulled = workspace:GetServerTimeNow(),
 	})

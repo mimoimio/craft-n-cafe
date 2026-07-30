@@ -84,7 +84,8 @@ local function SlotNode(props: {
 			UIState.setTableSlotNodeShown(true)
 			setOn(true)
 			local mobile = inputType == Enum.ProximityPromptInputType.Touch
-			setPromptText(mobile and TAP_ICON or `[E]`)
+			local console = inputType == Enum.ProximityPromptInputType.Gamepad
+			setPromptText(console and `(X)` or mobile and TAP_ICON or `[E]`)
 		end)
 		local conn2 = prompt.PromptHidden:Connect(function()
 			UIState.setTableSlotNodeShown(nil)
@@ -253,7 +254,7 @@ local function SlotNode(props: {
 				Size = UDim2.new(0, 60, 0, 30),
 				StudsOffsetWorldSpace = Vector3.new(0, 1.5, 0),
 				AlwaysOnTop = true,
-				MaxDistance = 25,
+				MaxDistance = 100,
 			}, {
 				Label = e(SmallText, {
 					TextXAlignment = Enum.TextXAlignment.Center,
@@ -272,7 +273,7 @@ local function SlotNode(props: {
 				Size = UDim2.new(0, 60, 0, 30),
 				StudsOffsetWorldSpace = Vector3.new(0, -1.5, 0),
 				AlwaysOnTop = true,
-				MaxDistance = 20,
+				MaxDistance = 100,
 			}, {
 				Label = on and Label,
 			}),
@@ -287,7 +288,7 @@ local function SlotNode(props: {
 			Size = UDim2.new(0, 60, 0, 30),
 			AlwaysOnTop = true,
 			StudsOffsetWorldSpace = Vector3.new(0, -1.5, 0),
-			MaxDistance = 20,
+			MaxDistance = 100,
 		}, {
 			Label = on and Label,
 			Highlihgt = e("Highlight", {
