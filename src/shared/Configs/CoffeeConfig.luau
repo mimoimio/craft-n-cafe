@@ -1,7 +1,28 @@
+-- Shared/Configs/CoffeeConfig.luau
 return {
-	-- Base ingredients (order matters for instruction generation: earlier = removed last)
-	-- config Ingredients can be put into an empty cup. While ones without cannot be used as a sole ingredient
-	-- Normal Ingredients
+	-- later do automatic pricing.
+	-- i'm struggling to choose. the quirk for this game is cafe theme + witch theme.
+	-- if cafe, then the most logical is to be a cafe simulator. It has customers and such.
+	-- but what's proven on roblox right now is, the simple collection fantasy driven, like
+	-- Steal A Brainrot, Grow A Graden, both had hit million ccu, billion visits. Now on
+	-- lower, there's Craft Food, I used to play, has been 10k ccu for a year i think, now
+	-- down to 1k ccu. Still is more than I could ask for for income. Just recently, My
+	-- Giant Sandwich/ Breakfast or something. Has 30k ccu. It's just a spawner, cookers,
+	-- and after done cooking, it stacks on to the plates, forming one sky high giant sandwich.
+	-- Another, Mine a Mountain. This, it has more depth, 30k ccu. Mine, Sell, Upgrade pickaxe,
+	-- Place crystals on base to add luck and just for flex i guess. Advanced players has giant crystals, and
+	-- there's so many kinds also, shiny.
+	-- All of those has Collection Fantasy. For Grow a Garden, you sell to get money, but there's
+	-- also plants that will fruit, therefore the collection fantasy is there.
+
+	-- But for this game, It's kind of split either a cafe management
+	-- or collection fantasy.
+	-- I want a collection fantasy, but usually for cafe you sell them. So I choose to add stock
+	-- so it will last longer, but ultimately it will perish. And for the earlier games, (except for mine a mountain i think)
+	-- they generate money passively, unlike here, must wait for customer entity to come and buy.
+	-- for passive income earlier, it's easy to give offline rewards, but this, there's more
+	-- steps to it.
+
 	{
 		Id = "water",
 		DisplayName = "Water",
@@ -55,6 +76,14 @@ return {
 		Price = 9,
 		InitialStock = 8,
 		Duration = 8,
+	},
+	{
+		Id = "decaflatte",
+		DisplayName = "Decaf Latte",
+		Ingredients = { "espresso", "milk", "water" },
+		Price = 10,
+		InitialStock = 10,
+		Duration = 10,
 	},
 
 	{
@@ -120,6 +149,14 @@ return {
 		InitialStock = 8,
 		Duration = 18,
 	},
+	{
+		Id = "iceddecaflatte",
+		DisplayName = "Iced Decaf Latte",
+		Ingredients = { "espresso", "milk", "water", "ice" },
+		Price = 12,
+		InitialStock = 12,
+		Duration = 12,
+	},
 
 	{
 		Id = "foam",
@@ -140,6 +177,15 @@ return {
 		Duration = 15,
 	},
 	{
+		Id = "decafmacchiato",
+		DisplayName = "Decaf Macchiato",
+		Ingredients = { "espresso", "water", "foam" },
+		ItemTip = [[A bold espresso 'marked' with a dollop of foam.]],
+		Price = 9,
+		InitialStock = 9,
+		Duration = 15,
+	},
+	{
 		Id = "icedmacchiato",
 		DisplayName = "Iced Macchiato",
 		Ingredients = { "espresso", "foam", "ice" },
@@ -147,6 +193,15 @@ return {
 		Price = 10,
 		InitialStock = 9,
 		Duration = 18,
+	},
+	{
+		Id = "iceddecafmacchiato",
+		DisplayName = "Iced Decaf Macchiato",
+		Ingredients = { "espresso", "water", "foam", "ice" },
+		ItemTip = [[A bold espresso 'marked' with a dollop of foam.]],
+		Price = 9,
+		InitialStock = 9,
+		Duration = 15,
 	},
 
 	{
@@ -159,10 +214,27 @@ return {
 		Duration = 20,
 	},
 	{
+		Id = "decafcappuccino",
+		DisplayName = "Decaf Cappuccino",
+		Ingredients = { "espresso", "milk", "foam", "water" },
+		ItemTip = [[Equal parts espresso, steamed milk, and rich foam.]],
+		Price = 15,
+		InitialStock = 9,
+		Duration = 20,
+	},
+	{
 		Id = "icedcappuccino",
 		DisplayName = "Iced Cappuccino",
 		Ingredients = { "espresso", "milk", "foam", "ice" },
 		ItemTip = [[A refreshing, chilled blend of espresso, milk, and foam.]],
+		Price = 16,
+		InitialStock = 9,
+		Duration = 23,
+	},
+	{
+		Id = "iceddecafcappuccino",
+		DisplayName = "Iced Decaf Cappuccino",
+		Ingredients = { "espresso", "milk", "foam", "ice", "water" },
 		Price = 16,
 		InitialStock = 9,
 		Duration = 23,
@@ -213,7 +285,7 @@ return {
 		ItemTip = [[Warm, creamy, and deeply chocolaty.]],
 	},
 	{
-		Id = "icedchocolate",
+		Id = "icedchoccymilk",
 		DisplayName = "Iced Choccy Milk",
 		Ingredients = { "milk", "chocolate", "ice" },
 		Price = 35,
@@ -497,9 +569,9 @@ return {
 		Id = "bubbletea",
 		DisplayName = "Bubble Tea",
 		Ingredients = { "water", "teabag", "ice", "boba" },
-		Price = 30,
-		InitialStock = 8,
-		Duration = 35,
+		Price = 60,
+		InitialStock = 44,
+		Duration = 220,
 		ItemTip = [[Classic iced tea loaded with chewy boba pearls.]],
 	},
 	{
@@ -560,18 +632,18 @@ return {
 		Id = "cookiesncream",
 		DisplayName = "Cookies n Cream",
 		Ingredients = { "icecream", "cookies" },
-		Price = 30,
-		InitialStock = 8,
-		Duration = 35,
+		Price = 67,
+		InitialStock = 40,
+		Duration = 200,
 		ItemTip = [[Sweet ice cream packed with crunchy cookie pieces.]],
 	},
 	{
 		Id = "cookiesncreammilkshake",
 		DisplayName = "Cookies n Cream Milk Shake",
 		Ingredients = { "milk", "icecream", "cookies" },
-		Price = 30,
-		InitialStock = 8,
-		Duration = 35,
+		Price = 75,
+		InitialStock = 45,
+		Duration = 220,
 		ItemTip = [[A drinkable treat of blended cookies, milk, and ice cream.]],
 	},
 	{
@@ -637,9 +709,9 @@ return {
 		Id = "zestybroot",
 		DisplayName = "Zesty B' Root",
 		Ingredients = { "water", "lemon", "ice", "carbonator", "blinkroot" },
-		Price = 30,
-		InitialStock = 8,
-		Duration = 35,
+		Price = 500,
+		InitialStock = 100,
+		Duration = 800,
 		ItemTip = [[An energizing, sparkling lemon brew with a pulsing Blinkroot kick.]],
 	},
 	{
@@ -655,36 +727,36 @@ return {
 		Id = "sunkensundae",
 		DisplayName = "Sunken Sundae",
 		Ingredients = { "foam", "icecream", "waterberry" },
-		Price = 30,
-		InitialStock = 8,
-		Duration = 35,
+		Price = 1800,
+		InitialStock = 200,
+		Duration = 1200,
 		ItemTip = [[A sweet ice cream treat bursting with juicy Waterberries.]],
 	},
 	{
 		Id = "deepsleepsundae",
 		DisplayName = "Deep Sleep Sundae",
 		Ingredients = { "foam", "icecream", "waterberry", "moonglow" },
-		Price = 30,
-		InitialStock = 8,
-		Duration = 35,
+		Price = 2200,
+		InitialStock = 220,
+		Duration = 1400,
 		ItemTip = [[A mystical, calming sundae infused with Moonglow and Waterberry.]],
 	},
 	{
 		Id = "fizzybloodthornamericano",
 		DisplayName = "Fizzy Bloodthorn Americano",
 		Ingredients = { "ice", "espresso", "bloodthorn", "water", "carbonator" },
-		Price = 30,
-		InitialStock = 8,
-		Duration = 35,
+		Price = 2200,
+		InitialStock = 220,
+		Duration = 1400,
 		ItemTip = [[An edgy, sparkling coffee infused with sharp crimson notes.]],
 	},
 	{
 		Id = "waterberryicecream",
 		DisplayName = "Waterberry Ice Cream",
 		Ingredients = { "waterberry", "icecream" },
-		Price = 30,
-		InitialStock = 8,
-		Duration = 35,
+		Price = 1500,
+		InitialStock = 200,
+		Duration = 1000,
 	},
 	{
 		Id = "nightseamocktail",
@@ -706,17 +778,17 @@ return {
 		Id = "daybloomtea",
 		DisplayName = "Hot Daybloom Tea",
 		Ingredients = { "water", "teabag", "daybloom" },
-		Price = 30,
-		InitialStock = 8,
-		Duration = 35,
+		Price = 300,
+		InitialStock = 80,
+		Duration = 500,
 		ItemTip = [[A bright, sunny tea infused with Daybloom flowers.]],
 	},
 	{
 		Id = "iceddaybloomtea",
 		DisplayName = "Iced Daybloom Tea",
 		Ingredients = { "water", "teabag", "ice", "daybloom" },
-		Price = 30,
-		InitialStock = 8,
-		Duration = 35,
+		Price = 320,
+		InitialStock = 85,
+		Duration = 500,
 	},
 }

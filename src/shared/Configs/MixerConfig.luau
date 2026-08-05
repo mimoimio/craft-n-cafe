@@ -1,3 +1,4 @@
+--Shared/MixerConfig.luau
 return {
 	Mixer1 = 0,
 	Mixer2 = 50,

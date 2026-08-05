@@ -38,7 +38,7 @@ local function Mixer(props: {
 			return
 		end
 
-		if props.MixerData then
+		if playerOwnsMixer then
 			local modelTemplate = ReplicatedStorage.Shared.Models:FindFirstChild("Mixer")
 			if not modelTemplate then
 				warn("No mixer model template found")
@@ -56,8 +56,12 @@ local function Mixer(props: {
 				setMixerModel(nil)
 			end
 		else
-			local text = props.Mixer.Part.TriggerPrompt
-			local buyPromptConn = props.Mixer.Part.TriggerPrompt.Triggered:Connect(function(player: Player)
+			local prompt = props.Mixer.Part.TriggerPrompt
+			local actionText = prompt.ActionText
+			local ObjectText = prompt.ObjectText
+			prompt.ActionText = "Buy ($50)"
+			prompt.ObjectText = "Another Cauldron"
+			local buyPromptConn = prompt.Triggered:Connect(function(player: Player)
 				if tostring(player.UserId) ~= props.PlayerId then
 					return
 				end
@@ -65,6 +69,10 @@ local function Mixer(props: {
 				ShopService.BuyMixer(player, props.Mixer.Name)
 			end)
 			return function()
+				if prompt and prompt.Parent then
+					prompt.ActionText = actionText
+					prompt.ObjectText = ObjectText
+				end
 				if buyPromptConn then
 					buyPromptConn:Disconnect()
 				end
@@ -77,15 +85,51 @@ local function Mixer(props: {
 		if not (clonedMixerModel and filled ~= nil) then
 			return
 		end
+
+		local particleModel: Model? = nil
+
 		local promise = Promise.defer(function(resolve, reject, onCancel)
 			clonedMixerModel.Fill.Transparency = filled and 0 or 1
 			local sound: Sound = clonedMixerModel.Fill.BubbleSFX
 			sound.Looped = filled and true or false
-			for i, desc in clonedMixerModel:GetDescendants() do
+
+			for _, desc in clonedMixerModel:GetDescendants() do
 				if desc:IsA("ParticleEmitter") then
 					desc.Enabled = filled and true or false
 				end
 			end
+
+			-- Apply variation particle if it exists
+			if filled and props.MixerData.variationId and props.MixerData.variationId ~= "none" then
+				local particleTemplate = ReplicatedStorage.Shared.Particles:FindFirstChild(props.MixerData.variationId)
+				if particleTemplate then
+					particleModel = Instance.new("Model")
+					particleModel.Name = "MixerVariationParticle"
+
+					local part = particleTemplate:Clone()
+					part.Transparency = 1
+					part.CanCollide = false
+					part.Massless = true
+					part.Anchored = false
+					part.Parent = particleModel
+
+					particleModel.PrimaryPart = part
+
+					-- Pivot slightly above the cauldron fill line
+					local fillPart = clonedMixerModel.Fill
+					particleModel:PivotTo(fillPart.CFrame + Vector3.new(0, 1.5, 0))
+
+					-- Super-size the particles!
+					particleModel:ScaleTo(3)
+					particleModel.Parent = fillPart
+
+					local weld = Instance.new("WeldConstraint")
+					weld.Part0 = part
+					weld.Part1 = fillPart
+					weld.Parent = part
+				end
+			end
+
 			if filled then
 				if not sound.Playing then
 					local loaded = sound.IsLoaded
@@ -104,10 +148,14 @@ local function Mixer(props: {
 			:catch(function(err)
 				warn(`err: {err}`)
 			end)
+
 		return function()
 			promise:cancel()
+			if particleModel then
+				particleModel:Destroy()
+			end
 		end
-	end, { clonedMixerModel, filled })
+	end, { clonedMixerModel, filled, props.MixerData and props.MixerData.variationId })
 
 	return e(React.Fragment)
 end

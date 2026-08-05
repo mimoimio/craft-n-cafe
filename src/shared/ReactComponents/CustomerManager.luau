@@ -60,7 +60,9 @@ local function CustomerManager(props)
 
 	for i, customerData in pairs(customersState) do
 		-- warn(i, customerData)
-		UIState.setFirstCustomer(customerInstances[customerData.id])
+		if i == 1 then
+			UIState.setFirstCustomer(customerInstances[customerData.id])
+		end
 		children[customerData.id] = e(CustomerNode, {
 			CustomerUid = customerData.id,
 			CustomerData = customerData,

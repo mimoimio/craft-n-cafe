@@ -326,6 +326,7 @@ export type CoffeeModule = {
 	IngredientConfigs: { IngredientConfig },
 	Config: { [string]: CoffeeConfigType },
 	Array: { CoffeeConfigType },
+	SortedArray: { CoffeeConfigType },
 
 	Craft: ({ string }) -> CoffeeConfigType?,
 	GetId: ({ string }) -> string,

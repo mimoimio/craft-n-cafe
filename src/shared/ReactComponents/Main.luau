@@ -253,6 +253,7 @@ local function Main(props)
 				ScaleType = Enum.ScaleType.Slice,
 				SliceCenter = Rect.new(8, 8, 92, 92),
 				Size = UDim2.new(0, 160, 0, 40),
+				OnMount = onMountCafeButton,
 				Image = "rbxassetid://127657596958436",
 				Rounded = false,
 				[React.Event.Activated] = function()
@@ -261,7 +262,6 @@ local function Main(props)
 					UIState.toggle("none")
 				end,
 				ImageColor3 = Color3.new(0, 1, 0.368627),
-				OnMount = onMountCafeButton,
 			}, {
 				e(SmallText, {
 					Text = "Cafe",
@@ -466,6 +466,7 @@ local function Main(props)
 		e(require(script.Parent.ShopPrompt)),
 		e(require(script.Parent.UpgradePanel)),
 		Tutorial = tutorialDone == false and e(require(script.Parent.Tutorial)) or nil,
+		rejection = tutorialDone == false and e(require(script.Parent.RejectionLetter)) or nil,
 	})
 end
 

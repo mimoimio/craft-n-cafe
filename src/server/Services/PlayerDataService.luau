@@ -1,5 +1,6 @@
 local DATASTORENAME = "DATASTORENAME"
 local DRINKS_MIXED_DATASTORE = "DRINKS_MIXED_DATASTORE"
+local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -15,6 +16,25 @@ local ShopCycle = require(game.ReplicatedStorage.Shared.ShopCycle)
 
 local IS_PLAYTESTING = true
 
+local DrinksBrewedLeaderboard = DataStoreService:GetOrderedDataStore("DrinksBrewed")
+
+--- Sycs the player's profile data to the OrderedDataStores
+local function SyncLeaderboards(player, profile)
+	local userId = player.UserId
+
+	-- Always wrap API calls in a pcall
+	local success, err = pcall(function()
+		-- math.floor is used as a safety net since OrderedDataStore ONLY accepts integers
+		DrinksBrewedLeaderboard:SetAsync(userId, math.floor(profile.Data.CupsServed))
+		warn("Saved profile.Data.CupsServed", profile.Data.CupsServed)
+		-- RebirthsLeaderboard:SetAsync(userId, math.floor(profile.Data.Rebirths))
+	end)
+
+	if not success then
+		warn("Failed to sync leaderboards for " .. player.Name .. ": " .. tostring(err))
+	end
+end
+
 type PlayerData = Types.PlayerData
 type Profile = ProfileStoreModule.Profile<PlayerData> -- Typed Profile object
 
@@ -25,13 +45,14 @@ local PROFILE_TEMPLATE: PlayerData = {
 		SecondsPlayed = 0,
 		Cash = 30,
 		Level = 1,
-		CafeOpen = true,
+		CafeOpen = false,
 		Luck = 1,
 		TutorialCompleted = false,
 		CafeCapacity = 5,
 		MaxDrinksPerCustomer = 3,
 		MaxCustomersAtOnce = 5,
 		RollCooldown = 2,
+		Life = 1,
 	},
 	Tables = {
 		Table1 = {

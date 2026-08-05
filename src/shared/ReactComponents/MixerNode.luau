@@ -2,6 +2,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
+local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
 local Promise = require(ReplicatedStorage.Packages.Promise)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local SoundController = require(ReplicatedStorage.Shared.Controllers.SoundController)
@@ -13,13 +14,17 @@ local VStack = require(script.Parent.ui.VStack)
 local ReactFlow = require(ReplicatedStorage.Packages.ReactFlow)
 local useSpring = ReactFlow.useSpring
 local SmallButton = require(script.Parent.ui.SmallButton)
-local TAP_ICON =
-	`<font family="rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json">hand-half-ellipse</font>`
+
+local BuildersIcon = require(ReplicatedStorage.Shared.Utils.BuildersIcon)
+local useInputDevice = require(ReplicatedStorage.Shared.Hooks.useInputDevice)
 
 local e = React.createElement
 local useEffect = React.useEffect
 local useState = React.useState
 local useRef = React.useRef
+
+local player = Players.LocalPlayer
+local playerId = player and tostring(player.UserId) or ""
 
 local function delayedRevealTransMap(startTime, sec: number, minTransparency: number?) -- from 1 to 0
 	return function(t)
@@ -76,6 +81,7 @@ local function MixerNode(props: {
 	MixerData: any,
 	Instance: Instance?,
 })
+	local currentInput = useInputDevice()
 	local isOccupied = props.MixerData.drinkId ~= "none"
 
 	-- State for asynchronously resolved descendants
@@ -87,7 +93,6 @@ local function MixerNode(props: {
 	local config = CoffeeModule.Config[props.MixerData.drinkId]
 	local duration = (config and config.Duration) or nil
 	local startTime = props.MixerData.startTime
-	local mobile = useRef(false)
 	local buttonShownStart = useRef(math.huge)
 
 	React.useEffect(function()
@@ -129,6 +134,8 @@ local function MixerNode(props: {
 			return
 		end
 
+		UIState.setMixerInstance(props.Instance)
+
 		local promise = Promise.defer(function(resolve, reject)
 			-- CafeTypes dictates: Mixer -> Part -> TriggerPrompt
 			local part = props.Instance:WaitForChild("Part", 5)
@@ -153,6 +160,7 @@ local function MixerNode(props: {
 			end)
 
 		return function()
+			UIState.setMixerInstance(nil)
 			promise:cancel()
 		end
 	end, { props.Instance })
@@ -213,14 +221,10 @@ local function MixerNode(props: {
 				end
 			end
 		end)
-		local conn2 = prompt.PromptShown:Connect(function(inputType: Enum.ProximityPromptInputType)
-			local isMobile = inputType == Enum.ProximityPromptInputType.Touch
-			mobile.current = isMobile
+		local conn2 = prompt.PromptShown:Connect(function()
 			setShown(true)
 		end)
-		local conn3 = prompt.PromptHidden:Connect(function(inputType: Enum.ProximityPromptInputType)
-			local isMobile = inputType == Enum.ProximityPromptInputType.Touch
-			mobile.current = isMobile
+		local conn3 = prompt.PromptHidden:Connect(function()
 			setShown(false)
 		end)
 
@@ -278,6 +282,18 @@ local function MixerNode(props: {
 			progress = progress,
 		})
 	end
+
+	-- Abstract the correct prompt icon (Uses Prompt bindings if available, otherwise defaults to X / E)
+	local interactIcon = prompt
+			and BuildersIcon.GetPromptText(
+				currentInput == "Gamepad" and prompt.GamepadKeyCode or prompt.KeyboardKeyCode,
+				currentInput
+			)
+		or BuildersIcon.GetPromptText(
+			currentInput == "Gamepad" and Enum.KeyCode.ButtonX or Enum.KeyCode.E,
+			currentInput
+		)
+
 	local textMap = React.useCallback(function(t)
 		if startTime and duration then
 			local now = t
@@ -285,15 +301,16 @@ local function MixerNode(props: {
 			local p = math.clamp(timePassed / duration, 0, 1)
 			local timeLeft = duration - timePassed
 			if p >= 1 then
-				return `{mobile.current and TAP_ICON or `[E]`} Pick Up`
+				return `{interactIcon} Pick Up`
 			elseif timeLeft > 30 then
-				return `{mobile.current and TAP_ICON or `[E]`} Skip?`
+				return `{interactIcon} Skip?`
 			else
 				return `Mixing...`
 			end
 		end
-		return `{mobile.current and TAP_ICON or `[E]`} Mix`
-	end, { startTime, duration })
+		return `{interactIcon} Mix`
+	end, { startTime, duration, interactIcon })
+
 	useEffect(function()
 		if not shown then
 			buttonShownStart.current = math.huge
@@ -306,45 +323,56 @@ local function MixerNode(props: {
 	end, { shown })
 
 	local mappedSize = time:map(delayedRevealSizeMap(buttonShownStart, 0, UDim2.new(1, 0, 1 / 4, 0)))
-	return e("BillboardGui", {
-		Adornee = props.Instance,
-		Size = UDim2.new(6, 0, 6, 0),
-		StudsOffset = Vector3.new(0, progressBar and 2 or 0, 0),
-		ResetOnSpawn = false,
-		AlwaysOnTop = true,
-		MaxDistance = 50,
-		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-		Active = true,
-	}, {
-		shown and e("Highlight", {
+	return e(React.Fragment, nil, {
+		e("BillboardGui", {
 			Adornee = props.Instance,
-			FillColor = Color3.new(1, 1, 1),
-			FillTransparency = 0.9,
-			OutlineColor = Color3.new(1, 1, 1),
-			OutlineTransparency = 0,
-		}) or nil,
-		WhenOccupied = progressBar and e(VStack, {
-			-- Size = UDim2.new(0, 100, 0, 100),
-			Size = UDim2.new(1, 0, 1, 0),
-			BackgroundColor3 = Color3.new(0.15, 0.15, 0.15),
-			HorizontalFlex = Enum.UIFlexAlignment.None,
-			VerticalFlex = Enum.UIFlexAlignment.None,
-			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.new(0.5, 0, 0, 0),
+			Size = UDim2.new(6, 0, 6, 0),
+			StudsOffset = Vector3.new(0, progressBar and 2 or 0, 0),
+			ResetOnSpawn = false,
+			AlwaysOnTop = true,
+			MaxDistance = 300,
+			ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+			Active = true,
 		}, {
-			ProgressBar = progressBar,
-			Button = shown and e(SmallButton, {
+			shown and e("Highlight", {
+				Adornee = props.Instance,
+				FillColor = Color3.new(1, 1, 1),
+				FillTransparency = 0.9,
+				OutlineColor = Color3.new(1, 1, 1),
+				OutlineTransparency = 0,
+			}) or nil,
+			WhenOccupied = progressBar and e(VStack, {
+				-- Size = UDim2.new(0, 100, 0, 100),
+				Size = UDim2.new(1, 0, 1, 0),
+				BackgroundColor3 = Color3.new(0.15, 0.15, 0.15),
+				HorizontalFlex = Enum.UIFlexAlignment.None,
+				VerticalFlex = Enum.UIFlexAlignment.None,
+				AnchorPoint = Vector2.new(0.5, 0),
+				Position = UDim2.new(0.5, 0, 0, 0),
+			}, {
+				ProgressBar = progressBar,
+			}) or nil,
+		}),
+		e("BillboardGui", {
+			ResetOnSpawn = false,
+			Adornee = props.Instance,
+			Size = UDim2.new(0, 200, 0, 100),
+			StudsOffsetWorldSpace = Vector3.new(0, 0, 0),
+			AlwaysOnTop = true,
+			MaxDistance = math.huge,
+			ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+			Active = true,
+		}, {
+			SmallButton = shown and e(SmallButton, {
 				Text = time:map(textMap),
-				ZIndex = 100,
-				LayoutOrder = 2,
-				Visible = shown,
 				RichText = true,
-				TextWrapped = false,
-				Active = true,
-				Size = mappedSize,
+				TextXAlignment = Enum.TextXAlignment.Center,
+				AnchorPoint = Vector2.new(0.5, 0),
+				Size = UDim2.new(1.2, 0, 0.5, 0),
+				Position = UDim2.new(0.5, 0, 0.5, 0),
+				BackgroundColor3 = Color3.new(0, 1, 0),
 				TextSize = 24,
-				AutomaticSize = Enum.AutomaticSize.None,
-				TextTruncate = Enum.TextTruncate.SplitWord,
+				TextWrapped = false,
 				[React.Event.MouseButton1Down] = function()
 					if prompt then
 						prompt:InputHoldBegin()
@@ -355,34 +383,8 @@ local function MixerNode(props: {
 						prompt:InputHoldEnd()
 					end
 				end,
-			}) or nil,
-		}) or nil,
-		WhenEmpty = not progressBar and e(SmallButton, {
-			Text = time:map(textMap),
-			LayoutOrder = 2,
-			Visible = shown,
-			TextWrapped = false,
-			RichText = true,
-			AutomaticSize = Enum.AutomaticSize.None,
-			TextSize = 24,
-			Position = UDim2.new(0.5, 0, 0.5, 0),
-			AnchorPoint = Vector2.new(0.5, 0),
-			ZIndex = 100,
-			TextTruncate = Enum.TextTruncate.SplitWord,
-			-- Size = UDim2.new(1, 0, 1 / 4, 0),
-			Size = mappedSize,
-			-- Size = mappedButtonSize,
-			[React.Event.MouseButton1Down] = function()
-				if prompt then
-					prompt:InputHoldBegin()
-				end
-			end,
-			[React.Event.MouseButton1Up] = function()
-				if prompt then
-					prompt:InputHoldEnd()
-				end
-			end,
-		}) or nil,
+			}),
+		}),
 	})
 end
 

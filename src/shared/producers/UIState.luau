@@ -97,6 +97,12 @@ local producer = Reflex.createProducer(initialState, {
 	setCafeButton = function(state: UIState, cafeButton: GuiButton?)
 		return Set(state, "cafeButton", cafeButton)
 	end,
+	setMixerInstance = function(state: UIState, model: Model?)
+		return Set(state, "mixerInstance", model)
+	end,
+	setTableInstance = function(state: UIState, model: Model?)
+		return Set(state, "tableInstance", model)
+	end,
 	setCafeBase = function(state: UIState, model: Model?)
 		return Set(state, "cafeBase", model)
 	end,

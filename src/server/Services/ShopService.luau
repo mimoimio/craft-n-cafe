@@ -200,10 +200,23 @@ function ShopService.UpgradeCafeCapacity(player: Player, increment: number?)
 	})
 end
 
+function ShopService.ShortenRollCooldown(player: Player)
+	local playerId = tostring(player.UserId)
+	local state = GlobalState:getState()
+	local playersStats = state.Stats[playerId]
+
+	if not playersStats then
+		return
+	end
+
+	GlobalState.shortenRoll(playerId)
+end
+
 function ShopService.initialize()
-	Remotes.BuyIngredient.OnServerEvent:Connect(ShopService.BuyIngredient)
+	-- Remotes.BuyIngredient.OnServerEvent:Connect(ShopService.BuyIngredient) -- we dont buy, we roll now
 	Remotes.LevelUp.OnServerEvent:Connect(ShopService.LevelUp)
 	Remotes.UpgradeLuck.OnServerEvent:Connect(ShopService.UpgradeLuck)
+	-- Remotes.ShortenRollCooldown.OnServerEvent:Connect(ShopService.ShortenRollCooldown)
 	Remotes.UpgradeCafeCapacity.OnServerEvent:Connect(ShopService.UpgradeCafeCapacity)
 	-- Remotes.BuyMixer.OnServerEvent:Connect(ShopService.BuyMixer)
 

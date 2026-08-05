@@ -1,3 +1,4 @@
+-- Shared/CoffeeModule.luau
 local CoffeeConfigArray: { CoffeeConfigType } = require(game.ReplicatedStorage.Shared.Configs.CoffeeConfig)
 local IngredientConfigs: { IngredientConfig } = require(game.ReplicatedStorage.Shared.Configs.IngredientsConfig)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -11,12 +12,11 @@ local CoffeeModule = {}
 local CoffeeConfig: { [string]: CoffeeConfigType } = {}
 local ingredientPriority: { [string]: number } = {} -- lower = earlier in config = removed last
 
-for index, config in ipairs(CoffeeConfigArray) do
-	CoffeeConfig[config.Id] = config
-	ingredientPriority[config.Id] = index
-end
 for index, config in ipairs(IngredientConfigs) do
 	ingredientPriority[config.Id] = index
+end
+for index, config in ipairs(CoffeeConfigArray) do
+	CoffeeConfig[config.Id] = config
 end
 
 function CoffeeModule.GetId(Ingredients: { string }): string
@@ -170,6 +170,18 @@ CoffeeModule.IngredientLookup = {}
 for i, config in IngredientConfigs do
 	CoffeeModule.IngredientLookup[config.Id] = config
 end
+
+for index, config in ipairs(CoffeeConfigArray) do
+	CoffeeConfig[config.Id] = config
+	config.Price = 0
+	for i, ing in config.Ingredients do
+		config.Price += CoffeeModule.IngredientLookup[ing].Cost
+	end
+end
+CoffeeModule.SortedArray = table.sort(CoffeeConfigArray, function(a, b)
+	return a.Price < b.Price
+end)
+
 function CoffeeModule.Craft(ingredients: { string }): CoffeeConfigType?
 	-- Support any number of items
 	if #ingredients == 0 then

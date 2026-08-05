@@ -12,6 +12,7 @@ local Types = require(ReplicatedStorage.Shared.Types)
 local CafeTypes = require(ReplicatedStorage.Shared.CafeTypes)
 local CustomersService = require(ServerScriptService.Server.Services.CustomersService)
 local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConfig)
+local DrinkModelUtil = require(ReplicatedStorage.Shared.Utils.DrinkModelUtil)
 
 local e = React.createElement
 local useEffect = React.useEffect
@@ -62,7 +63,7 @@ local function Customer(props: {
 		setPrompt(clone.TriggerPrompt)
 
 		local entranceCF = props.BaseModel.Entrance:GetPivot()
-		local cashierCF = props.CafeModel.Cashier.Part:GetPivot()
+		local cashierCF = props.CafeModel.Cashier:GetPivot()
 		local action = props.Customer.customerAction
 
 		-- ... [The rest of your mounting effect remains exactly the same]
@@ -86,6 +87,8 @@ local function Customer(props: {
 		clone:PivotTo(targetCF)
 
 		clone.TriggerPrompt.RequiresLineOfSight = false
+		clone.TriggerPrompt.ActionText = "Tend Customer"
+
 		local conn = clone.TriggerPrompt.Triggered:Connect(function(player: Player)
 			if tostring(player.UserId) ~= props.PlayerId then
 				return
@@ -145,6 +148,12 @@ local function Customer(props: {
 		end
 		if action == "queuing" or action == "paid" then
 			local animation = ReplicatedStorage.Shared.Animations:FindFirstChild("HoldCup")
+			-- local animation = ReplicatedStorage.Shared.Animations:FindFirstChild("_idle2")
+			-- if not animation then
+			-- 	animation = Instance.new("Animation", ReplicatedStorage.Shared.Animations)
+			-- 	animation.Name = "_idle2"
+			-- 	animation.AnimationId = "rbxassetid://92168447891089"
+			-- end
 			if rig and rig.Parent and animation then
 				local animator: Animator = rig.Humanoid:FindFirstChildOfClass("Animator")
 
@@ -153,7 +162,7 @@ local function Customer(props: {
 					holdingAnimation.Looped = true
 					-- Priority ensures it plays OVER the default idle/walk animations
 					holdingAnimation.Priority = Enum.AnimationPriority.Action
-					holdingAnimation:Play()
+					holdingAnimation:Play(0.1, 0.2, 2)
 				end
 			end
 		end
@@ -221,94 +230,41 @@ local function Customer(props: {
 
 		local instances = {}
 
-		for i, drink: {
-			drinkId: string,
-			variationId: string,
-		} in drinkEntities do
-			local drinkId = drink.drinkId
-			local drinkModel = ReplicatedStorage.Shared.Models:FindFirstChild(drinkId)
-			if not drinkModel then
-				drinkModel = Instance.new("Model")
-				Instance.new("Part", drinkModel)
-			else
-				drinkModel = drinkModel:Clone()
-			end
+		for i, drink in drinkEntities do
+			local drinkModel, modelBasePart = DrinkModelUtil.BuildDrinkModel(drink.drinkId, drink.variationId, {
+				Anchored = false,
+				CanCollide = false,
+			})
+
 			drinkModel:PivotTo(rig.Head:GetPivot() + Vector3.new(0, 2 * i, 0))
-			drinkModel.Parent = workspace
+			drinkModel.Parent = workspace -- Parent to workspace BEFORE setting NetworkOwner!
 
-			for i, part in drinkModel:GetDescendants() do
-				if not part:IsA("BasePart") then
-					continue
-				end
-				part.Anchored = false
-				part.CanCollide = false
-			end
-			for i, part in drinkModel:GetDescendants() do
-				if not part:IsA("BasePart") then
-					continue
-				end
-				part:SetNetworkOwner(nil)
-			end
-
-			for _, descendant in drinkModel:GetDescendants() do
-				if descendant:IsA("BasePart") then
-					descendant.Anchored = false
-				end
-			end
-			local modelBasePart = drinkModel:FindFirstChildWhichIsA("BasePart", true)
-
-			if drink.variationId then
-				local variation = VariationsConfig[drink.variationId]
-				if variation then
-					for _, descendant: BasePart in drinkModel:GetDescendants() do
-						if descendant:IsA("BasePart") and variation.ColorPrimary then
-							descendant.Color = variation.ColorPrimary
-						end
-						if descendant:IsA("UnionOperation") then
-							descendant.UsePartColor = true
-						end
-					end
-				end
-				local part = ReplicatedStorage.Shared.Particles:FindFirstChild(drink.variationId)
-				if part then
-					part = part:Clone()
-					part.Transparency = 1
-					part.CanCollide = false
-					part.Anchored = false
-					part.Massless = true
-					part:PivotTo(drinkModel:GetPivot() + Vector3.new(0, 1, 0))
-					part.Parent = modelBasePart
+			for _, part in drinkModel:GetDescendants() do
+				if part:IsA("BasePart") then
+					-- Crucial for preventing NPC stuttering
 					part:SetNetworkOwner(nil)
-					local weld = Instance.new("WeldConstraint")
-					weld.Part0 = part
-					weld.Part1 = modelBasePart
-					weld.Parent = part
 				end
 			end
 
-			local primaryPart = drinkModel.PrimaryPart
-			if primaryPart then
-				primaryPart:SetNetworkOwner(nil)
+			if modelBasePart then
+				local weld = Instance.new("WeldConstraint")
+				weld.Part0 = modelBasePart
+				weld.Part1 = rig.Head
+				weld.Parent = modelBasePart
 			end
-			local drinkPart = drinkModel:FindFirstChildWhichIsA("BasePart")
-
-			local weld = Instance.new("WeldConstraint")
-			weld.Part0 = drinkPart
-			weld.Part1 = rig.Head
-			weld.Parent = drinkPart
 
 			table.insert(instances, drinkModel)
-			table.insert(instances, weld)
 		end
+
 		return function()
-			for i, instance in instances do
-				if not (instance and instance.Parent) then
-					continue
+			for _, instance in instances do
+				if instance and instance.Parent then
+					instance:Destroy()
 				end
-				instance:Destroy()
 			end
 		end
 	end, { rig, paid or props.Customer.customerAction == "queuing" })
+
 	useEffect(function()
 		if not (rig and rig.Parent and rig:FindFirstChild("Head") and paid) then
 			return

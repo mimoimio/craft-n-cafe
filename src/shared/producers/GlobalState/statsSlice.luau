@@ -174,6 +174,14 @@ local actions = {
 			})
 		)
 	end,
+	shortenRoll = function(state: StatsState, playerId: string)
+		local playersStats = state[playerId]
+		if not playersStats then
+			return state
+		end
+
+		return Set(state, playerId, Set(playersStats, "RollCooldown", 1))
+	end,
 }
 
 return Reflex.createProducer(initialState, actions)

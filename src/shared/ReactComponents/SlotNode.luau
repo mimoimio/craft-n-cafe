@@ -230,19 +230,19 @@ local function SlotNode(props: {
 				})
 			or nil
 		return e("ScreenGui", nil, {
-			label = on and e(HStack, {
-				Size = UDim2.new(1, 0, 0, 0),
-				Position = UDim2.new(0.5, 0, 1, -80),
-				AnchorPoint = Vector2.new(0.5, 0),
-				HorizontalAlignment = Enum.HorizontalAlignment.Center,
-			}, {
-				VariationLabel = VariationLabel,
-				NameAndPrice = e(SmallText, {
-					LayoutOrder = 2,
-					TextXAlignment = Enum.TextXAlignment.Center,
-					Text = `{displayname}: {variation and (variation.Multiplier * config.Price) or config.Price}$`,
-				}),
-			}),
+			-- label = on and e(HStack, {
+			-- 	Size = UDim2.new(1, 0, 0, 0),
+			-- 	Position = UDim2.new(0.5, 0, 1, -80),
+			-- 	AnchorPoint = Vector2.new(0.5, 0),
+			-- 	HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			-- }, {
+			-- 	VariationLabel = VariationLabel,
+			-- 	NameAndPrice = e(SmallText, {
+			-- 		LayoutOrder = 2,
+			-- 		TextXAlignment = Enum.TextXAlignment.Center,
+			-- 		Text = `{displayname}: {variation and (variation.Multiplier * config.Price) or config.Price}$`,
+			-- 	}),
+			-- }),
 			highlight = on and e("Highlight", {
 				Adornee = props.Instance:FindFirstChildWhichIsA("Model"),
 				FillColor = Color3.new(1, 1, 1),
@@ -264,7 +264,28 @@ local function SlotNode(props: {
 					TextColor3 = Color3.new(1, 1, 1),
 					TextStrokeTransparency = 0,
 					TextStrokeColor3 = Color3.new(0, 0, 0),
-					-- TextScaled = true,
+				}),
+			}),
+			BBGui2 = e("BillboardGui", {
+				Active = true,
+				Adornee = adornee,
+				Size = UDim2.new(0, 60, 0, 30),
+				StudsOffsetWorldSpace = Vector3.new(0, 3.5, 0),
+				AlwaysOnTop = true,
+				MaxDistance = 100,
+			}, {
+				label = on and e(HStack, {
+					Size = UDim2.new(3, 0, 0, 0),
+					Position = UDim2.new(0.5, 0, 1, 0),
+					AnchorPoint = Vector2.new(0.5, 1),
+					HorizontalAlignment = Enum.HorizontalAlignment.Center,
+				}, {
+					VariationLabel = VariationLabel,
+					NameAndPrice = e(SmallText, {
+						LayoutOrder = 2,
+						TextXAlignment = Enum.TextXAlignment.Center,
+						Text = `{displayname}: {variation and (variation.Multiplier * config.Price) or config.Price}$`,
+					}),
 				}),
 			}),
 			custom = e("BillboardGui", {

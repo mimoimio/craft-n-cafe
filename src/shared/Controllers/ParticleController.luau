@@ -1,11 +1,11 @@
 -- ParticleController.luau
 -- Overrides Roblox ParticleEmitter rate by driving :Emit(1) manually.
 -- Tags a ParticleEmitter (or its parent) with "customparticle" via CollectionService.
--- The emitter must have a numeric "Rate" attribute (particles per second).
--- Only emitters that are descendants of Workspace are managed.
+-- Intercepts native 'Rate' and 'Enabled' properties using a Folder-Proxy replacement strategy.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
@@ -17,8 +17,15 @@ local ParticleController = {}
 -- Internal state
 -- ──────────────────────────────────────────────────────────
 
--- Map<Instance, { emitter: ParticleEmitter, accumulator: number, rateConn: RBXScriptConnection? }>
-local _managed: { [Instance]: { emitter: ParticleEmitter, accumulator: number, rateConn: RBXScriptConnection? } } = {}
+-- Map<ParticleEmitter, { renderer: ParticleEmitter, folder: Folder, accumulator: number }>
+local _ancestryConns: { [Instance]: RBXScriptConnection } = {}
+local _managed: {
+	[ParticleEmitter]: {
+		renderer: ParticleEmitter,
+		folder: Folder,
+		accumulator: number,
+	},
+} = {}
 local _heartbeatConn: RBXScriptConnection? = nil
 local _initialized = false
 
@@ -26,19 +33,9 @@ local _initialized = false
 -- Helpers
 -- ──────────────────────────────────────────────────────────
 
-local MAX_RATE = 10
-
-local function _getRate(instance: Instance): number
-	local raw = instance:GetAttribute("Rate")
-	if type(raw) == "number" and raw > 0 then
-		return math.min(raw, MAX_RATE)
-	end
-	return 0
-end
+local MAX_RATE = 1
 
 --- Resolve the ParticleEmitter from the tagged instance.
---- The tag may be placed on the ParticleEmitter itself or on a BasePart that
---- contains exactly one ParticleEmitter child.
 local function _resolveEmitter(instance: Instance): ParticleEmitter?
 	if instance:IsA("ParticleEmitter") then
 		return instance
@@ -52,56 +49,99 @@ local function _resolveEmitter(instance: Instance): ParticleEmitter?
 end
 
 local function _isInWorkspace(instance: Instance): boolean
-	return instance:IsDescendantOf(Workspace) or instance:IsDescendantOf(Players)
+	return instance:IsDescendantOf(Workspace) or instance:IsDescendantOf(ReplicatedStorage)
+	-- or instance:IsDescendantOf(Players)
 end
 
 local function _untrack(instance: Instance)
-	local data = _managed[instance]
+	-- Allow passing either the tagged container or the emitter directly
+	local original = if instance:IsA("ParticleEmitter") then instance else _resolveEmitter(instance)
+	if not original then
+		return
+	end
+
+	local data = _managed[original]
 	if data then
-		if data.rateConn then
-			data.rateConn:Disconnect()
+		-- 1. Restore the original if it hasn't been destroyed
+		if original:IsDescendantOf(game) and data.folder.Parent then
+			original.Parent = data.folder.Parent
 		end
-		-- Re-enable the native emitter so it behaves normally if un-tagged
-		if data.emitter and data.emitter.Parent then
-			data.emitter.Enabled = true
+
+		-- 2. Destroy proxy instances
+		if data.renderer then
+			data.renderer:Destroy()
 		end
-		_managed[instance] = nil
+		if data.folder then
+			data.folder:Destroy()
+		end
+
+		-- 3. Clear memory
+		_managed[original] = nil
 	end
 end
 
 local function _track(instance: Instance)
-	if _managed[instance] then
-		return -- already tracked
-	end
 	if not _isInWorkspace(instance) then
 		return
 	end
 
-	local emitter = _resolveEmitter(instance)
-	if not emitter then
+	local original = _resolveEmitter(instance)
+	if not original or _managed[original] then
 		return
 	end
 
-	-- Disable the native rate so Roblox doesn't emit on its own
-	emitter.Enabled = false
+	local parent = original.Parent
+	if not parent then
+		return
+	end
 
-	local data = {
-		emitter = emitter,
+	-- 1. Create isolation folder
+	-- local folder = Instance.new("Folder") -- this causes it emit at origin
+	local folder = Instance.new("StringValue")
+	folder.Name = "_Proxy_" .. original.Name
+	folder.Parent = ReplicatedStorage
+
+	-- 2. Create the renderer (clone) replacing the original
+	local renderer = original:Clone()
+	CollectionService:RemoveTag(renderer, TAG) -- Prevents infinite re-entrancy!
+	renderer.Enabled = false -- Disable native emission on the clone
+	renderer.Name = original.Name
+	renderer.Parent = parent
+
+	-- 3. Move original to folder (stops its native emission immediately)
+	original.Parent = folder
+
+	_managed[original] = {
+		renderer = renderer,
+		folder = folder,
 		accumulator = 0,
-		rateConn = nil,
 	}
+end
 
-	-- React to Rate attribute changes at runtime
-	data.rateConn = instance.AttributeChanged:Connect(function(attr)
-		if attr == "Rate" then
-			-- reset accumulator so a rate of 0 stops immediately
-			data.accumulator = 0
+local function _onTagAdded(instance: Instance)
+	_ancestryConns[instance] = instance.AncestryChanged:Connect(function()
+		if _isInWorkspace(instance) then
+			_track(instance)
+		else
+			_untrack(instance)
 		end
 	end)
 
-	_managed[instance] = data
+	-- 2. Try to track it immediately if it's already in a valid location
+	if _isInWorkspace(instance) then
+		_track(instance)
+	end
 end
+local function _onTagRemoved(instance: Instance)
+	-- 1. Clean up the ancestry listener
+	if _ancestryConns[instance] then
+		_ancestryConns[instance]:Disconnect()
+		_ancestryConns[instance] = nil
+	end
 
+	-- 2. Clean up the proxy setup
+	_untrack(instance)
+end
 -- ──────────────────────────────────────────────────────────
 -- Heartbeat driver
 -- ──────────────────────────────────────────────────────────
@@ -110,21 +150,42 @@ local function _startHeartbeat()
 	if _heartbeatConn then
 		return
 	end
+
 	_heartbeatConn = RunService.Heartbeat:Connect(function(dt: number)
-		for instance, data in pairs(_managed) do
-			-- Drop if emitter or instance is no longer valid / in workspace
-			if not data.emitter or not data.emitter.Parent or not _isInWorkspace(instance) then
-				_untrack(instance)
+		local camera = workspace.CurrentCamera
+		for original, data in pairs(_managed) do
+			-- Untrack if the original was destroyed or removed from Workspace
+			if not original:IsDescendantOf(game) or not _isInWorkspace(original) then
+				_untrack(original)
 				continue
 			end
 
-			local customEnabled = instance:GetAttribute("CustomEnabled")
-			if not customEnabled then
+			-- Untrack if the renderer was externally destroyed
+			if not data.renderer or not data.renderer:IsDescendantOf(game) then
+				_untrack(original)
 				continue
 			end
 
-			local rate = instance.Rate
-			if rate <= 0 then
+			local rate = math.min(original.Rate, MAX_RATE)
+
+			-- If disabled natively or rate is 0, just clear accumulator and skip emitting
+			if not original.Enabled or not data.renderer:IsDescendantOf(workspace) or rate <= 0 then
+				data.accumulator = 0
+				continue
+			end
+			-- If disabled natively or rate is 0, just clear accumulator and skip emitting
+			local parent = data.renderer:FindFirstAncestorWhichIsA("BasePart")
+			parent = parent or data.renderer:FindFirstAncestorWhichIsA("Model") or nil
+
+			if not (parent and camera) then
+				data.accumulator = 0
+				continue
+			end
+
+			local dist = (camera:GetPivot().Position - parent:GetPivot().Position).Magnitude
+
+			if dist >= 50 then
+				data.accumulator = 0
 				continue
 			end
 
@@ -133,10 +194,7 @@ local function _startHeartbeat()
 
 			while data.accumulator >= interval do
 				data.accumulator -= interval
-				if not data.emitter:IsDescendantOf(Workspace) then
-					continue
-				end
-				data.emitter:Emit(1)
+				data.renderer:Emit(1)
 			end
 		end
 	end)
@@ -154,38 +212,30 @@ function ParticleController.initialize()
 	_initialized = true
 
 	_startHeartbeat()
-
-	-- Track all already-tagged instances
+	-- Process existing tagged instances
 	for _, instance in ipairs(CollectionService:GetTagged(TAG)) do
-		_track(instance)
+		_onTagAdded(instance)
 	end
 
 	-- Watch for new tags
-	CollectionService:GetInstanceAddedSignal(TAG):Connect(function(instance)
-		_track(instance)
-	end)
+	CollectionService:GetInstanceAddedSignal(TAG):Connect(_onTagAdded)
 
 	-- Watch for tag removal
-	CollectionService:GetInstanceRemovedSignal(TAG):Connect(function(instance)
-		_untrack(instance)
-	end)
+	CollectionService:GetInstanceRemovedSignal(TAG):Connect(_onTagRemoved)
 end
 
---- Manually add an instance to the controller without CollectionService.
 function ParticleController.track(instance: Instance)
 	_track(instance)
 end
 
---- Manually remove an instance from the controller.
 function ParticleController.untrack(instance: Instance)
 	_untrack(instance)
 end
 
---- Returns a snapshot of currently managed instances and their rates.
 function ParticleController.getManaged(): { { instance: Instance, rate: number } }
 	local list = {}
-	for instance in pairs(_managed) do
-		table.insert(list, { instance = instance, rate = instance.Rate })
+	for original in pairs(_managed) do
+		table.insert(list, { instance = original, rate = original.Rate })
 	end
 	return list
 end

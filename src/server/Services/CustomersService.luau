@@ -235,7 +235,7 @@ function CustomersService.initialize()
 					continue
 				end
 
-				local maxCustomersAtOnce = playerStats.MaxCustomersAtOnce
+				local maxCustomersAtOnce = 100 --playerStats.MaxCustomersAtOnce
 				local CafeCapacity = playerStats.CafeCapacity
 
 				for i, customer in playersCustomers do

@@ -91,4 +91,6 @@ return {
 	BuyIngredientFromSpawner = CreateRemote("BuyIngredientFromSpawner"),
 	UpgradeLuck = CreateRemote("UpgradeLuck"),
 	UpgradeCafeCapacity = CreateRemote("UpgradeCafeCapacity"),
+	-- ShortenRollCooldown = CreateRemote("ShortenRollCooldown"),
+	LogTutorialStep = CreateRemote("LogTutorialStep"),
 }

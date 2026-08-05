@@ -31,6 +31,8 @@ local ACCENT = Color3.fromRGB(255, 200, 80)
 local TEXT = Color3.fromRGB(230, 230, 230)
 local SUBTEXT = Color3.fromRGB(160, 160, 180)
 
+-- Later make it not scroll, use navigations instead make it console friendly
+
 local function RecipeGridItem(props: {
 	config: any,
 	isSelected: boolean,
@@ -43,7 +45,7 @@ local function RecipeGridItem(props: {
 	-- warn(hovered)
 	-- end, { hovered })
 
-	local bg = if props.isSelected
+	local bg = if false --props.isSelected
 		then (if locked then ITEM_BG_LOCKED_SELECTED else ITEM_SELECTED_BG)
 		elseif hovered then (if locked then Color3.new(0.5, 0.5, 0.5) else Color3.new(1, 0.956862, 0.901960))
 		else (if locked then ITEM_BG_LOCKED else ITEM_BG)

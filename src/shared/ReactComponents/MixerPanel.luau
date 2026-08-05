@@ -20,10 +20,10 @@ local HStack = require(Primitives.HStack)
 
 -- Point this to your new VFX setup
 local IngredientVFXContainer = require(script.Parent.IngredientVFXContainer)
-local CLOCK =
-	[[<font family="rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json"><b>clock</b></font>]]
-local STOCK =
-	[[<font family="rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json">three-stacked-squares-tilted</font>]]
+
+local BuildersIcon = require(ReplicatedStorage.Shared.Utils.BuildersIcon)
+local CLOCK = BuildersIcon.clock
+local STOCK = BuildersIcon["three-stacked-squares-tilted"]
 
 local player = game.Players.LocalPlayer
 local playerId: string? = player and tostring(player.UserId) or "0"
@@ -31,6 +31,30 @@ local layoutOrders = {}
 for i, config in CoffeeModule.IngredientConfigs do
 	layoutOrders[config.Id] = i
 end
+
+local TEST_INGREDIENTS = {
+	espresso = 1,
+	water = 1,
+	milk = 1,
+	ice = 1,
+	foam = 1,
+	chocolate = 1,
+	teabag = 1,
+	icecream = 1,
+	matchapowder = 1,
+	lemon = 1,
+	boba = 1,
+	carbonator = 1,
+	cookies = 1,
+	daybloom = 1,
+	blinkroot = 1,
+	luckyclover = 1,
+	moonglow = 1,
+	glowshroom = 1,
+	bloodthorn = 1,
+	waterberry = 1,
+	fireblossom = 1,
+}
 local function MixerPanel(props: {
 	OnClose: () -> (),
 })
@@ -42,7 +66,7 @@ local function MixerPanel(props: {
 
 	-- Reference to the selected ingredients UI to act as the target position
 	local targetRef = React.useRef(nil)
-	local ingredients, setIngredients = useState((not player) and { espresso = 1, water = 1 } or {})
+	local ingredients, setIngredients = useState((not player) and TEST_INGREDIENTS or {})
 	local discoveredDrinks, setDiscoveredDrinks = useState((not player) and { starlight = { espresso = true } } or {})
 
 	--  listen to discoveredDrinks
@@ -95,6 +119,9 @@ local function MixerPanel(props: {
 	useEffect(function()
 		local unsub = UIState:subscribe(function(state: UIState.UIState)
 			local isOpen = state.panel == "mixer"
+			return isOpen
+		end, function(isOpen)
+			-- this is important, if just doing it at top, it will enable gamepadcursor everytime any under UIState changes
 			if isOpen and panelRef.current then
 				game:GetService("GamepadService"):EnableGamepadCursor(panelRef.current)
 			else
@@ -191,12 +218,25 @@ local function MixerPanel(props: {
 
 					local uniqueId = tostring(tick()) .. "_" .. id .. "_" .. amountLeft
 
+					local isFull
 					-- 1. Add to pending so UI immediately deducts
 					setPendingIngredients(function(prev)
+						local pendingAmount = 0
+						for i, amt in prev do
+							pendingAmount += 1
+						end
+						if #currentIngredients >= 6 or #currentIngredients + pendingAmount >= 6 then
+							isFull = true
+							return prev
+						end
 						local next = table.clone(prev)
 						next[id] = (next[id] or 0) + 1
 						return next
 					end)
+
+					if isFull then
+						return
+					end
 
 					-- 2. Launch the particle (passing image so VFX is decoupled from CoffeeModule)
 					setActiveTrails(function(prev)
@@ -230,7 +270,7 @@ local function MixerPanel(props: {
 	end
 
 	local selectedIngredientElements = {}
-	for i = 1, 9 do -- set limit to 9 ingredients later
+	for i = 1, 6 do
 		local id = currentIngredients[i]
 		local config = CoffeeModule.IngredientLookup[id] -- Adjusted to grab from Config
 		selectedIngredientElements[i] = e(SmallButton, {
@@ -257,9 +297,14 @@ local function MixerPanel(props: {
 	local durationText = resultConfig
 			and `<font size="14">$$$</font><font size="18">: {resultConfig.Price} $\n{CLOCK}: {min > 0 and `{min} min ` or ""}{sec} sec </font>\n<font size="18">{STOCK}: {stocks}x</font>`
 		or ""
-	-- local new = not discoveredDrinks[resultConfig and resultConfig.Id]
-	local new = true
+
+	-- new until discovered
+	-- when in studio edit, always discovered
+	local new = player and true or false
 	for variationId, drinksOfVariation in discoveredDrinks do
+		if not new then
+			break
+		end
 		if drinksOfVariation[resultConfig and resultConfig.Id] then
 			new = false
 			break

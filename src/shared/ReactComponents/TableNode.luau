@@ -1,8 +1,10 @@
 -- Shared/ReactComponents/TableNode.luau
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
+local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local SlotNode = require(script.Parent.SlotNode)
 local e = React.createElement
+local useEffect = React.useEffect
 
 local function TableNode(props: {
 	TableId: string,
@@ -13,6 +15,17 @@ local function TableNode(props: {
 		-- warn(`TableNode Failed: not {props.Instance} not {props.TableData} not {props.TableData.Slots}`)
 		return nil
 	end
+	useEffect(function()
+		if not props.Instance then
+			return
+		end
+
+		UIState.setTableInstance(props.Instance)
+
+		return function()
+			UIState.setTableInstance(nil)
+		end
+	end, { props.Instance })
 
 	local children = {}
 	local slotsFolder = props.Instance:FindFirstChild("Slots")

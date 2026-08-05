@@ -1,3 +1,4 @@
+--DailyConfig.luau
 return {
 	[1] = {
 		espresso = 10,

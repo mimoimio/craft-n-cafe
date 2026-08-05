@@ -1,3 +1,4 @@
+-- Shared/Configs/IngredientsConfig.luau
 return {
 	{
 		Id = "espresso",
