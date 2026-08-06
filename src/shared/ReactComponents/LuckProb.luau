@@ -43,6 +43,8 @@ local variationOrder = {
 	"starlight",
 }
 
+local variation = nil
+
 -- local IsEdit = RunService:IsStudio() and not RunService:IsRunMode()
 
 local player = game.Players.LocalPlayer

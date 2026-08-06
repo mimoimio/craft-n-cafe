@@ -18,6 +18,10 @@ local useEffect = React.useEffect
 
 local TAP_ICON =
 	`<font family="rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json">hand-half-ellipse</font>`
+local ColorGradient = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.new(1, 0.95, 0.7)),
+	ColorSequenceKeypoint.new(1, Color3.new(1, 0.65, 0.2)),
+})
 
 local function SlotNode(props: {
 	SlotName: string,

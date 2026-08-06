@@ -78,38 +78,7 @@ local actions = {
 		})
 	end,
 
-	buyIngredient = function(state: ShopState, playerId: string, payload: Types.BuyIngredientPayload)
-		local playerState = state[playerId]
-		if not playerState then
-			warn(`shopSlice: buyIngredient: not playerState`)
-			return state
-		end
-		-- retrieving seed from player's shops dictionary. Since it's a key, use string
-		local seed = tonumber(payload.seed)
-		local seedString = tostring(seed)
-		local shop = playerState.shops[seedString]
-		if not shop or not shop[payload.ingredientId] then
-			warn(`shopSlice: buyIngredient: not shop`)
-			return state
-		end
-
-		local currentStock = shop[payload.ingredientId]
-		local newStock = math.max(0, currentStock - payload.amount)
-
-		-- Deep update the specific ingredient's stock
-		return Set(
-			state,
-			playerId,
-			Merge(playerState, {
-				currentSeed = playerState.currentSeed,
-				shops = Set(
-					playerState.shops,
-					seedString, -- string, cuz key
-					Dictionary.set(shop, payload.ingredientId, newStock)
-				),
-			})
-		)
-	end,
+	
 }
 
 return Reflex.createProducer(initialState, actions)

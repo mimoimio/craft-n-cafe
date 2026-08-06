@@ -26,7 +26,7 @@ local toggleMixerInteract = UIState.toggleMixerInteract
 
 local CashHud = require(script.Parent.CashHud)
 local MixerPanel = require(script.Parent.MixerPanel)
-local IngredientShopPanel = require(script.Parent.IngredientShopPanel)
+-- local IngredientShopPanel = require(script.Parent.IngredientShopPanel)
 local SettingsPanel = require(script.Parent.SettingsPanel)
 local CoinVFXContainer = require(script.Parent.CoinVFXContainer)
 local RecipePanel = require(script.Parent.RecipePanel)
@@ -257,8 +257,8 @@ local function Main(props)
 				Image = "rbxassetid://127657596958436",
 				Rounded = false,
 				[React.Event.Activated] = function()
-					local cf, s = UIState:getState().cafeBase.Cafe:GetBoundingBox()
-					Players.LocalPlayer.Character:PivotTo(cf)
+					local cf, s = UIState:getState().cafeBase.Cafe:WaitForChild("SpawnPoint"):GetPivot()
+					Players.LocalPlayer.Character:PivotTo((cf + Vector3.new(0, 5, 0)) )
 					UIState.toggle("none")
 				end,
 				ImageColor3 = Color3.new(0, 1, 0.368627),

@@ -27,11 +27,7 @@ local actions = {
 		return RemoveKey(state, playerId)
 	end,
 	spawnCustomer = function(state: CustomersState, playerId: string, payload: Types.SpawnCustomerPayload)
-		local playersCustomers = state[playerId]
-		if not playersCustomers then
-			return state
-		end
-
+		local playersCustomers = state[playerId] or {}
 		return Set(
 			state,
 			playerId,
@@ -44,10 +40,7 @@ local actions = {
 		)
 	end,
 	customerTakeItems = function(state: CustomersState, playerId: string, payload: Types.CustomerItemPayload)
-		local playersCustomers = state[playerId]
-		if not playersCustomers then
-			return state
-		end
+		local playersCustomers = state[playerId] or {}
 
 		local index
 		for i, customer in playersCustomers do
@@ -77,10 +70,7 @@ local actions = {
 		playerId: string,
 		payload: { customerUid: string, Cash: number, timestamp: number }
 	)
-		local playersCustomers = state[playerId]
-		if not playersCustomers then
-			return state
-		end
+		local playersCustomers = state[playerId] or {}
 
 		local index
 		for i, customer in playersCustomers do
@@ -110,10 +100,7 @@ local actions = {
 		playerId: string,
 		payload: { customerUid: string, timestamp: number }
 	)
-		local playersCustomers = state[playerId]
-		if not playersCustomers then
-			return state
-		end
+		local playersCustomers = state[playerId] or {}
 
 		local index
 		for i, customer in playersCustomers do
@@ -139,10 +126,7 @@ local actions = {
 		)
 	end,
 	removeCustomer = function(state: CustomersState, playerId: string, uid: string)
-		local playersCustomers = state[playerId]
-		if not playersCustomers then
-			return state
-		end
+		local playersCustomers = state[playerId] or {}
 
 		local index
 		for i, customer in playersCustomers do

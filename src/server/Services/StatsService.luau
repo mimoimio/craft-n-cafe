@@ -1,10 +1,11 @@
+--StatsService.luau
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local AnalyticsService = game:GetService("AnalyticsService")
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
-local CupService = {}
-function CupService.initialize()
+local StatsService = {}
+function StatsService.initialize()
 	Remotes.ToggleCafeOpen.OnServerEvent:Connect(function(player)
 		GlobalState.toggleCafeOpen(tostring(player.UserId))
 	end)
@@ -33,4 +34,4 @@ function CupService.initialize()
 		end
 	end)
 end
-return CupService
+return StatsService

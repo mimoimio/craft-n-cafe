@@ -56,8 +56,9 @@ local function Character(props: {
 		end
 		local promise = Promise.defer(function()
 			local cafe = props.BaseModel:WaitForChild("Cafe")
-			local cf, _s = cafe:GetBoundingBox()
-			character:PivotTo((cf + Vector3.new(0, 10, 0)) * CFrame.Angles(0, math.pi / 2, 0))
+			-- local cf, _s = cafe:GetBoundingBox()
+			local cf = cafe:WaitForChild("SpawnPoint"):GetPivot()
+			character:PivotTo((cf + Vector3.new(0, 5, 0)))
 		end):catch(function(err)
 			warn(`Character pivot error: {tostring(err)}`)
 		end)

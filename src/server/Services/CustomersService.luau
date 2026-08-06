@@ -37,17 +37,15 @@ local CustomersService = {}
 
 function CustomersService.SpawnCustomer(playerId: string)
 	local state = GlobalState:getState()
-	local customers = state.Customers
-	local playersCustomers = customers[playerId]
-
-	if not playersCustomers then
+	local customers = state.Customers or {}
+	local playersCustomers = customers[playerId] or {}
+	local playerStats = state.Stats[playerId]
+	if not playerStats then
 		return
 	end
-	local playerStats = state.Stats[playerId]
 
-	local CafeCapacity = playerStats.CafeCapacity
-
-	if type(playersCustomers) == "table" and #playersCustomers >= CafeCapacity then
+	local cafeCapacity = math.max(1, playerStats.CafeCapacity or 1)
+	if type(playersCustomers) == "table" and #playersCustomers >= cafeCapacity then
 		return
 	end
 
@@ -68,7 +66,7 @@ function CustomersService.CustomerTakeItems(playerId: string, customerUid: strin
 	local tables = state.Tables[playerId]
 	local drinks = state.Drinks[playerId]
 
-	if not drinks or not tables then
+	if not playersStats or not drinks or not tables then
 		return false
 	end
 
@@ -85,6 +83,9 @@ function CustomersService.CustomerTakeItems(playerId: string, customerUid: strin
 				continue
 			end
 			local drink = drinkLookup[drinkUid]
+			if not drink or not drink.stock or drink.stock <= 0 then
+				continue
+			end
 			table.insert(availableDrinks, drink)
 			totalDrinkAmount += drink.stock
 		end
@@ -93,9 +94,9 @@ function CustomersService.CustomerTakeItems(playerId: string, customerUid: strin
 	if totalDrinkAmount < 1 then
 		return false
 	end
-	local MaxDrinksPerCustomer = playersStats.MaxDrinksPerCustomer
+	local maxDrinksPerCustomer = math.max(1, playersStats.MaxDrinksPerCustomer or 3)
 
-	local drinkCount = rng:NextInteger(1, math.min(MaxDrinksPerCustomer, totalDrinkAmount))
+	local drinkCount = rng:NextInteger(1, math.min(maxDrinksPerCustomer, totalDrinkAmount))
 	-- maxDrinksPerCustomer: number later use this. first level is nothing
 	-- then a tray
 	-- then a basket
@@ -116,8 +117,8 @@ function CustomersService.CustomerTakeItems(playerId: string, customerUid: strin
 	local lots = totalDrinkAmount > 40
 
 	for i, drink in availableDrinks do
-		local drinksLeft = MaxDrinksPerCustomer - drinksTaken
-		local max = math.min(drink.stock, MaxDrinksPerCustomer, drinksLeft)
+		local drinksLeft = maxDrinksPerCustomer - drinksTaken
+		local max = math.min(drink.stock, maxDrinksPerCustomer, drinksLeft)
 
 		-- the more the available drinks, the lesser the possibility to haul it all
 		-- local skewedToLeast = (rng:NextNumber() * rng:NextNumber() * rng:NextNumber() * max) -- 3x
@@ -138,7 +139,7 @@ function CustomersService.CustomerTakeItems(playerId: string, customerUid: strin
 			})
 		end
 		drinksTaken += randomAmount
-		if drinksTaken >= MaxDrinksPerCustomer then
+		if drinksTaken >= maxDrinksPerCustomer then
 			-- warn(`broke. drinksTaken: {drinksTaken}`)
 			break
 		end
@@ -202,8 +203,8 @@ function CustomersService.TendCustomer(player: Player, uid: string)
 
 	local bonus = 1
 
-	for variationId, drinksOfVariation in playersDiscoveredDrinks do
-		for drinkId, _ in drinksOfVariation do
+	for variationId, drinksOfVariation in playersDiscoveredDrinks or {} do
+		for drinkId, _ in drinksOfVariation or {} do
 			bonus += 0.05
 		end
 	end

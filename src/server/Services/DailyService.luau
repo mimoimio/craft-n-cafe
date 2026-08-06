@@ -21,11 +21,15 @@ function DailyService.ClaimDaily(player: Player)
 	end
 	local day = daily.day
 	local lastClaimed = currentShop.today
+	local rewardIngredients = DailyConfig[day] or {}
+	if type(rewardIngredients) ~= "table" then
+		rewardIngredients = {}
+	end
 
 	GlobalState.claimDailyReward(playerId, {
 		nextDay = day + 1,
 		lastClaimedDaily = lastClaimed,
-		ingredients = DailyConfig[day],
+		ingredients = rewardIngredients,
 	})
 end
 

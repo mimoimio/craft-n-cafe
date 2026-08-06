@@ -1,3 +1,4 @@
+-- PlayerDataService.luau
 local DATASTORENAME = "DATASTORENAME"
 local DRINKS_MIXED_DATASTORE = "DRINKS_MIXED_DATASTORE"
 local DataStoreService = game:GetService("DataStoreService")
@@ -37,7 +38,21 @@ end
 
 type PlayerData = Types.PlayerData
 type Profile = ProfileStoreModule.Profile<PlayerData> -- Typed Profile object
-
+-- Helper to quickly generate our 6 shelves without cluttering the file!
+local function generateEmptyShelves()
+    local shelves = {}
+    for shelfIndex = 1, 6 do
+        local slots = {}
+        for slotIndex = 1, 20 do
+            slots["Slot" .. tostring(slotIndex)] = "none"
+        end
+        shelves["Shelf" .. tostring(shelfIndex)] = {
+            ShelfId = "basicshelf",
+            Slots = slots
+        }
+    end
+    return shelves
+end
 local PROFILE_TEMPLATE: PlayerData = {
 	Stats = {
 		Sfx = 0.5,
@@ -54,6 +69,7 @@ local PROFILE_TEMPLATE: PlayerData = {
 		RollCooldown = 2,
 		Life = 1,
 	},
+	Shelves = generateEmptyShelves(),
 	Tables = {
 		Table1 = {
 			TableId = "woodentable",
@@ -61,18 +77,6 @@ local PROFILE_TEMPLATE: PlayerData = {
 		},
 	},
 	Drinks = {
-		-- {
-		-- 	id = "abc",
-		-- 	variationId = "starlight",
-		-- 	drinkId = "volcafrappuccino",
-		-- 	stock = 999_999_999,
-		-- },
-		-- {
-		-- 	id = "addbc",
-		-- 	variationId = "starlight",
-		-- 	drinkId = "volcafrappuccino",
-		-- 	stock = 999_999_999,
-		-- },
 	},
 	Mixers = {
 		Mixer1 = { drinkId = "none" },
@@ -242,21 +246,30 @@ local broadcaster = Reflex.createBroadcaster({
 	) -- somehow state here is an empty table
 		local state = GlobalState:getState()
 		local playerId = tostring(player.UserId)
-		-- warn("before hydrate", s, state)
 
-		-- filter later
-		return state
+		local filteredState = {}
+		for sliceName, slice in state do
+			if slice[playerId] then
+				filteredState[sliceName] = {
+					[playerId] = slice[playerId]
+				}
+			end
+		end
+
+		return filteredState
+		-- return state
 	end,
 	dispatch = function(player, actions)
 		local playerId = tostring(player.UserId)
 
 		local relevantActions = {}
 		for _, action in actions do
-			-- just add all for now
 			-- if action.name == `__hydrate__` then
 			-- 	warn("dispatched", action.name, action.arguments)
 			-- end
-			table.insert(relevantActions, action)
+			if action.arguments[1] == playerId then
+				table.insert(relevantActions, action)
+			end
 		end
 
 		if #relevantActions > 0 then

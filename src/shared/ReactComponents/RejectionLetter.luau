@@ -25,7 +25,11 @@ local HStack = require(script.Parent.ui.HStack)
 local VStack = require(script.Parent.ui.VStack)
 
 local function setFocus(rbx)
-	GuiService.SelectedObject = rbx
+	if rbx and rbx.Parent and rbx.Visible then
+		GuiService.SelectedObject = rbx
+		return
+	end
+	GuiService.SelectedObject = nil
 end
 
 local function ScreenGuiCircle(props: { TargetButton: GuiButton?, Color: Color3? })

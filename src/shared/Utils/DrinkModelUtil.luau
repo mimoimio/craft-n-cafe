@@ -78,7 +78,7 @@ function DrinkModelUtil.BuildDrinkModel(drinkId: string, variationId: string?, o
         end
     end
 
-    clone:ScaleTo(3)
+    -- clone:ScaleTo(3)
 
     return clone, modelBasePart
 end

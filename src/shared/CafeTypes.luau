@@ -22,9 +22,31 @@ export type Cafe = Model & {
 	Cashier: Model & {
 		Part: Part,
 	},
+	Shelves: {
+		Shelf1: Shelf,
+		Shelf2: Shelf,
+		Shelf3: Shelf,
+		Shelf4: Shelf,
+		Shelf5: Shelf,
+		Shelf6: Shelf,
+	},
 	Entrance: Part,
 	StandSpots: Model & { Part },
 }
+
+--Shelves
+export type Shelf = Model & {
+	ShelfSlots: ShelfSlots,
+}
+export type ShelfSlots = Model & {
+	Slot1: Slot,
+	Slot2: Slot,
+	Slot3: Slot,
+	Slot4: Slot,
+	Slot5: Slot,
+	-- ... Slot20
+}
+export type ShelfSlot = Part
 
 --Tables
 export type Table = Model & {

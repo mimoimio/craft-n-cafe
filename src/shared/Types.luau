@@ -22,7 +22,22 @@ export type PlayerData = {
 export type PlayerId = string
 export type VariationId = string
 export type DrinkId = string
-
+-- Shelves (NEW)
+export type DisplayDrink = {
+    drinkId: string,
+    variationId: string,
+}
+export type ShelfEntity = {
+    ShelfId: string,
+    Slots: {
+        [string]: DisplayDrink | "none" -- Can be the DisplayDrink object or "none"
+    },
+}
+export type ShelvesState = {
+    [PlayerId]: {
+        [string]: ShelfEntity
+    }
+}
 -- Spawner
 export type SpawnerState = {
 	[string]: {
@@ -267,18 +282,18 @@ export type UpgradeMaxCustomerAtOnce = {
 }
 
 export type CombinedActions = {
-	startPlayerSession: (playerId: PlayerId, data: PlayerData, payload: StartPlayerSessionPayload) -> (),
-	endPlayerSession: (playerId: PlayerId) -> (),
-	mixDrink: (playerId: PlayerId, payload: MixDrinkPayload) -> (),
-	buyIngredient: (playerId: PlayerId, payload: BuyIngredientPayload) -> (),
-	buyIngredientBulk: (playerId: PlayerId, payload: BuyIngredientBulkPayload) -> (),
-	refreshShop: (playerId: PlayerId, payload: RefreshShopPayload) -> (),
-	pickUpDrinkFromMixer: (playerId: PlayerId, payload: PickUpPayload) -> (),
-	restockDrinks: (playerId: PlayerId, payload: RestockDrinksPayload) -> (),
-	buyMixer: (playerId: PlayerId, payload: BuyMixerPayload) -> (),
-	upgradeLuck: (playerId: PlayerId, payload: UpgradeLuckPayload) -> (),
-	upgradeCafeCapacity: (playerId: PlayerId, payload: UpgradeCafeCapacityPayload) -> (),
-	placeDrinkToTableSlot: (
+	startPlayerSession					: (playerId: PlayerId, data: PlayerData, payload: StartPlayerSessionPayload) -> (),
+	endPlayerSession					: (playerId: PlayerId) -> (),
+	mixDrink							: (playerId: PlayerId, payload: MixDrinkPayload) -> (),
+	buyIngredient						: (playerId: PlayerId, payload: BuyIngredientPayload) -> (),
+	buyIngredientBulk					: (playerId: PlayerId, payload: BuyIngredientBulkPayload) -> (),
+	refreshShop							: (playerId: PlayerId, payload: RefreshShopPayload) -> (),
+	pickUpDrinkFromMixer				: (playerId: PlayerId, payload: PickUpPayload) -> (),
+	restockDrinks						: (playerId: PlayerId, payload: RestockDrinksPayload) -> (),
+	buyMixer							: (playerId: PlayerId, payload: BuyMixerPayload) -> (),
+	upgradeLuck							: (playerId: PlayerId, payload: UpgradeLuckPayload) -> (),
+	upgradeCafeCapacity					: (playerId: PlayerId, payload: UpgradeCafeCapacityPayload) -> (),
+	placeDrinkToTableSlot				: (
 		playerId: PlayerId,
 		payload: {
 			drinkUid: string?,

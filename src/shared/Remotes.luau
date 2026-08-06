@@ -82,7 +82,7 @@ return {
 	BuyIngredient = CreateRemote("BuyIngredient"),
 	LevelUp = CreateRemote("LevelUp"),
 	ToggleCafeOpen = CreateRemote("ToggleCafeOpen"),
-	Add500 = CreateRemote("Add500"),
+	-- Add500 = CreateRemote("Add500"),
 	CompleteTutorial = CreateRemote("CompleteTutorial"),
 	SkipMix = CreateRemote("SkipMix"),
 	ClaimDaily = CreateRemote("ClaimDaily"),

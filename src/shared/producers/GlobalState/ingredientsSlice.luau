@@ -48,37 +48,13 @@ local actions = {
 
 		local newIngredients = {}
 		for ingId, amount in payload.ingredients do
-			newIngredients[ingId] = playerIngredients[ingId] or 0 + amount
+			local currentAmount = playerIngredients[ingId] or 0
+			newIngredients[ingId] = currentAmount + amount
 		end
 
 		return Set(state, playerId, Merge(playerIngredients, newIngredients))
 	end,
 
-	buyIngredient = function(
-		state: IngredientsState,
-		playerId: string,
-		payload: {
-			ingredientId: string,
-			amount: number,
-			cost: number,
-		}
-	)
-		local playersIngredients = state[playerId]
-		if not playersIngredients then
-			warn(`ingredientsSlice player({playerId}) not found`)
-			return state
-		end
-
-		return Set(
-			state,
-			playerId,
-			Set(
-				playersIngredients,
-				payload.ingredientId,
-				(playersIngredients[payload.ingredientId] or 0) + payload.amount
-			)
-		)
-	end,
 	buyIngredientFromSpawner = function(
 		state: IngredientsState,
 		playerId: string,

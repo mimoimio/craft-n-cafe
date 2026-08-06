@@ -270,7 +270,7 @@ local function MixerPanel(props: {
 	end
 
 	local selectedIngredientElements = {}
-	for i = 1, 6 do
+	for i = 1, 9 do
 		local id = currentIngredients[i]
 		local config = CoffeeModule.IngredientLookup[id] -- Adjusted to grab from Config
 		selectedIngredientElements[i] = e(SmallButton, {
@@ -413,7 +413,7 @@ local function MixerPanel(props: {
 							HorizontalAlignment = Enum.HorizontalAlignment.Center,
 							Size = UDim2.new(1, 0, 0, 50),
 							AutomaticSize = Enum.AutomaticSize.None,
-							LayoutOrder = 3,
+							LayoutOrder = 1,
 							Spacing = UDim.new(0, 2),
 						}, {
 							Ingredients = e(React.Fragment, {}, {
@@ -427,7 +427,7 @@ local function MixerPanel(props: {
 							HorizontalAlignment = Enum.HorizontalAlignment.Center,
 							Size = UDim2.new(1, 0, 0, 50),
 							AutomaticSize = Enum.AutomaticSize.None,
-							LayoutOrder = 3,
+							LayoutOrder = 2,
 							Spacing = UDim.new(0, 2),
 						}, {
 							Ingredients = e(React.Fragment, {}, {

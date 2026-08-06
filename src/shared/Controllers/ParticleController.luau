@@ -33,7 +33,7 @@ local _initialized = false
 -- Helpers
 -- ──────────────────────────────────────────────────────────
 
-local MAX_RATE = 1
+local MAX_RATE = 0.8
 
 --- Resolve the ParticleEmitter from the tagged instance.
 local function _resolveEmitter(instance: Instance): ParticleEmitter?

@@ -1,8 +1,9 @@
+-- VariationService.luau
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ShopCycle = require(ReplicatedStorage.Shared.ShopCycle)
 local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConfig)
 
-export type VariationConfig = VariationsConfig.VariationsConfig
+export type VariationConfig = typeof(VariationsConfig.none)
 
 local VariationService = {}
 function VariationService.GetVariation(): VariationConfig?

@@ -1,3 +1,4 @@
+-- DrinksService.luau
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -122,15 +123,9 @@ function DrinksService.SkipMix(player: Player, mixer: string)
 
 	local playerId = tostring(player.UserId)
 
-	-- ensure player
 	local state = GlobalState:getState()
-	local playersDrinks = state.Drinks[playerId]
 	local playersMixers = state.Mixers[playerId]
 
-	if not playersDrinks then
-		warn(`SkipMix Failed: player({playerId})'s drinks not found`)
-		return
-	end
 	if not playersMixers or not playersMixers[mixer] then
 		warn(`SkipMix Failed: player({playerId})'s mixers not found`)
 		return
@@ -147,14 +142,7 @@ function DrinksService.SkipMix(player: Player, mixer: string)
 	end
 
 	local config = CoffeeModule.Config[mixerDrink]
-	-- if workspace:GetServerTimeNow() < targetMixer.startTime + config.Duration then
-	-- 	print("not yet")
-	-- 	return
-	-- end
-
-	local duration = config.Duration
-	local now = workspace:GetServerTimeNow()
-	local newTime = now - duration
+	local newTime = workspace:GetServerTimeNow() - config.Duration
 
 	GlobalState.skipMix(playerId, {
 		mixer = mixer,
@@ -162,59 +150,20 @@ function DrinksService.SkipMix(player: Player, mixer: string)
 	})
 end
 function DrinksService.RequestSkipMix(player: Player, mixer: string)
-	if not mixer then
-		warn(`SkipMix Failed: mixer({tostring(mixer)}) is nil`)
-		return
-	end
-
-	local playerId = tostring(player.UserId)
-
-	-- ensure player
-	local state = GlobalState:getState()
-	local playersDrinks = state.Drinks[playerId]
-	local playersMixers = state.Mixers[playerId]
-
-	if not playersDrinks then
-		warn(`SkipMix Failed: player({playerId})'s drinks not found`)
-		return
-	end
-	if not playersMixers or not playersMixers[mixer] then
-		warn(`SkipMix Failed: player({playerId})'s mixers not found`)
-		return
-	end
-
-	local targetMixer = playersMixers[mixer]
-
-	-- ensuring mixer is not empty
-	local mixerDrink = targetMixer.drinkId
-	local occupied = mixerDrink and mixerDrink ~= "none"
-	if not occupied then
-		warn(`SkipMix Failed: {mixer} is not occupied`)
-		return
-	end
-
-	local config = CoffeeModule.Config[mixerDrink]
-	-- if workspace:GetServerTimeNow() < targetMixer.startTime + config.Duration then
-	-- 	print("not yet")
-	-- 	return
-	-- end
-
-	local duration = config.Duration
-	local now = workspace:GetServerTimeNow()
-	local newTime = now - duration
-
-	-- DrinksService.SkipMix(player)
+    -- [[ SYSTEM CONTROLLED: Client calls this to initiate purchase ]]
+    -- TODO: Integrate MarketplaceService:PromptProductPurchase here!
+    -- For now, we will mock the successful purchase for your testing UserId:
+    if player.UserId == 5470482596 then
+        DrinksService.SkipMix(player, mixer)
+    else
+        print(`Prompting DevProduct purchase for {player.Name} to skip {mixer}...`)
+    end
 end
 
 function DrinksService.initialize()
-	Remotes.MixDrink.OnServerEvent:Connect(DrinksService.MixDrink)
-	Remotes.SkipMix.OnServerEvent:Connect(function(player, mixerId)
-		if player.UserId == 5470482596 then
-			DrinksService.SkipMix(player, mixerId)
-			return
-		end
-		DrinksService.RequestSkipMix(player, mixerId)
-	end)
-	Remotes.PickUpDrink.OnServerEvent:Connect(DrinksService.PickUpDrink)
+    Remotes.MixDrink.OnServerEvent:Connect(DrinksService.MixDrink)
+    Remotes.PickUpDrink.OnServerEvent:Connect(DrinksService.PickUpDrink)
+    Remotes.SkipMix.OnServerEvent:Connect(DrinksService.RequestSkipMix)
 end
+
 return DrinksService

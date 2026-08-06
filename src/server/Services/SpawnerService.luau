@@ -14,6 +14,10 @@ local ShopCycle = require(ReplicatedStorage.Shared.ShopCycle)
 
 local SpawnerService = {}
 
+local function warnInsufficientCash(player: Player)
+	warn(`Spawner purchase skipped for {player.Name}: insufficient cash`)
+end
+
 --
 
 function SpawnerService.RollIngredient(player: Player)
@@ -21,14 +25,14 @@ function SpawnerService.RollIngredient(player: Player)
 
 	local state = GlobalState:getState()
 	local playersStats = state.Stats[playerId]
-	local playersSpawner = state.Spawner[playerId]
+	local playersSpawner = state.Spawner[playerId] or {}
 
-	if not playersStats or not playersSpawner then
+	if not playersStats then
 		warn(`RollIngredient Failed: player({playerId}) state not found`)
 		return
 	end
-	local lucklevel = playersStats.Luck
-	local luck = 1 + (lucklevel * 8 / 100)
+	local luckLevel = tonumber(playersStats.Luck) or 1
+	local luck = 1 + (luckLevel * 8 / 100)
 
 	local earlyLuck = 1.2 -- no late
 	local midLuck = 1.8 -- most balanced.
@@ -40,17 +44,16 @@ function SpawnerService.RollIngredient(player: Player)
 		return
 	end
 
-	if lastRolled + playersStats.RollCooldown > workspace:GetServerTimeNow() then
+	local rollCooldown = math.max(0, tonumber(playersStats.RollCooldown) or 2)
+	if lastRolled + rollCooldown > workspace:GetServerTimeNow() then
 		print("not yet")
 		return
 	end
 
 	if not playersStats.TutorialCompleted then
-		local ingredients = state.Ingredients[playerId]
-		local espresso = ingredients.espresso
-		local milk = ingredients.milk
-
-		-- warn(`espresso ({espresso}), milk ({milk})`)
+		local playerIngredients = state.Ingredients[playerId] or {}
+		local espresso = playerIngredients.espresso
+		local milk = playerIngredients.milk
 
 		if not espresso or espresso < 1 then
 			GlobalState.rollIngredient(playerId, {
@@ -101,9 +104,9 @@ function SpawnerService.BuyIngredientFromSpawner(player: Player)
 
 	local state = GlobalState:getState()
 	local playersStats = state.Stats[playerId]
-	local playersSpawner = state.Spawner[playerId]
+	local playersSpawner = state.Spawner[playerId] or {}
 
-	if not playersStats or not playersSpawner then
+	if not playersStats then
 		warn(`BuyIngredientFromSpawner Failed: player({playerId}) state not found`)
 		return
 	end
@@ -122,16 +125,7 @@ function SpawnerService.BuyIngredientFromSpawner(player: Player)
 	end
 
 	if playersStats.Cash < cost then
-		print("Not enough cash to buy ingredient!")
-		local diff = cost - playersStats.Cash
-		if diff >= 10_000 then
-			MarketplaceService:PromptProductPurchase(player, BIG_DIFF)
-		elseif diff >= 2000 then
-			MarketplaceService:PromptProductPurchase(player, MID_DIFF)
-		else
-			MarketplaceService:PromptProductPurchase(player, SMALL_DIFF)
-		end
-		-- MarketplaceService:PromptProductPurchase(player, )
+		warnInsufficientCash(player)
 		return
 	end
 

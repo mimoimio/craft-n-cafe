@@ -24,6 +24,7 @@ local RECIPES = CoffeeModule.Array
 local BG = Color3.fromRGB(25, 25, 30)
 local PANEL_BG = Color3.fromRGB(37, 37, 88)
 local ITEM_BG = Color3.fromRGB(255, 201, 150)
+local IsEdit = RunService:IsStudio() and not RunService:IsRunMode()
 local ITEM_SELECTED_BG = Color3.fromRGB(255, 252, 208)
 local ITEM_BG_LOCKED = Color3.fromRGB(148, 56, 33)
 local ITEM_BG_LOCKED_SELECTED = Color3.fromRGB(122, 87, 40)

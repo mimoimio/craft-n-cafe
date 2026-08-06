@@ -155,7 +155,7 @@ function SpawnedIngredient(props: {
 			SoundController.Sound("skate-trick-1", {
 				PlaybackSpeed = 1 + (props.Index * 0.1),
 			})
-			warn("played", props.IngredientId)
+			-- warn("played", props.IngredientId)
 
 			setSize({
 				start = 0,

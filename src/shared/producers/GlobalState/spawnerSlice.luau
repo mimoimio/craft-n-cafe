@@ -30,7 +30,7 @@ local actions = {
 		return RemoveKey(state, playerId)
 	end,
 	rollIngredient = function(state: SpawnerState, playerId: string, payload: Types.RollIngredientPayload)
-		local playersSpawner = state[playerId]
+		local playersSpawner = state[playerId] or {}
 		return Set(
 			state,
 			playerId,
@@ -45,7 +45,7 @@ local actions = {
 		playerId: string,
 		payload: Types.BuyIngredientFromSpawnerPayload
 	)
-		local playersSpawner = state[playerId]
+		local playersSpawner = state[playerId] or {}
 		return Set(state, playerId, Set(playersSpawner, "IngredientIds", {}))
 	end,
 }
