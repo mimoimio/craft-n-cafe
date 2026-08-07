@@ -6,7 +6,9 @@ export type PlayerData = {
 	Drinks: { DrinkEntity },
 	Mixers: { [string]: MixerEntity },
 	Ingredients: { [string]: number },
+	ShelfCollector: ShelfCollectorEntity, -- NEW
 	Customers: { CustomerEntity },
+	Shelves: { [string]: ShelfEntity },
 	DiscoveredDrinks: {
 		[VariationId]: {
 			[DrinkId]: true,
@@ -22,21 +24,33 @@ export type PlayerData = {
 export type PlayerId = string
 export type VariationId = string
 export type DrinkId = string
+-- 2. Define the Collector State
+export type ShelfCollectorEntity = {
+	LastClaimTime: number, -- Timestamp of the last time they claimed
+
+	-- Optional future upgrades
+	MaxAccumulationTime: number?, -- e.g., 28800 seconds (8 hours)
+	CollectorLevel: number?,
+}
+
+export type ShelfCollectorState = {
+	[PlayerId]: ShelfCollectorEntity,
+}
 -- Shelves (NEW)
 export type DisplayDrink = {
-    drinkId: string,
-    variationId: string,
+	drinkId: string,
+	variationId: string,
 }
 export type ShelfEntity = {
-    ShelfId: string,
-    Slots: {
-        [string]: DisplayDrink | "none" -- Can be the DisplayDrink object or "none"
-    },
+	ShelfId: string,
+	Slots: {
+		[string]: DisplayDrink | "none", -- Can be the DisplayDrink object or "none"
+	},
 }
 export type ShelvesState = {
-    [PlayerId]: {
-        [string]: ShelfEntity
-    }
+	[PlayerId]: {
+		[string]: ShelfEntity,
+	},
 }
 -- Spawner
 export type SpawnerState = {
@@ -280,20 +294,24 @@ export type UpgradeMaxCustomerAtOnce = {
 	increment: number,
 	cost: number,
 }
+export type ClaimShelfCollectorPayload = {
+	amount: number, -- The calculated cash to add
+	timestamp: number, -- The new LastClaimTime
+}
 
 export type CombinedActions = {
-	startPlayerSession					: (playerId: PlayerId, data: PlayerData, payload: StartPlayerSessionPayload) -> (),
-	endPlayerSession					: (playerId: PlayerId) -> (),
-	mixDrink							: (playerId: PlayerId, payload: MixDrinkPayload) -> (),
-	buyIngredient						: (playerId: PlayerId, payload: BuyIngredientPayload) -> (),
-	buyIngredientBulk					: (playerId: PlayerId, payload: BuyIngredientBulkPayload) -> (),
-	refreshShop							: (playerId: PlayerId, payload: RefreshShopPayload) -> (),
-	pickUpDrinkFromMixer				: (playerId: PlayerId, payload: PickUpPayload) -> (),
-	restockDrinks						: (playerId: PlayerId, payload: RestockDrinksPayload) -> (),
-	buyMixer							: (playerId: PlayerId, payload: BuyMixerPayload) -> (),
-	upgradeLuck							: (playerId: PlayerId, payload: UpgradeLuckPayload) -> (),
-	upgradeCafeCapacity					: (playerId: PlayerId, payload: UpgradeCafeCapacityPayload) -> (),
-	placeDrinkToTableSlot				: (
+	startPlayerSession: (playerId: PlayerId, data: PlayerData, payload: StartPlayerSessionPayload) -> (),
+	endPlayerSession: (playerId: PlayerId) -> (),
+	mixDrink: (playerId: PlayerId, payload: MixDrinkPayload) -> (),
+	buyIngredient: (playerId: PlayerId, payload: BuyIngredientPayload) -> (),
+	buyIngredientBulk: (playerId: PlayerId, payload: BuyIngredientBulkPayload) -> (),
+	refreshShop: (playerId: PlayerId, payload: RefreshShopPayload) -> (),
+	pickUpDrinkFromMixer: (playerId: PlayerId, payload: PickUpPayload) -> (),
+	restockDrinks: (playerId: PlayerId, payload: RestockDrinksPayload) -> (),
+	buyMixer: (playerId: PlayerId, payload: BuyMixerPayload) -> (),
+	upgradeLuck: (playerId: PlayerId, payload: UpgradeLuckPayload) -> (),
+	upgradeCafeCapacity: (playerId: PlayerId, payload: UpgradeCafeCapacityPayload) -> (),
+	placeDrinkToTableSlot: (
 		playerId: PlayerId,
 		payload: {
 			drinkUid: string?,
@@ -311,7 +329,7 @@ export type CombinedActions = {
 
 	spawnCustomer: (playerId: PlayerId, payload: SpawnCustomerPayload) -> (),
 	customerTakeItems: (playerId: PlayerId, payload: CustomerItemPayload) -> (),
-
+	claimShelfCollector: (playerId: PlayerId, payload: ClaimShelfCollectorPayload) -> (),
 	playerReceivePayment: (
 		playerId: PlayerId,
 		payload: {
@@ -352,6 +370,7 @@ export type CoffeeConfigType = {
 	Cost: number, -- to buy the ingredient
 	Ingredients: { string }?,
 	RecipePath: { string }?, -- sorted at config initialization
+	Rate: number, -- NEW: Base passive income generated per second (or minute)
 	Instruction: string?, -- Readable
 	Image: string?,
 	Price: number, -- when selling

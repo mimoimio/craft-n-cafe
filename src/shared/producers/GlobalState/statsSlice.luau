@@ -98,6 +98,14 @@ local actions = {
 
 		return Set(state, playerId, Set(playersStats, "Cash", playersStats.Cash + payload.Cash))
 	end,
+	claimShelfCollector = function(state: StatsState, playerId: string, payload: Types.ClaimShelfCollectorPayload)
+		local playersStats = state[playerId]
+		if not playersStats then
+			return state
+		end
+
+		return Set(state, playerId, Set(playersStats, "Cash", playersStats.Cash + payload.amount))
+	end,
 	buyIngredientFromSpawner = function(
 		state: StatsState,
 		playerId: string,

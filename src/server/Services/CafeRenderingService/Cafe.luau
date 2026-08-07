@@ -112,10 +112,10 @@ local function Cafe(props: {
 			CafeModel = clonedCafe,
 		})
 		-- NEW: Add the static Shelves renderer!
-        children.shelves = e(require(script.Parent.Shelves), {
-            PlayerId = props.PlayerId,
-            CafeModel = clonedCafe,
-        })
+		children.shelves = e(require(script.Parent.Shelves), {
+			PlayerId = props.PlayerId,
+			CafeModel = clonedCafe,
+		})
 
 		children.Customers = e(Customers, {
 			PlayerId = props.PlayerId,

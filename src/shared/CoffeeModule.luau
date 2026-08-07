@@ -178,9 +178,13 @@ for index, config in ipairs(CoffeeConfigArray) do
 		config.Price += CoffeeModule.IngredientLookup[ing].Cost
 	end
 end
-CoffeeModule.SortedArray = table.sort(CoffeeConfigArray, function(a, b)
+table.sort(CoffeeConfigArray, function(a, b)
 	return a.Price < b.Price
 end)
+
+for index, config in ipairs(CoffeeConfigArray) do
+	config.Rate = index
+end
 
 function CoffeeModule.Craft(ingredients: { string }): CoffeeConfigType?
 	-- Support any number of items

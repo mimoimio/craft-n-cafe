@@ -17,7 +17,7 @@ local function Grid(props)
 			StartCorner = props.StartCorner or Enum.StartCorner.TopLeft,
 		}, {
 			_UISizeConstraint = e("UISizeConstraint", {
-				MinSize = Vector2.new(30, 30),
+				MinSize = props.MinSize or Vector2.new(30, 30),
 				-- MaxSize = Vector2.new(100, 100),
 			}),
 		}),

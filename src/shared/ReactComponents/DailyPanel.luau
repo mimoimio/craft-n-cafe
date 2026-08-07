@@ -1,4 +1,5 @@
 -- DailyPanel.luau
+local GuiService = game:GetService("GuiService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
@@ -9,6 +10,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 local HStack = require(ReplicatedStorage.Shared.ReactComponents.ui.HStack)
 local VStack = require(ReplicatedStorage.Shared.ReactComponents.ui.VStack)
+local Grid = require(ReplicatedStorage.Shared.ReactComponents.ui.Grid)
 local SmallButton = require(ReplicatedStorage.Shared.ReactComponents.ui.SmallButton)
 local SmallText = require(ReplicatedStorage.Shared.ReactComponents.ui.SmallText)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
@@ -54,10 +56,14 @@ local function Rewards(props)
 		actualCurrentDay = ((currentDay - 1) % n) + 1
 	end
 
+	local seventh
+
 	for i, config in DailyConfig do
 		local isCurrentDay = (i == actualCurrentDay)
 		local isHighlighted = isCurrentDay and canClaim
-
+		-- if i==#DailyConfig then
+		-- 	continue
+		-- end
 		-- FIX: Prevent darkening future days!
 		local cardColor
 		if isHighlighted then
@@ -120,7 +126,8 @@ local function Rewards(props)
 				}, rewards),
 			}),
 		})
-		children[i] = e("Frame", {
+
+		local currentDayReward = e("Frame", {
 			Size = UDim2.new(1, 0, 1, 0),
 			BackgroundTransparency = 1,
 		}, {
@@ -128,12 +135,13 @@ local function Rewards(props)
 				Size = UDim2.new(1, 0, 1, 0),
 				Image = "rbxassetid://103478691850846",
 				ImageColor3 = cardColor,
-				SliceCenter = Rect.new(8, 8, 90, 90),
+				SliceCenter = Rect.new(8, 8, 90, 102),
 				ScaleType = Enum.ScaleType.Slice,
 				Rounded = false,
 				BackgroundTransparency = 1,
 				AutomaticSize = Enum.AutomaticSize.None,
 				AnchorPoint = Vector2.new(0.5, 0.5),
+				HoverScale = true,
 				Position = UDim2.new(0.5, 0, 0.5, 0),
 			}, { rewardsCom }),
 
@@ -142,26 +150,53 @@ local function Rewards(props)
 				AspectType = Enum.AspectType.ScaleWithParentSize,
 			}),
 		})
+		if i == #DailyConfig then
+			seventh = currentDayReward
+		else
+			children[i] = currentDayReward
+		end
 	end
 	return e(HStack, {
 		HorizontalFlex = Enum.UIFlexAlignment.Fill,
 		Padding = { All = UDim.new(0, 8) },
 		ClipsDescendants = true,
+		VerticalAlignment = Enum.VerticalAlignment.Center
 	}, {
-		e("ScrollingFrame", {
-			Size = UDim2.new(1, 0, 1, 0),
-			ScrollingDirection = Enum.ScrollingDirection.X,
+		-- e("ScrollingFrame", {
+		-- 	Size = UDim2.new(1, 0, 1, 0),
+		-- 	ScrollingDirection = Enum.ScrollingDirection.X,
+		-- 	ClipsDescendants = false,
+		-- 	CanvasSize = UDim2.new(1, 0, 1, 0),
+		-- 	AutomaticCanvasSize = Enum.AutomaticSize.X,
+		-- 	BackgroundTransparency = 1,
+		-- 	ScrollBarThickness = 16,
+		-- }, {
+		e("Frame", {
+			Size = UDim2.new(.6, 0, 1, 0),
 			ClipsDescendants = false,
-			CanvasSize = UDim2.new(1, 0, 1, 0),
-			AutomaticCanvasSize = Enum.AutomaticSize.X,
 			BackgroundTransparency = 1,
-			ScrollBarThickness = 16,
 		}, {
-			e(HStack, {
+			e(Grid, {
 				HorizontalFlex = Enum.UIFlexAlignment.None,
-				Padding = { Bottom = UDim.new(0, 24) },
+				Padding = { Bottom = UDim.new(0, 0) },
+				-- BackgroundTransparency = 0,
+				VerticalAlignment = Enum.VerticalAlignment.Center,
 				Spacing = UDim.new(0, 8),
+				CellSize = UDim2.new(0,140,0,140),
+				FillDirectionMaxCells = 3,
 			}, children),
+		}),
+		e("Frame", {
+			Size = UDim2.new(.4, 0, 1, 0),
+			ClipsDescendants = false,
+			BackgroundTransparency = 1,
+		}, {
+			seventh
+			-- e(Grid, {
+			-- 	HorizontalFlex = Enum.UIFlexAlignment.None,
+			-- 	Padding = { Bottom = UDim.new(0, 24) },
+			-- 	Spacing = UDim.new(0, 8),
+			-- }, children),
 		}),
 	})
 end
@@ -264,7 +299,8 @@ local function DailyPanel(props: {
 	end
 
 	return e("ImageLabel", {
-		Size = UDim2.new(1, -12, 1, -100),
+		-- Size = UDim2.new(1, -12, 1, -100),
+		Size = UDim2.new(1, -20, 1, -0),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = position:map(function(n)
 			return UDim2.new(0.5 + n, 0, 0.5 + 0, 0)
@@ -283,7 +319,19 @@ local function DailyPanel(props: {
 			AspectRatio = 2,
 		}),
 		UISizeConstraint = e("UISizeConstraint", {
-			MaxSize = Vector2.new(1000, 1000),
+			MaxSize = Vector2.new(800, 800),
+		}),
+		Background = e("Frame", {
+			LayoutOrder = 2,
+			Size = UDim2.new(0,
+				workspace.CurrentCamera.ViewportSize.X + 60,
+				0,
+				workspace.CurrentCamera.ViewportSize.Y + 60)
+			,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, 0, 0.5, 0),
+			BackgroundColor3 = Color3.new(),
+			BackgroundTransparency = .8,
 		}),
 		Container = e("Frame", {
 			Size = UDim2.new(1, -20, 1, -20),
@@ -292,59 +340,60 @@ local function DailyPanel(props: {
 			BackgroundColor3 = BG,
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
+			LayoutOrder = 2,
 		}, {
 			UICorner = e("UICorner", { CornerRadius = UDim.new(0, 12) }),
 			e("UIPadding", {
-				PaddingTop = UDim.new(),
+				PaddingTop = UDim.new(0,12),
 				PaddingBottom = UDim.new(0, 12),
 				PaddingLeft = UDim.new(),
 				PaddingRight = UDim.new(),
 			}),
-			Header = e("Frame", {
-				Size = UDim2.new(1, 0, 0, 48),
-				BackgroundColor3 = PANEL_BG,
-				BackgroundTransparency = 1,
-				BorderSizePixel = 0,
-				ZIndex = 2,
-			}, {
-				UICorner = e("UICorner", { CornerRadius = UDim.new(0, 12) }),
-				BottomFill = e("Frame", {
-					Size = UDim2.new(1, 0, 0, 12),
-					Position = UDim2.new(0, 0, 1, -12),
-					BackgroundColor3 = PANEL_BG,
-					BorderSizePixel = 0,
-					BackgroundTransparency = 1,
-				}),
-				Title = e("TextLabel", {
-					Size = UDim2.new(1, -56, 1, 0),
-					Position = UDim2.new(0, 16, 0, 0),
-					BackgroundTransparency = 1,
-					Text = `Daily Rewards`,
-					TextColor3 = ACCENT,
-					TextSize = 20,
-					Font = Enum.Font.FredokaOne,
-					TextXAlignment = Enum.TextXAlignment.Center,
-				}),
-				CloseBtn = e("TextButton", {
-					Size = UDim2.new(0, 32, 0, 32),
-					Position = UDim2.new(1, -40, 0.5, 0),
-					AnchorPoint = Vector2.new(0, 0.5),
-					BackgroundColor3 = Color3.fromRGB(80, 40, 40),
-					BorderSizePixel = 0,
-					Text = "X",
-					TextColor3 = Color3.fromRGB(255, 120, 120),
-					TextSize = 16,
-					Font = Enum.Font.FredokaOne,
-					[React.Event.MouseButton1Click] = function()
-						UIState.toggle("none")
-					end,
-				}, {
-					UICorner = e("UICorner", { CornerRadius = UDim.new(0, 6) }),
-				}),
-			}),
+			-- Header = e("Frame", {
+			-- 	Size = UDim2.new(1, 0, 0, 48),
+			-- 	BackgroundColor3 = PANEL_BG,
+			-- 	BackgroundTransparency = 1,
+			-- 	BorderSizePixel = 0,
+			-- 	ZIndex = 2,
+			-- }, {
+			-- 	UICorner = e("UICorner", { CornerRadius = UDim.new(0, 12) }),
+			-- 	BottomFill = e("Frame", {
+			-- 		Size = UDim2.new(1, 0, 0, 12),
+			-- 		Position = UDim2.new(0, 0, 1, -12),
+			-- 		BackgroundColor3 = PANEL_BG,
+			-- 		BorderSizePixel = 0,
+			-- 		BackgroundTransparency = 1,
+			-- 	}),
+			-- 	Title = e("TextLabel", {
+			-- 		Size = UDim2.new(1, -56, 1, 0),
+			-- 		Position = UDim2.new(0, 16, 0, 0),
+			-- 		BackgroundTransparency = 1,
+			-- 		Text = `Daily Rewards`,
+			-- 		TextColor3 = ACCENT,
+			-- 		TextSize = 20,
+			-- 		Font = Enum.Font.FredokaOne,
+			-- 		TextXAlignment = Enum.TextXAlignment.Center,
+			-- 	}),
+			-- 	CloseBtn = e("TextButton", {
+			-- 		Size = UDim2.new(0, 32, 0, 32),
+			-- 		Position = UDim2.new(1, -40, 0.5, 0),
+			-- 		AnchorPoint = Vector2.new(0, 0.5),
+			-- 		BackgroundColor3 = Color3.fromRGB(80, 40, 40),
+			-- 		BorderSizePixel = 0,
+			-- 		Text = "X",
+			-- 		TextColor3 = Color3.fromRGB(255, 120, 120),
+			-- 		TextSize = 16,
+			-- 		Font = Enum.Font.FredokaOne,
+			-- 		[React.Event.MouseButton1Click] = function()
+			-- 			UIState.toggle("none")
+			-- 		end,
+			-- 	}, {
+			-- 		UICorner = e("UICorner", { CornerRadius = UDim.new(0, 6) }),
+			-- 	}),
+			-- }),
 			Body = e(HStack, {
-				Size = UDim2.new(1, 0, 1, -48),
-				Position = UDim2.new(0, 0, 0, 48),
+				Size = UDim2.new(1, 0, 1, -24),
+				Position = UDim2.new(0, 0, 0, 0),
 				BackgroundTransparency = 1,
 				Padding = { All = UDim.new() },
 			}, {
@@ -355,6 +404,7 @@ local function DailyPanel(props: {
 					BackgroundColor3 = PANEL_BG,
 					Image = "rbxassetid://127657596958436",
 					ImageColor3 = Color3.new(0.505882, 0.254901, 0.254901),
+					ImageTransparency = 1,
 					ScaleType = Enum.ScaleType.Slice,
 					SliceCenter = Rect.new(8, 8, 92, 92),
 					BorderSizePixel = 0,
@@ -367,6 +417,7 @@ local function DailyPanel(props: {
 			}),
 		}),
 		e(SmallButton, {
+			LayoutOrder = 3,
 			Text = canClaim and "Claim!" or "Claimed Today!",
 			[React.Event.Activated] = function()
 				if canClaim then

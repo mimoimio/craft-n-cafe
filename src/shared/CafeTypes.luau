@@ -30,6 +30,11 @@ export type Cafe = Model & {
 		Shelf5: Shelf,
 		Shelf6: Shelf,
 	},
+	ShelfCollector: Model & {
+		Part: Part & {
+			TriggerPrompt: ProximityPrompt,
+		},
+	},
 	Entrance: Part,
 	StandSpots: Model & { Part },
 }

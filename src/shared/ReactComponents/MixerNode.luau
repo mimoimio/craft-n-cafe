@@ -14,6 +14,7 @@ local VStack = require(script.Parent.ui.VStack)
 local ReactFlow = require(ReplicatedStorage.Packages.ReactFlow)
 local useSpring = ReactFlow.useSpring
 local SmallButton = require(script.Parent.ui.SmallButton)
+local SmallText = require(script.Parent.ui.SmallText) -- Added SmallText import
 
 local BuildersIcon = require(ReplicatedStorage.Shared.Utils.BuildersIcon)
 local useInputDevice = require(ReplicatedStorage.Shared.Hooks.useInputDevice)
@@ -200,6 +201,8 @@ local function MixerNode(props: {
 
 		prompt.ActionText = isOccupied and "Pick Up" or "Craft"
 		prompt.Style = Enum.ProximityPromptStyle.Custom
+		prompt.RequiresLineOfSight = false
+		
 
 		local conn = prompt.Triggered:Connect(function(player)
 			if player == Players.LocalPlayer then
@@ -342,7 +345,6 @@ local function MixerNode(props: {
 				OutlineTransparency = 0,
 			}) or nil,
 			WhenOccupied = progressBar and e(VStack, {
-				-- Size = UDim2.new(0, 100, 0, 100),
 				Size = UDim2.new(1, 0, 1, 0),
 				BackgroundColor3 = Color3.new(0.15, 0.15, 0.15),
 				HorizontalFlex = Enum.UIFlexAlignment.None,
@@ -364,15 +366,16 @@ local function MixerNode(props: {
 			Active = true,
 		}, {
 			SmallButton = shown and e(SmallButton, {
-				Text = time:map(textMap),
-				RichText = true,
-				TextXAlignment = Enum.TextXAlignment.Center,
 				AnchorPoint = Vector2.new(0.5, 0),
 				Size = UDim2.new(1.2, 0, 0.5, 0),
 				Position = UDim2.new(0.5, 0, 0.5, 0),
-				BackgroundColor3 = Color3.new(0, 1, 0),
-				TextSize = 24,
-				TextWrapped = false,
+				BackgroundTransparency = 1,
+				Image = "rbxassetid://127657596958436",
+				Rounded = false,
+				ScaleType = Enum.ScaleType.Slice,
+				HoverScale = true,
+				SliceCenter = Rect.new(8, 8, 92, 92),
+				ImageColor3 = Color3.new(0, 1, 0),
 				[React.Event.MouseButton1Down] = function()
 					if prompt then
 						prompt:InputHoldBegin()
@@ -383,6 +386,18 @@ local function MixerNode(props: {
 						prompt:InputHoldEnd()
 					end
 				end,
+			}, {
+				e(SmallText, {
+					Text = time:map(textMap),
+					Size = UDim2.new(1, 0, 1, 0),
+					BackgroundTransparency = 1,
+					RichText = true,
+					TextSize = 24,
+					TextWrapped = false,
+					AutomaticSize = Enum.AutomaticSize.None,
+					TextXAlignment = Enum.TextXAlignment.Center,
+					TextYAlignment = Enum.TextYAlignment.Center,
+				})
 			}),
 		}),
 	})

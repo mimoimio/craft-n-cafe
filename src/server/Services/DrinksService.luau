@@ -107,6 +107,11 @@ function DrinksService.PickUpDrink(player: Player, mixer: string)
 		return
 	end
 
+	if #playersDrinks < 1 then
+		local ShelfCollectorService = require(ServerScriptService.Server.Services.ShelfCollectorService)
+		ShelfCollectorService.Claim(player)
+	end
+
 	GlobalState.pickUpDrinkFromMixer(playerId, {
 		id = HttpService:GenerateGUID(),
 		drinkId = mixerDrink,
@@ -150,20 +155,20 @@ function DrinksService.SkipMix(player: Player, mixer: string)
 	})
 end
 function DrinksService.RequestSkipMix(player: Player, mixer: string)
-    -- [[ SYSTEM CONTROLLED: Client calls this to initiate purchase ]]
-    -- TODO: Integrate MarketplaceService:PromptProductPurchase here!
-    -- For now, we will mock the successful purchase for your testing UserId:
-    if player.UserId == 5470482596 then
-        DrinksService.SkipMix(player, mixer)
-    else
-        print(`Prompting DevProduct purchase for {player.Name} to skip {mixer}...`)
-    end
+	-- [[ SYSTEM CONTROLLED: Client calls this to initiate purchase ]]
+	-- TODO: Integrate MarketplaceService:PromptProductPurchase here!
+	-- For now, we will mock the successful purchase for your testing UserId:
+	if player.UserId == 5470482596 then
+		DrinksService.SkipMix(player, mixer)
+	else
+		print(`Prompting DevProduct purchase for {player.Name} to skip {mixer}...`)
+	end
 end
 
 function DrinksService.initialize()
-    Remotes.MixDrink.OnServerEvent:Connect(DrinksService.MixDrink)
-    Remotes.PickUpDrink.OnServerEvent:Connect(DrinksService.PickUpDrink)
-    Remotes.SkipMix.OnServerEvent:Connect(DrinksService.RequestSkipMix)
+	Remotes.MixDrink.OnServerEvent:Connect(DrinksService.MixDrink)
+	Remotes.PickUpDrink.OnServerEvent:Connect(DrinksService.PickUpDrink)
+	Remotes.SkipMix.OnServerEvent:Connect(DrinksService.RequestSkipMix)
 end
 
 return DrinksService

@@ -64,6 +64,12 @@ local CafeBase = function(props: {})
 			promise:cancel()
 		end
 	end, {})
+
+	-- feedbackprompt
+	useEffect(function()
+		
+	end)
+
 	useEffect(function()
 		UIState.setCafeBase(cafeBase)
 	end, { cafeBase })

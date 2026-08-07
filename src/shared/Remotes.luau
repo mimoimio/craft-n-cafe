@@ -93,4 +93,5 @@ return {
 	UpgradeCafeCapacity = CreateRemote("UpgradeCafeCapacity"),
 	-- ShortenRollCooldown = CreateRemote("ShortenRollCooldown"),
 	LogTutorialStep = CreateRemote("LogTutorialStep"),
+	ClaimShelfCollector = CreateRemote("ClaimShelfCollector"),
 }

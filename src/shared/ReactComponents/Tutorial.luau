@@ -176,7 +176,8 @@ local function PointerBeam(props: { Adornee: PVInstance? })
 	return e("BillboardGui", {
 		Adornee = props.Adornee,
 		AlwaysOnTop = true,
-		Size = UDim2.new(0, 1000, 0, 1000),
+		Size = UDim2.new(0, 300, 0, 300),
+		SizeOffset = Vector2.new(0, 1 / 3),
 	}, {
 		Holder = e("Frame", {
 			Size = UDim2.new(0, 50, 0, 50),
@@ -399,13 +400,13 @@ return function()
 			newStep = 13
 		elseif globalStates.MixerFilled then
 			newStep = 12
-		elseif uiStates.IsMilkInserted then
+		elseif uiStates.IsMilkInserted and uiStates.IsEspressoInserted then
 			newStep = 11
 		elseif uiStates.IsEspressoInserted then
 			newStep = 10
-		elseif uiStates.Panel == "mixer" then
+		elseif uiStates.Panel == "mixer" and globalStates.MilkBought and globalStates.EspressoBought then
 			newStep = 9
-		elseif uiStates.MixerNodeShown == "Mixer1" then
+		elseif uiStates.MixerNodeShown == "Mixer1" and globalStates.MilkBought and globalStates.EspressoBought then
 			newStep = 8
 		elseif globalStates.MilkBought then
 			newStep = 7

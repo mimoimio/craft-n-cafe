@@ -15,7 +15,7 @@ local Types = require(ReplicatedStorage.Shared.Types)
 local Signal = require(game.ReplicatedStorage.Packages.Signal)
 local ShopCycle = require(game.ReplicatedStorage.Shared.ShopCycle)
 
-local IS_PLAYTESTING = true
+-- local IS_PLAYTESTING = true
 
 local DrinksBrewedLeaderboard = DataStoreService:GetOrderedDataStore("DrinksBrewed")
 
@@ -40,18 +40,18 @@ type PlayerData = Types.PlayerData
 type Profile = ProfileStoreModule.Profile<PlayerData> -- Typed Profile object
 -- Helper to quickly generate our 6 shelves without cluttering the file!
 local function generateEmptyShelves()
-    local shelves = {}
-    for shelfIndex = 1, 6 do
-        local slots = {}
-        for slotIndex = 1, 20 do
-            slots["Slot" .. tostring(slotIndex)] = "none"
-        end
-        shelves["Shelf" .. tostring(shelfIndex)] = {
-            ShelfId = "basicshelf",
-            Slots = slots
-        }
-    end
-    return shelves
+	local shelves = {}
+	for shelfIndex = 1, 6 do
+		local slots = {}
+		for slotIndex = 1, 20 do
+			slots["Slot" .. tostring(slotIndex)] = "none"
+		end
+		shelves["Shelf" .. tostring(shelfIndex)] = {
+			ShelfId = "basicshelf",
+			Slots = slots,
+		}
+	end
+	return shelves
 end
 local PROFILE_TEMPLATE: PlayerData = {
 	Stats = {
@@ -76,8 +76,7 @@ local PROFILE_TEMPLATE: PlayerData = {
 			Slots = { Slot1 = "none", Slot2 = "none", Slot3 = "none", Slot4 = "none" },
 		},
 	},
-	Drinks = {
-	},
+	Drinks = {},
 	Mixers = {
 		Mixer1 = { drinkId = "none" },
 	},
@@ -251,7 +250,7 @@ local broadcaster = Reflex.createBroadcaster({
 		for sliceName, slice in state do
 			if slice[playerId] then
 				filteredState[sliceName] = {
-					[playerId] = slice[playerId]
+					[playerId] = slice[playerId],
 				}
 			end
 		end

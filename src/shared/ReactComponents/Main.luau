@@ -37,6 +37,7 @@ local Spawner = require(script.Parent.Spawner)
 local TableManager = require(script.Parent.TableManager)
 local Mailbox = require(script.Parent.Mailbox)
 local CafeBase = require(script.Parent.CafeBase)
+local CafeModel = require(script.Parent.CafeModel)
 local VStack = require(script.Parent.ui.VStack)
 
 local player = game.Players.LocalPlayer
@@ -172,6 +173,7 @@ local function Main(props)
 		Tables = e(TableManager),
 		Mailbox = e(Mailbox),
 		CafeBase = e(CafeBase),
+		CafeModel = e(CafeModel),
 
 		-- Active Panel Overlay
 		ActiveOverlay = e("Frame", {
@@ -258,7 +260,7 @@ local function Main(props)
 				Rounded = false,
 				[React.Event.Activated] = function()
 					local cf, s = UIState:getState().cafeBase.Cafe:WaitForChild("SpawnPoint"):GetPivot()
-					Players.LocalPlayer.Character:PivotTo((cf + Vector3.new(0, 5, 0)) )
+					Players.LocalPlayer.Character:PivotTo((cf + Vector3.new(0, 5, 0)))
 					UIState.toggle("none")
 				end,
 				ImageColor3 = Color3.new(0, 1, 0.368627),

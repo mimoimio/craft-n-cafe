@@ -1,10 +1,37 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundController = require(game.ReplicatedStorage.Shared.Controllers.SoundController)
 local React = require(ReplicatedStorage.Packages.React)
+local ReactFlow = require(ReplicatedStorage.Packages.ReactFlow)
 local e = React.createElement
+local useSpring = ReactFlow.useSpring
+local useEffect = React.useEffect
 
 local function SmallButton(props)
-	local scale, setScale = React.useBinding(1)
+	local visible = props.Visible == true and true or props.Visible == false and false or true
+	-- only not visible when expicitly stated so
+	
+	local scale, setScale = useSpring({
+				start = 1,
+				target = 1,
+				damper = 0.8,
+				speed = 10,
+			})
+	useEffect(function()
+		if not visible then
+			setScale({
+				target = 0,
+				damper = 0.8,
+				speed = 10,
+			})
+			return
+		end
+		setScale({
+			start = 0,
+			target = 1,
+			damper = 0.8,
+			speed = 10,
+		})
+	end, {visible})
 
 	local buttonClass = props.ButtonClass
 	if buttonClass == nil then
@@ -23,7 +50,7 @@ local function SmallButton(props)
 		LayoutOrder = props.LayoutOrder,
 		Size = props.Size or UDim2.new(0, 48, 0, 48),
 		Rotation = props.Rotation,
-		Visible = props.Visible,
+		Visible = visible,
 		TextTruncate = props.TextTruncate,
 		Position = props.Position,
 		AnchorPoint = props.AnchorPoint,
@@ -40,11 +67,19 @@ local function SmallButton(props)
 			-- SoundController.Sound("Click")
 		end or nil,
 		[React.Event.MouseEnter] = function()
-			setScale(1.05)
+			setScale({
+				target = 1.05,
+				speed = 10,
+				damper = 0.8,
+			})
 			-- SoundController.Sound("Plink")
 		end,
 		[React.Event.MouseLeave] = function()
-			setScale(1)
+			setScale({
+				target = 1,
+				speed = 10,
+				damper = 0.8,
+			})
 			-- SoundController.Sound("drop_001")
 		end,
 		[React.Event.MouseButton1Down] = props[React.Event.MouseButton1Down],

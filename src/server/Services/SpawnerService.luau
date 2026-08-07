@@ -15,7 +15,7 @@ local ShopCycle = require(ReplicatedStorage.Shared.ShopCycle)
 local SpawnerService = {}
 
 local function warnInsufficientCash(player: Player)
-	warn(`Spawner purchase skipped for {player.Name}: insufficient cash`)
+	print(`Spawner purchase skipped for {player.Name}: insufficient cash`)
 end
 
 --
@@ -32,9 +32,9 @@ function SpawnerService.RollIngredient(player: Player)
 		return
 	end
 	local luckLevel = tonumber(playersStats.Luck) or 1
-	local luck = 1 + (luckLevel * 8 / 100)
+	local luck = 1 + (luckLevel * 4 / 100)
 
-	local earlyLuck = 1.2 -- no late
+	local earlyLuck = 1.2 -- no latee
 	local midLuck = 1.8 -- most balanced.
 	local lateLuck = 5 -- no early
 

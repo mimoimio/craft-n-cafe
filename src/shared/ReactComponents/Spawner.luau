@@ -79,6 +79,7 @@ function SpawnedIngredient(props: {
 
 		local isCancelled = false
 		local activeModel = nil
+		local spinPool = {} -- Keeps track of cloned models to reuse
 		local cframeValue = nil
 		local scaleValue = nil
 		local updateConn = nil
@@ -87,9 +88,19 @@ function SpawnedIngredient(props: {
 
 		local function cleanup()
 			isCancelled = true
+
 			if activeModel then
 				activeModel:Destroy()
 			end
+
+			-- Destroy all pooled models to free up memory when phase changes
+			for _, pooledModel in pairs(spinPool) do
+				if pooledModel then
+					pooledModel:Destroy()
+				end
+			end
+			table.clear(spinPool)
+
 			if cframeValue then
 				cframeValue:Destroy()
 			end
@@ -129,14 +140,25 @@ function SpawnedIngredient(props: {
 			spinThread = task.defer(function()
 				local cache = props.ModelsCache
 				while not isCancelled and cache and #cache > 0 do
-					if activeModel then
-						activeModel:Destroy()
-					end
-					activeModel = cache[math.random(1, #cache)]:Clone()
+					local randomIndex = math.random(1, #cache)
+					local nextModel = spinPool[randomIndex]
 
+					-- Lazy clone: Only clone if we haven't rolled this specific model yet
+					if not nextModel then
+						nextModel = cache[randomIndex]:Clone()
+						spinPool[randomIndex] = nextModel
+					end
+
+					-- REPARENT logic: Hide the old one, show the new one. No destroying!
+					if activeModel and activeModel ~= nextModel then
+						activeModel.Parent = nil
+					end
+
+					activeModel = nextModel
 					activeModel:PivotTo(cframeValue.Value)
 					activeModel.Parent = workspace
 					activeModel:ScaleTo(1)
+
 					task.wait(0.1)
 				end
 			end)
@@ -688,8 +710,6 @@ function BuyPadNode(props: { Instance: Instance?, IngredientIds: { string }?, Ti
 							AnchorPoint = Vector2.new(0.5, 0),
 							Size = UDim2.new(1.2, 0, 0.5, 0),
 							Position = UDim2.new(0.5, 0, 0.5, 0),
-							-- BackgroundColor3 = (totalCost > 0 and cash and totalCost > cash) and Color3.new(1, 0, 0)
-							-- 	or Color3.new(0, 1, 0),
 							TextWrapped = false,
 							[React.Event.Activated] = function()
 								Remotes.BuyIngredientFromSpawner:FireServer()
@@ -708,7 +728,7 @@ function BuyPadNode(props: { Instance: Instance?, IngredientIds: { string }?, Ti
 								Size = UDim2.new(1, 0, 1, 0),
 								BackgroundTransparency = 1,
 								RichText = true,
-								TextWrapped = true,
+								TextWrapped = false,
 								TextSize = 32,
 								AutomaticSize = Enum.AutomaticSize.None,
 								TextXAlignment = Enum.TextXAlignment.Center,
