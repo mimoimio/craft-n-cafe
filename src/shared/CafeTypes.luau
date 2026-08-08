@@ -35,6 +35,9 @@ export type Cafe = Model & {
 			TriggerPrompt: ProximityPrompt,
 		},
 	},
+	FeedbackPrompt: Part & {
+		ProximityPrompt: ProximityPrompt,
+	},
 	Entrance: Part,
 	StandSpots: Model & { Part },
 }
@@ -44,14 +47,16 @@ export type Shelf = Model & {
 	ShelfSlots: ShelfSlots,
 }
 export type ShelfSlots = Model & {
-	Slot1: Slot,
-	Slot2: Slot,
-	Slot3: Slot,
-	Slot4: Slot,
-	Slot5: Slot,
+	Slot1: ShelfSlot,
+	Slot2: ShelfSlot,
+	Slot3: ShelfSlot,
+	Slot4: ShelfSlot,
+	Slot5: ShelfSlot,
 	-- ... Slot20
 }
-export type ShelfSlot = Part
+export type ShelfSlot = Part & {
+	DisplayPart: Part,
+}
 
 --Tables
 export type Table = Model & {

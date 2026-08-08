@@ -9,19 +9,19 @@ local useEffect = React.useEffect
 local function SmallButton(props)
 	local visible = props.Visible == true and true or props.Visible == false and false or true
 	-- only not visible when expicitly stated so
-	
+
 	local scale, setScale = useSpring({
-				start = 1,
-				target = 1,
-				damper = 0.8,
-				speed = 10,
-			})
+		start = 1,
+		target = 1,
+		damper = 0.8,
+		speed = 40,
+	})
 	useEffect(function()
 		if not visible then
 			setScale({
 				target = 0,
 				damper = 0.8,
-				speed = 10,
+				speed = 40,
 			})
 			return
 		end
@@ -29,9 +29,9 @@ local function SmallButton(props)
 			start = 0,
 			target = 1,
 			damper = 0.8,
-			speed = 10,
+			speed = 40,
 		})
-	end, {visible})
+	end, { visible })
 
 	local buttonClass = props.ButtonClass
 	if buttonClass == nil then
@@ -69,7 +69,7 @@ local function SmallButton(props)
 		[React.Event.MouseEnter] = function()
 			setScale({
 				target = 1.05,
-				speed = 10,
+				speed = 40,
 				damper = 0.8,
 			})
 			-- SoundController.Sound("Plink")
@@ -77,7 +77,7 @@ local function SmallButton(props)
 		[React.Event.MouseLeave] = function()
 			setScale({
 				target = 1,
-				speed = 10,
+				speed = 40,
 				damper = 0.8,
 			})
 			-- SoundController.Sound("drop_001")

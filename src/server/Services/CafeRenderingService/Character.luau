@@ -54,11 +54,12 @@ local function Character(props: {
 				d.CollisionGroup = "Players"
 			end
 		end
-		local promise = Promise.defer(function()
+		local promise = Promise.defer(function(resolve)
 			local cafe = props.BaseModel:WaitForChild("Cafe")
 			-- local cf, _s = cafe:GetBoundingBox()
 			local cf = cafe:WaitForChild("SpawnPoint"):GetPivot()
 			character:PivotTo((cf + Vector3.new(0, 5, 0)))
+			return resolve()
 		end):catch(function(err)
 			warn(`Character pivot error: {tostring(err)}`)
 		end)

@@ -23,9 +23,11 @@ local actions = {
 	startPlayerSession = function(state: MixersState, playerId: string, data: PlayerData)
 		return Set(state, playerId, data.Mixers)
 	end,
+
 	endPlayerSession = function(state: MixersState, playerId: string, data: PlayerData)
 		return RemoveKey(state, playerId)
 	end,
+
 	mixDrink = function(state: MixersState, playerId: string, payload: Types.MixDrinkPayload)
 		local playersMixers = state[playerId]
 		if not playersMixers then
@@ -38,9 +40,11 @@ local actions = {
 		mixer.drinkId = payload.drinkId
 		mixer.startTime = payload.startTime
 		mixer.variationId = payload.variationId
+		mixer.size = payload.size -- NEW: Store the rolled size!
 
 		return Set(state, playerId, Set(playersMixers, mixerId, mixer))
 	end,
+
 	pickUpDrinkFromMixer = function(state: MixersState, playerId: string, payload: Types.PickUpPayload)
 		local playersMixers = state[playerId]
 		if not playersMixers then
@@ -50,10 +54,16 @@ local actions = {
 		local newMixer = Merge(playersMixers[mixerId], {
 			drinkId = "none",
 		})
+
+		-- Clean up state completely when the mixer empties
 		newMixer.startTime = nil
+		newMixer.variationId = nil
+		newMixer.size = nil
+
 		return Set(state, playerId, Set(playersMixers, mixerId, newMixer))
 	end,
-	skipMix = function(state: MixersState, playerId: string, payload: Types.PickUpPayload)
+
+	skipMix = function(state: MixersState, playerId: string, payload: any) -- Typed as any to bypass strict PickUpPayload check for newTime
 		local playersMixers = state[playerId]
 		if not playersMixers then
 			return state
@@ -64,6 +74,7 @@ local actions = {
 		})
 		return Set(state, playerId, Set(playersMixers, mixerId, newMixer))
 	end,
+
 	buyMixer = function(state: MixersState, playerId: string, payload: Types.BuyMixerPayload)
 		local playerMixers = state[playerId]
 		if not playerMixers then

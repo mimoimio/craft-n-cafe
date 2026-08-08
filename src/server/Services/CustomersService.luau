@@ -16,6 +16,7 @@ local rng = Random.new()
 type CustomerDrink = {
 	drinkId: string,
 	variationId: string?,
+	size: number?, -- NEW: Ensure size is tracked per drink for the customer
 }
 
 -- Dictionary to track when we last spawned a customer for a player
@@ -23,13 +24,6 @@ local lastSpawnTimes = {}
 
 local function getPrice(drinkId: string): number
 	local config = CoffeeModule.Config[drinkId]
-	-- if config then
-	-- 	local price = 0
-	-- 	for i, ing in config.Ingredients do
-	-- 		price += CoffeeModule.Config[ing].Price
-	-- 	end
-	-- 	return price
-	-- end
 	return config.Price
 end
 
@@ -97,10 +91,6 @@ function CustomersService.CustomerTakeItems(playerId: string, customerUid: strin
 	local maxDrinksPerCustomer = math.max(1, playersStats.MaxDrinksPerCustomer or 3)
 
 	local drinkCount = rng:NextInteger(1, math.min(maxDrinksPerCustomer, totalDrinkAmount))
-	-- maxDrinksPerCustomer: number later use this. first level is nothing
-	-- then a tray
-	-- then a basket
-	-- then a shopping cart
 
 	for i = #availableDrinks, 2, -1 do
 		local j = rng:NextInteger(1, i)
@@ -112,18 +102,12 @@ function CustomersService.CustomerTakeItems(playerId: string, customerUid: strin
 
 	local drinksTaken = 0
 
-	-- warn(`MaxDrinksPerCustomer: {MaxDrinksPerCustomer}`)
 	local moderate = totalDrinkAmount > 20
 	local lots = totalDrinkAmount > 40
 
 	for i, drink in availableDrinks do
 		local drinksLeft = maxDrinksPerCustomer - drinksTaken
 		local max = math.min(drink.stock, maxDrinksPerCustomer, drinksLeft)
-
-		-- the more the available drinks, the lesser the possibility to haul it all
-		-- local skewedToLeast = (rng:NextNumber() * rng:NextNumber() * rng:NextNumber() * max) -- 3x
-		-- local normal = (rng:NextNumber() * rng:NextNumber() * max) -- 2x
-		-- local possibleAmount = lots and skewedToLeast or moderate and normal or max
 
 		local possibleAmount = max
 		local randomAmount = math.round(rng:NextNumber() * possibleAmount)
@@ -136,15 +120,14 @@ function CustomersService.CustomerTakeItems(playerId: string, customerUid: strin
 			table.insert(drinkEntities, {
 				drinkId = drink.drinkId,
 				variationId = drink.variationId,
+				size = drink.size or 1, -- NEW: Customer snags the size of the drink from the table
 			})
 		end
 		drinksTaken += randomAmount
 		if drinksTaken >= maxDrinksPerCustomer then
-			-- warn(`broke. drinksTaken: {drinksTaken}`)
 			break
 		end
 	end
-	-- warn(`total drinkEntities: {#drinkEntities}`)
 
 	local depletedDrinks = {}
 	for i, drink in pairs(drinks) do
@@ -197,8 +180,9 @@ function CustomersService.TendCustomer(player: Player, uid: string)
 		local variationId = customerDrink.variationId
 		local variation = variationId and VariationsConfig[variationId] or nil
 		local mult = variation and variation.Multiplier or 1
+		local sizeMult = customerDrink.size or 1 -- NEW: Multiply by the drink's size
 
-		total += getPrice(customerDrink.drinkId) * mult
+		total += getPrice(customerDrink.drinkId) * mult * sizeMult
 	end
 
 	local bonus = 1
@@ -246,14 +230,12 @@ function CustomersService.initialize()
 					table.insert(activePlayerCustomers, customer)
 				end
 
-				-- Cafe Open Check. If Spawning is toggled off, skip the spawn. Keep other actions.
 				-- 1. Evaluate Spawning Phase
 				local lastSpawn = lastSpawnTimes[playerId] or 0
 
-				-- local randomInterval = 0
 				local randomInterval = (
 					SPAWN_INTERVAL - (rng:NextNumber() * rng:NextNumber() * rng:NextNumber() * 8) // 1
-				) -- later I should change random based on something else
+				)
 
 				if
 					now - lastSpawn >= randomInterval
@@ -285,7 +267,6 @@ function CustomersService.initialize()
 								GlobalState.customerLeaveEmptyHanded(playerId, {
 									customerUid = customer.id,
 									timestamp = workspace:GetServerTimeNow(),
-									-- reason = reason,
 								})
 							end
 						end
@@ -295,9 +276,6 @@ function CustomersService.initialize()
 							GlobalState.removeCustomer(playerId, customer.id)
 						end
 					end
-
-					-- Notice we don't have an automatic check for "queuing".
-					-- They are stuck in that state indefinitely until `TendCustomer` fires.
 				end
 			end
 		end

@@ -3,7 +3,6 @@
 
 local GAME_IDs = {
 	[9692753637] = true,
-	[10457683856] = true,
 	[9907213736] = true,
 	[10623316359] = true,
 }
@@ -135,9 +134,9 @@ local function renderZoo()
 	-- Get CoffeeConfig (clone module to avoid caching)
 	local CoffeeConfig
 	local success, err = pcall(function()
-		local coffeeModuleOriginal = ReplicatedStorage.Shared.CoffeeModule
+		local coffeeModuleOriginal = ReplicatedStorage.Shared.Configs.CoffeeConfig
 		local coffeeModuleClone = coffeeModuleOriginal:Clone()
-		CoffeeConfig = require(coffeeModuleClone).Array
+		CoffeeConfig = require(coffeeModuleClone)
 		coffeeModuleClone:Destroy()
 	end)
 
@@ -157,15 +156,15 @@ local function renderZoo()
 	end
 
 	-- Sort alphabetically
-	-- table.sort(items, function(a, b)
-	-- 	local ia, ib = a.ingredients, b.ingredients
-	-- 	local na, nb = (ia and #ia or 0), (ib and #ib or 0)
-	-- 	local same = na == nb
-	-- 	if same then
-	-- 		return a.name < b.name
-	-- 	end
-	-- 	return na < nb
-	-- end)
+	table.sort(items, function(a, b)
+		local ia, ib = a.ingredients, b.ingredients
+		local na, nb = (ia and #ia or 0), (ib and #ib or 0)
+		local same = na == nb
+		if same then
+			return a.name < b.name
+		end
+		return na < nb
+	end)
 
 	-- Create grid
 	local startPosition = Vector3.new(0, 10, 0)

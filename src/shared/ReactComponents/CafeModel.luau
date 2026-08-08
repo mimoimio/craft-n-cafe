@@ -16,6 +16,7 @@ local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
 
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local ShelfCollectorUI = require(game.ReplicatedStorage.Shared.ReactComponents.ShelfCollectorUI)
+local ShelfManager = require(game.ReplicatedStorage.Shared.ReactComponents.ShelfManager)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConfig)
@@ -86,6 +87,7 @@ local CafeModel = function(props: {})
 
 			local collector = cafeModel:WaitForChild("ShelfCollector")
 			setShelfCollector(collector)
+			return resolve()
 		end):catch(function(err)
 			warn(`React/CafeModel err:{err}`)
 		end)
@@ -97,7 +99,7 @@ local CafeModel = function(props: {})
 	local children = {}
 	children.feedbackPrompt = prompt and e(feedbackPrompt, { prompt = prompt }) or nil
 	children.shelfCollector = shelfCollector and e(ShelfCollectorUI, { collectorModel = shelfCollector }) or nil
-
+	children.shelfManager = e(ShelfManager, { CafeModel = cafeModel })
 	return e(React.Fragment, nil, children)
 end
 

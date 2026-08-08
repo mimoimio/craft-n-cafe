@@ -25,9 +25,9 @@ local function calculateTotalShelfRate(playerId: string): number
 			if type(slotData) == "table" and slotData.drinkId then
 				local config = CoffeeModule.Config[slotData.drinkId]
 				local variation = VariationsConfig[slotData.variationId] or VariationsConfig["none"]
-
 				if config and config.Rate then
-					totalRate += (config.Rate * variation.Multiplier)
+					local sizeMultiplier = slotData.size or 1
+					totalRate += (config.Rate * variation.Multiplier * sizeMultiplier)
 				end
 			end
 		end

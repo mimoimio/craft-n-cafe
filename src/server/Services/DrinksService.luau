@@ -7,10 +7,10 @@ local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 local Types = require(ReplicatedStorage.Shared.Types)
 
-local function getVariation(): Types.VariationConfig
+local function getVariationAndSize(): Types.VariationConfig
 	local VariationService = require(ServerScriptService.Server.Services.VariationService)
 
-	return VariationService.GetVariation()
+	return VariationService.GetVariation(), VariationService.GetSize()
 end
 
 local DrinksService = {}
@@ -60,13 +60,16 @@ function DrinksService.MixDrink(player: Player, drinkId: string, mixer: string)
 		end
 	end
 
-	local variation = getVariation()
+	local variation, size = getVariationAndSize()
+
+	-- warn(`mixDrink size:{size}`)
 	GlobalState.mixDrink(playerId, {
 		drinkId = drinkId,
 		ingredients = ingredients,
 		mixer = mixer,
 		startTime = workspace:GetServerTimeNow(),
 		variationId = variation and variation.VariationId or nil,
+		size = size, -- Pass it to state
 	})
 end
 function DrinksService.PickUpDrink(player: Player, mixer: string)
@@ -79,10 +82,10 @@ function DrinksService.PickUpDrink(player: Player, mixer: string)
 
 	-- ensure player
 	local state = GlobalState:getState()
-	local playersDrinks = state.Drinks[playerId]
+	local shelves = state.Shelves[playerId]
 	local playersMixers = state.Mixers[playerId]
 
-	if not playersDrinks then
+	if not shelves then
 		warn(`PickUpDrink Failed: player({playerId})'s drinks not found`)
 		return
 	end
@@ -107,16 +110,28 @@ function DrinksService.PickUpDrink(player: Player, mixer: string)
 		return
 	end
 
-	if #playersDrinks < 1 then
+	local displayedCount = 0
+	for i, shelf in shelves do
+		for j, slot in shelf.Slots do
+			if slot ~= "none" then
+				displayedCount += 1
+			end
+		end
+	end
+	if displayedCount < 1 then
+		-- set last collected to now
 		local ShelfCollectorService = require(ServerScriptService.Server.Services.ShelfCollectorService)
 		ShelfCollectorService.Claim(player)
 	end
+
+	-- warn(`targetMixer.size {targetMixer.size}`)
 
 	GlobalState.pickUpDrinkFromMixer(playerId, {
 		id = HttpService:GenerateGUID(),
 		drinkId = mixerDrink,
 		stock = config.InitialStock,
 		variationId = targetMixer.variationId,
+		size = targetMixer.size or 1,
 		mixer = mixer,
 	})
 end

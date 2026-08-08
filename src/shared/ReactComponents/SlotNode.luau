@@ -33,7 +33,7 @@ local function SlotNode(props: {
 	local currentInput = useInputDevice()
 
 	local playerId = tostring(Players.LocalPlayer.UserId)
-	local drink, setDrink = useState(nil)
+	local drink: Types.DrinkEntity, setDrink = useState(nil)
 	local on, setOn = useState(false)
 
 	-- State to hold our asynchronously resolved instances
@@ -191,9 +191,15 @@ local function SlotNode(props: {
 		or nil
 
 	-- Derived dynamically from the custom hook!
-	local interactIcon = prompt 
-		and BuildersIcon.GetPromptText(currentInput == "Gamepad" and prompt.GamepadKeyCode or prompt.KeyboardKeyCode, currentInput)
-		or BuildersIcon.GetPromptText(currentInput == "Gamepad" and Enum.KeyCode.ButtonX or Enum.KeyCode.E, currentInput)
+	local interactIcon = prompt
+			and BuildersIcon.GetPromptText(
+				currentInput == "Gamepad" and prompt.GamepadKeyCode or prompt.KeyboardKeyCode,
+				currentInput
+			)
+		or BuildersIcon.GetPromptText(
+			currentInput == "Gamepad" and Enum.KeyCode.ButtonX or Enum.KeyCode.E,
+			currentInput
+		)
 
 	-- 6. Render unified Fragment
 	return e(React.Fragment, nil, {
@@ -205,48 +211,51 @@ local function SlotNode(props: {
 		}) or nil,
 
 		-- Drink details (Only when a drink exists)
-		DrinkInfo = (drink and drink.stock > 0 and adornee) and e(React.Fragment, nil, {
-			StockGui = e("BillboardGui", {
-				Active = true,
-				Adornee = adornee,
-				Size = UDim2.new(0, 60, 0, 30),
-				StudsOffsetWorldSpace = Vector3.new(0, 1.5, 0),
-				AlwaysOnTop = true,
-				MaxDistance = 100,
-			}, {
-				Label = e(SmallText, {
-					TextXAlignment = Enum.TextXAlignment.Center,
-					Size = UDim2.new(1, 0, 1, 0),
-					BackgroundTransparency = 1,
-					Text = `{drink.stock}x`,
-					TextColor3 = Color3.new(1, 1, 1),
-					TextStrokeTransparency = 0,
-					TextStrokeColor3 = Color3.new(0, 0, 0),
-				}),
-			}),
-			VariationGui = e("BillboardGui", {
-				Active = true,
-				Adornee = adornee,
-				Size = UDim2.new(0, 60, 0, 30),
-				StudsOffsetWorldSpace = Vector3.new(0, 3.5, 0),
-				AlwaysOnTop = true,
-				MaxDistance = 100,
-			}, {
-				LabelContainer = on and e(HStack, {
-					Size = UDim2.new(3, 0, 0, 0),
-					Position = UDim2.new(0.5, 0, 1, 0),
-					AnchorPoint = Vector2.new(0.5, 1),
-					HorizontalAlignment = Enum.HorizontalAlignment.Center,
-				}, {
-					VariationLabel = VariationLabel,
-					NameAndPrice = e(SmallText, {
-						LayoutOrder = 2,
-						TextXAlignment = Enum.TextXAlignment.Center,
-						Text = `{displayname}: {variation and (variation.Multiplier * config.Price) or config.Price}$`,
+		DrinkInfo = (drink and drink.stock > 0 and adornee)
+				and e(React.Fragment, nil, {
+					StockGui = e("BillboardGui", {
+						Active = true,
+						Adornee = adornee,
+						Size = UDim2.new(0, 60, 0, 30),
+						StudsOffsetWorldSpace = Vector3.new(0, 1.5, 0),
+						AlwaysOnTop = true,
+						MaxDistance = 100,
+					}, {
+						Label = e(SmallText, {
+							TextXAlignment = Enum.TextXAlignment.Center,
+							Size = UDim2.new(1, 0, 1, 0),
+							BackgroundTransparency = 1,
+							Text = `{drink.stock}x`,
+							TextColor3 = Color3.new(1, 1, 1),
+							TextStrokeTransparency = 0,
+							TextStrokeColor3 = Color3.new(0, 0, 0),
+						}),
 					}),
-				}),
-			}),
-		}) or nil,
+					VariationGui = e("BillboardGui", {
+						Active = true,
+						Adornee = adornee,
+						Size = UDim2.new(0, 60, 0, 30),
+						StudsOffsetWorldSpace = Vector3.new(0, 3.5, 0),
+						AlwaysOnTop = true,
+						MaxDistance = 100,
+					}, {
+						LabelContainer = on
+							and e(HStack, {
+								Size = UDim2.new(3, 0, 0, 0),
+								Position = UDim2.new(0.5, 0, 1, 0),
+								AnchorPoint = Vector2.new(0.5, 1),
+								HorizontalAlignment = Enum.HorizontalAlignment.Center,
+							}, {
+								VariationLabel = VariationLabel,
+								NameAndPrice = e(SmallText, {
+									LayoutOrder = 2,
+									TextXAlignment = Enum.TextXAlignment.Center,
+									Text = `{displayname}: {variation and (variation.Multiplier * config.Price * drink.size) or config.Price}$`,
+								}),
+							}),
+					}),
+				})
+			or nil,
 
 		-- Contextual Interaction Button
 		InteractGui = e("BillboardGui", {
@@ -291,7 +300,7 @@ local function SlotNode(props: {
 					AutomaticSize = Enum.AutomaticSize.None,
 					TextXAlignment = Enum.TextXAlignment.Center,
 					TextYAlignment = Enum.TextYAlignment.Center,
-				})
+				}),
 			}),
 		}),
 	})

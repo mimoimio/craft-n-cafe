@@ -25,11 +25,15 @@ local HStack = require(script.Parent.ui.HStack)
 local VStack = require(script.Parent.ui.VStack)
 
 local function setFocus(rbx)
-	if rbx and rbx.Parent and rbx.Visible then
-		GuiService.SelectedObject = rbx
-		return
-	end
-	GuiService.SelectedObject = nil
+	xpcall(function()
+		if rbx and rbx.Parent and rbx.Visible then
+			GuiService.SelectedObject = rbx
+			return
+		end
+		GuiService.SelectedObject = nil
+	end, function(err)
+		warn(`SelectedObject Error ({rbx}): {err}`)
+	end)
 end
 
 local function ScreenGuiCircle(props: { TargetButton: GuiButton?, Color: Color3? })
@@ -150,6 +154,8 @@ return function()
 		end
 	end, { visible })
 
+	local btn = useRef(nil)
+
 	return e("ImageLabel", {
 		Image = "rbxassetid://127657596958436",
 		-- Size = UDim2.new(1, -24, 0.5, -24),
@@ -180,7 +186,7 @@ return function()
 			BackgroundColor3 = Color3.fromRGB(80, 40, 40),
 			BorderSizePixel = 0,
 			Text = "X",
-			ref = setFocus,
+			ref = btn,
 			TextColor3 = Color3.fromRGB(255, 120, 120),
 			TextSize = 16,
 			Font = Enum.Font.FredokaOne,

@@ -8,6 +8,7 @@ local useState = React.useState
 local useEffect = React.useEffect
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local CafeTypes = require(game.ReplicatedStorage.Shared.CafeTypes) -- = require(script.Parent.CafeTypes)
+local Types = require(game.ReplicatedStorage.Shared.Types) -- = require(script.Parent.CafeTypes)
 local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConfig)
 local DrinkModelUtil = require(ReplicatedStorage.Shared.Utils.DrinkModelUtil)
 
@@ -19,7 +20,7 @@ local function SlotComponent(
 		DrinkId: string, -- Extracted directly from table state (e.g., "abc" or "none")
 	}
 )
-	local drinkData, setDrinkData = useState(nil)
+	local drinkData: Types.DrinkEntity, setDrinkData = useState(nil)
 
 	-- Hydrate unique ID into actual drink data (e.g., finding out "abc" is a "latte")
 	useEffect(function()
@@ -57,47 +58,48 @@ local function SlotComponent(
 		return unsub
 	end, { props.PlayerId, props.DrinkId })
 
--- Render physical drink
-    useEffect(function()
-        if not drinkData then
-            return
-        end
+	-- Render physical drink
+	useEffect(function()
+		if not drinkData then
+			return
+		end
 
-        local clone, modelBasePart = DrinkModelUtil.BuildDrinkModel(drinkData.drinkId, drinkData.variationId, {
-            Anchored = true,
-            CanCollide = false,
-        })
+		local clone, modelBasePart = DrinkModelUtil.BuildDrinkModel(drinkData.drinkId, drinkData.variationId, {
+			Anchored = true,
+			CanCollide = false,
+			Size = drinkData.size,
+		})
 
-        if clone then
-            local placePart = props.SlotInstance:FindFirstChild("PlacePart")
-            if placePart then
-                clone:PivotTo(placePart.CFrame)
-            end
-            
-            local tag = props.PlayerId and props.PlayerId .. "DrinkModel" or ""
-            clone:SetAttribute("uid", props.DrinkId)
-            
-            local basePartDescendants = 0
-            for _, desc in clone:GetDescendants() do
-                if desc:IsA("BasePart") then
-                    basePartDescendants += 1
-                end
-            end
-            
-            clone:SetAttribute("BasePartDescendants", basePartDescendants)
-            clone:AddTag(tag)
+		if clone then
+			local placePart = props.SlotInstance:FindFirstChild("PlacePart")
+			if placePart then
+				clone:PivotTo(placePart.CFrame)
+			end
 
-            clone.Parent = workspace
-            return function()
-                clone:Destroy()
-            end
-        end
-    end, {
-        drinkData and drinkData.drinkId,
-        drinkData and drinkData.variationId,
-        props.SlotInstance,
-    })
-	
+			local tag = props.PlayerId and props.PlayerId .. "DrinkModel" or ""
+			clone:SetAttribute("uid", props.DrinkId)
+
+			local basePartDescendants = 0
+			for _, desc in clone:GetDescendants() do
+				if desc:IsA("BasePart") then
+					basePartDescendants += 1
+				end
+			end
+
+			clone:SetAttribute("BasePartDescendants", basePartDescendants)
+			clone:AddTag(tag)
+
+			clone.Parent = workspace
+			return function()
+				clone:Destroy()
+			end
+		end
+	end, {
+		drinkData and drinkData.drinkId,
+		drinkData and drinkData.variationId,
+		props.SlotInstance,
+	})
+
 	useEffect(function()
 		if not (props.SlotInstance and props.SlotInstance.Parent) then
 			return

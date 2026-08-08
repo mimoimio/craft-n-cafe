@@ -32,48 +32,49 @@ local function getPlayer(playerId: string): Player?
 end
 
 local function buildDrinkTool(player: Player, drink: DrinkEntity): Tool?
-    local tool = Instance.new("Tool")
-    tool.Name = drink.id
-    tool.RequiresHandle = true
-    tool.CanBeDropped = false
+	local tool = Instance.new("Tool")
+	tool.Name = drink.id
+	tool.RequiresHandle = true
+	tool.CanBeDropped = false
 
-    local drinkModelTemplate = ReplicatedStorage.Shared.Models:FindFirstChild(drink.drinkId)
-    if drinkModelTemplate then
-        local ingredientPackageLink = drinkModelTemplate:FindFirstChildWhichIsA("PackageLink", true)
-        if ingredientPackageLink then
-            local numericId = string.match(tostring(ingredientPackageLink.PackageId), "%d+")
-            tool.TextureId = string.format("rbxthumb://type=Asset&id=%s&w=150&h=150", numericId)
-        end
-    end
+	local drinkModelTemplate = ReplicatedStorage.Shared.Models:FindFirstChild(drink.drinkId)
+	if drinkModelTemplate then
+		local ingredientPackageLink = drinkModelTemplate:FindFirstChildWhichIsA("PackageLink", true)
+		if ingredientPackageLink then
+			local numericId = string.match(tostring(ingredientPackageLink.PackageId), "%d+")
+			tool.TextureId = string.format("rbxthumb://type=Asset&id=%s&w=150&h=150", numericId)
+		end
+	end
 
-    local handle = Instance.new("Part")
-    handle.Name = "Handle"
-    handle.Anchored = false
-    handle.CanCollide = false
-    handle.Massless = true
-    handle.Transparency = 1
-    handle.Parent = tool
+	local handle = Instance.new("Part")
+	handle.Name = "Handle"
+	handle.Anchored = false
+	handle.CanCollide = false
+	handle.Massless = true
+	handle.Transparency = 1
+	handle.Parent = tool
 
-    local clonedModel, modelBasePart = DrinkModelUtil.BuildDrinkModel(drink.drinkId, drink.variationId, {
-        Anchored = false,
-        CanCollide = false, -- Matches your previous logic
-    })
-    
-    if not modelBasePart then
-        warn(`Drink tool render failed: {drink.id} has no BasePart to weld`)
-        tool:Destroy()
-        return nil
-    end
+	local clonedModel, modelBasePart = DrinkModelUtil.BuildDrinkModel(drink.drinkId, drink.variationId, {
+		Anchored = false,
+		CanCollide = false, -- Matches your previous logic
+		Size = drink.size,
+	})
 
-    clonedModel.Parent = tool
-    handle.CFrame = modelBasePart.CFrame
+	if not modelBasePart then
+		warn(`Drink tool render failed: {drink.id} has no BasePart to weld`)
+		tool:Destroy()
+		return nil
+	end
 
-    local weld = Instance.new("WeldConstraint")
-    weld.Part0 = handle
-    weld.Part1 = modelBasePart
-    weld.Parent = handle
+	clonedModel.Parent = tool
+	handle.CFrame = modelBasePart.CFrame
 
-    return tool
+	local weld = Instance.new("WeldConstraint")
+	weld.Part0 = handle
+	weld.Part1 = modelBasePart
+	weld.Parent = handle
+
+	return tool
 end
 
 local function DrinkTool(props: {
@@ -133,8 +134,7 @@ local function DrinkTool(props: {
 			end
 			tool.Parent = character
 			setTool(tool)
-
-			warn(`Parented`)
+			return resolve()
 		end):catch(function(err)
 			warn(`Error: {error}`)
 		end)
@@ -229,7 +229,7 @@ local function DrinkTool(props: {
 						NameAndPrice = e(SmallText, {
 							LayoutOrder = 2,
 							TextXAlignment = Enum.TextXAlignment.Center,
-							Text = `{displayname}: {variation and config and (variation.Multiplier * config.Price) or config and config.Price or 0}$`,
+							Text = `{displayname}: {variation and config and (variation.Multiplier * config.Price * props.Drink.size) or config and config.Price or 0}$`,
 						}),
 					}),
 				}),

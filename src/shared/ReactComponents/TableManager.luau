@@ -29,33 +29,6 @@ local function animateModelToTable(model: Model, finalCFrame: CFrame, initialPos
 	local updateConn = cframeValue.Changed:Connect(function(newCFrame)
 		model:PivotTo(newCFrame)
 	end)
-
-	-- Promise.defer(function(res, rej)
-	-- 	local markerI = Instance.new("Part")
-	-- 	markerI.Size = Vector3.one
-	-- 	markerI.CanCollide = false
-	-- 	markerI.Material = "Neon"
-	-- 	markerI.Color = Color3.new(1, 0, 0)
-	-- 	markerI:PivotTo(initialCFrame)
-	-- 	markerI.Anchored = true
-	-- 	markerI.Parent = workspace
-
-	-- 	-- warn(`Initial position: {tostring(initialCFrame.Position)}`)
-
-	-- 	local markerII = Instance.new("Part")
-	-- 	markerII.Parent = workspace
-	-- 	markerII.Size = Vector3.one
-	-- 	markerII.CanCollide = false
-	-- 	markerII.Material = "Neon"
-	-- 	markerII.Color = Color3.new(0, 0, 1)
-	-- 	markerII:PivotTo(finalCFrame)
-	-- 	markerII.Anchored = true
-
-	-- 	task.wait(3)
-	-- 	markerI:Destroy()
-	-- 	markerII:Destroy()
-	-- end)
-
 	local tween = TweenService:Create(
 		cframeValue,
 		TweenInfo.new(ANIM_DURATION, Enum.EasingStyle.Back, Enum.EasingDirection.InOut, 0, false, 0),

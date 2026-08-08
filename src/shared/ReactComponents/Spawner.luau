@@ -373,6 +373,7 @@ function SpawnerNode(props: { Instance: Spawner? })
 		if not prompt then
 			return
 		end
+		prompt.RequiresLineOfSight = false
 		local conn = prompt.PromptShown:Connect(function()
 			UIState.setSpawnerPromptShown(true)
 			setShown(true)

@@ -160,7 +160,7 @@ local function Rewards(props)
 		HorizontalFlex = Enum.UIFlexAlignment.Fill,
 		Padding = { All = UDim.new(0, 8) },
 		ClipsDescendants = true,
-		VerticalAlignment = Enum.VerticalAlignment.Center
+		VerticalAlignment = Enum.VerticalAlignment.Center,
 	}, {
 		-- e("ScrollingFrame", {
 		-- 	Size = UDim2.new(1, 0, 1, 0),
@@ -172,7 +172,7 @@ local function Rewards(props)
 		-- 	ScrollBarThickness = 16,
 		-- }, {
 		e("Frame", {
-			Size = UDim2.new(.6, 0, 1, 0),
+			Size = UDim2.new(0.6, 0, 1, 0),
 			ClipsDescendants = false,
 			BackgroundTransparency = 1,
 		}, {
@@ -182,16 +182,16 @@ local function Rewards(props)
 				-- BackgroundTransparency = 0,
 				VerticalAlignment = Enum.VerticalAlignment.Center,
 				Spacing = UDim.new(0, 8),
-				CellSize = UDim2.new(0,140,0,140),
+				CellSize = UDim2.new(0, 100, 0, 100),
 				FillDirectionMaxCells = 3,
 			}, children),
 		}),
 		e("Frame", {
-			Size = UDim2.new(.4, 0, 1, 0),
+			Size = UDim2.new(0.4, 0, 1, 0),
 			ClipsDescendants = false,
 			BackgroundTransparency = 1,
 		}, {
-			seventh
+			seventh,
 			-- e(Grid, {
 			-- 	HorizontalFlex = Enum.UIFlexAlignment.None,
 			-- 	Padding = { Bottom = UDim.new(0, 24) },
@@ -298,136 +298,115 @@ local function DailyPanel(props: {
 		end
 	end
 
-	return e("ImageLabel", {
-		-- Size = UDim2.new(1, -12, 1, -100),
-		Size = UDim2.new(1, -20, 1, -0),
+	return e("Frame", {
+		LayoutOrder = 2,
+		Size = UDim2.new(
+			0,
+			workspace.CurrentCamera.ViewportSize.X + 60,
+			0,
+			workspace.CurrentCamera.ViewportSize.Y + 60
+		),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = position:map(function(n)
 			return UDim2.new(0.5 + n, 0, 0.5 + 0, 0)
 		end),
-		ZIndex = 20,
-		BackgroundColor3 = PANEL_BG,
-		BackgroundTransparency = 1,
-		Image = "rbxassetid://103478691850846",
-		ImageColor3 = Color3.new(0.768627, 0.549019, 0.549019),
-		ScaleType = Enum.ScaleType.Slice,
-		SliceCenter = Rect.new(8, 8, 92, 92),
-		BorderSizePixel = 0,
-		ClipsDescendants = false,
+		BackgroundColor3 = Color3.new(),
+		BackgroundTransparency = position:map(function(n)
+			return -n + 0.2
+		end),
 	}, {
-		UIAspectRatioConstraint = e("UIAspectRatioConstraint", {
-			AspectRatio = 2,
-		}),
-		UISizeConstraint = e("UISizeConstraint", {
-			MaxSize = Vector2.new(800, 800),
-		}),
-		Background = e("Frame", {
-			LayoutOrder = 2,
-			Size = UDim2.new(0,
-				workspace.CurrentCamera.ViewportSize.X + 60,
-				0,
-				workspace.CurrentCamera.ViewportSize.Y + 60)
-			,
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.new(0.5, 0, 0.5, 0),
-			BackgroundColor3 = Color3.new(),
-			BackgroundTransparency = .8,
-		}),
-		Container = e("Frame", {
-			Size = UDim2.new(1, -20, 1, -20),
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.new(0.5, 0, 0.5, 0),
-			BackgroundColor3 = BG,
+		e("ImageLabel", {
+			Size = UDim2.new(1, -20, 1, -0),
+			ZIndex = 20,
+			BackgroundColor3 = PANEL_BG,
 			BackgroundTransparency = 1,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, 0, 0.5, 0),
+			Image = "rbxassetid://103478691850846",
+			ImageColor3 = Color3.new(0.768627, 0.549019, 0.549019),
+			ScaleType = Enum.ScaleType.Slice,
+			SliceCenter = Rect.new(8, 8, 92, 92),
 			BorderSizePixel = 0,
-			LayoutOrder = 2,
+			ClipsDescendants = false,
 		}, {
-			UICorner = e("UICorner", { CornerRadius = UDim.new(0, 12) }),
-			e("UIPadding", {
-				PaddingTop = UDim.new(0,12),
-				PaddingBottom = UDim.new(0, 12),
-				PaddingLeft = UDim.new(),
-				PaddingRight = UDim.new(),
+			UIAspectRatioConstraint = e("UIAspectRatioConstraint", {
+				AspectRatio = 2,
 			}),
-			-- Header = e("Frame", {
-			-- 	Size = UDim2.new(1, 0, 0, 48),
-			-- 	BackgroundColor3 = PANEL_BG,
-			-- 	BackgroundTransparency = 1,
-			-- 	BorderSizePixel = 0,
-			-- 	ZIndex = 2,
-			-- }, {
-			-- 	UICorner = e("UICorner", { CornerRadius = UDim.new(0, 12) }),
-			-- 	BottomFill = e("Frame", {
-			-- 		Size = UDim2.new(1, 0, 0, 12),
-			-- 		Position = UDim2.new(0, 0, 1, -12),
-			-- 		BackgroundColor3 = PANEL_BG,
-			-- 		BorderSizePixel = 0,
-			-- 		BackgroundTransparency = 1,
-			-- 	}),
-			-- 	Title = e("TextLabel", {
-			-- 		Size = UDim2.new(1, -56, 1, 0),
-			-- 		Position = UDim2.new(0, 16, 0, 0),
-			-- 		BackgroundTransparency = 1,
-			-- 		Text = `Daily Rewards`,
-			-- 		TextColor3 = ACCENT,
-			-- 		TextSize = 20,
-			-- 		Font = Enum.Font.FredokaOne,
-			-- 		TextXAlignment = Enum.TextXAlignment.Center,
-			-- 	}),
-			-- 	CloseBtn = e("TextButton", {
-			-- 		Size = UDim2.new(0, 32, 0, 32),
-			-- 		Position = UDim2.new(1, -40, 0.5, 0),
-			-- 		AnchorPoint = Vector2.new(0, 0.5),
-			-- 		BackgroundColor3 = Color3.fromRGB(80, 40, 40),
-			-- 		BorderSizePixel = 0,
-			-- 		Text = "X",
-			-- 		TextColor3 = Color3.fromRGB(255, 120, 120),
-			-- 		TextSize = 16,
-			-- 		Font = Enum.Font.FredokaOne,
-			-- 		[React.Event.MouseButton1Click] = function()
-			-- 			UIState.toggle("none")
-			-- 		end,
-			-- 	}, {
-			-- 		UICorner = e("UICorner", { CornerRadius = UDim.new(0, 6) }),
-			-- 	}),
-			-- }),
-			Body = e(HStack, {
-				Size = UDim2.new(1, 0, 1, -24),
-				Position = UDim2.new(0, 0, 0, 0),
+			UISizeConstraint = e("UISizeConstraint", {
+				MaxSize = Vector2.new(workspace.CurrentCamera.ViewportSize.X * 0.95, 380),
+			}),
+
+			Container = e("Frame", {
+				Size = UDim2.new(1, -20, 1, -20),
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.new(0.5, 0, 0.5, 0),
+				BackgroundColor3 = BG,
 				BackgroundTransparency = 1,
-				Padding = { All = UDim.new() },
+				BorderSizePixel = 0,
+				LayoutOrder = 2,
 			}, {
-				DetailPanel = e("ImageLabel", {
-					Size = UDim2.new(1, 0, 1, 0),
+				UICorner = e("UICorner", { CornerRadius = UDim.new(0, 12) }),
+				e("UIPadding", {
+					PaddingTop = UDim.new(0, 12),
+					PaddingBottom = UDim.new(0, 12),
+					PaddingLeft = UDim.new(),
+					PaddingRight = UDim.new(),
+				}),
+				CloseBtn = e("TextButton", {
+					Size = UDim2.new(0, 32, 0, 32),
+					Position = UDim2.new(1, 32, 0, -32),
+					AnchorPoint = Vector2.new(1, 0),
+					BackgroundColor3 = Color3.fromRGB(80, 40, 40),
+					BorderSizePixel = 0,
+					Text = "X",
+					TextColor3 = Color3.fromRGB(255, 120, 120),
+					TextSize = 16,
+					Font = Enum.Font.FredokaOne,
+					[React.Event.MouseButton1Click] = function()
+						UIState.toggle("none")
+					end,
+				}, {
+					UICorner = e("UICorner", { CornerRadius = UDim.new(0, 6) }),
+				}),
+				-- }),
+				Body = e(HStack, {
+					Size = UDim2.new(1, 0, 1, -24),
 					Position = UDim2.new(0, 0, 0, 0),
 					BackgroundTransparency = 1,
-					BackgroundColor3 = PANEL_BG,
-					Image = "rbxassetid://127657596958436",
-					ImageColor3 = Color3.new(0.505882, 0.254901, 0.254901),
-					ImageTransparency = 1,
-					ScaleType = Enum.ScaleType.Slice,
-					SliceCenter = Rect.new(8, 8, 92, 92),
-					BorderSizePixel = 0,
+					Padding = { All = UDim.new() },
 				}, {
-					Rewards = e(Rewards, {
-						currentDay = currentDay,
-						canClaim = canClaim,
+					DetailPanel = e("ImageLabel", {
+						Size = UDim2.new(1, 0, 1, 0),
+						Position = UDim2.new(0, 0, 0, 0),
+						BackgroundTransparency = 1,
+						BackgroundColor3 = PANEL_BG,
+						Image = "rbxassetid://127657596958436",
+						ImageColor3 = Color3.new(0.505882, 0.254901, 0.254901),
+						ImageTransparency = 1,
+						ScaleType = Enum.ScaleType.Slice,
+						SliceCenter = Rect.new(8, 8, 92, 92),
+						BorderSizePixel = 0,
+					}, {
+						Rewards = e(Rewards, {
+							currentDay = currentDay,
+							canClaim = canClaim,
+						}),
 					}),
 				}),
 			}),
-		}),
-		e(SmallButton, {
-			LayoutOrder = 3,
-			Text = canClaim and "Claim!" or "Claimed Today!",
-			[React.Event.Activated] = function()
-				if canClaim then
-					Remotes.ClaimDaily:FireServer()
-				end
-			end,
-			Position = UDim2.new(0.5, 0, 1, -4),
-			BackgroundTransparency = canClaim and 0 or 0.5,
-			AnchorPoint = Vector2.new(0.5, 1),
-			CornerRadius = UDim.new(1, 0),
+			e(SmallButton, {
+				LayoutOrder = 3,
+				Text = canClaim and "Claim!" or "Claimed Today!",
+				[React.Event.Activated] = function()
+					if canClaim then
+						Remotes.ClaimDaily:FireServer()
+					end
+				end,
+				Position = UDim2.new(0.5, 0, 1, -4),
+				BackgroundTransparency = canClaim and 0 or 0.5,
+				AnchorPoint = Vector2.new(0.5, 1),
+				CornerRadius = UDim.new(1, 0),
+			}),
 		}),
 	})
 end

@@ -28,6 +28,7 @@ local actions = {
 	startPlayerSession = function(state: DrinksState, playerId: string, data: PlayerData)
 		return Set(state, playerId, data.Drinks)
 	end,
+
 	endPlayerSession = function(state: DrinksState, playerId: string, data: PlayerData)
 		return RemoveKey(state, playerId)
 	end,
@@ -37,15 +38,19 @@ local actions = {
 		if not playersDrinks then
 			return state
 		end
+
 		local newDrinks = table.clone(playersDrinks)
 		table.insert(newDrinks, {
 			id = payload.id,
 			drinkId = payload.drinkId,
 			stock = payload.stock,
 			variationId = payload.variationId,
+			size = payload.size, -- NEW: Accurately capturing the Size RNG from the mixer!
 		})
+
 		return Set(state, playerId, newDrinks)
 	end,
+
 	customerTakeItems = function(state: DrinksState, playerId: string, payload: Types.CustomerItemPayload)
 		local playersDrinks = state[playerId]
 		if not playersDrinks then
@@ -58,10 +63,9 @@ local actions = {
 		for i, drink in newDrinks do
 			local deduct = payload.drinksDeducted[drink.id]
 			if deduct then
-				-- deduct({deduct},{type(deduct)})
 				local total = drink.stock - deduct
 				if total > 0 then
-					newDrinks[i] = Set(drink, "stock", total) -- earlier an error where this was typed as {total}, an array. need to watchout
+					newDrinks[i] = Set(drink, "stock", total)
 				else
 					table.insert(indexesToRemove, i)
 				end

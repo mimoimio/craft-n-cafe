@@ -234,6 +234,7 @@ local function Customer(props: {
 			local drinkModel, modelBasePart = DrinkModelUtil.BuildDrinkModel(drink.drinkId, drink.variationId, {
 				Anchored = false,
 				CanCollide = false,
+				Size = drink.Size,
 			})
 
 			drinkModel:PivotTo(rig.Head:GetPivot() + Vector3.new(0, 2 * i, 0))

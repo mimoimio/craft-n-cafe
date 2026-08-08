@@ -202,7 +202,6 @@ local function MixerNode(props: {
 		prompt.ActionText = isOccupied and "Pick Up" or "Craft"
 		prompt.Style = Enum.ProximityPromptStyle.Custom
 		prompt.RequiresLineOfSight = false
-		
 
 		local conn = prompt.Triggered:Connect(function(player)
 			if player == Players.LocalPlayer then
@@ -397,7 +396,7 @@ local function MixerNode(props: {
 					AutomaticSize = Enum.AutomaticSize.None,
 					TextXAlignment = Enum.TextXAlignment.Center,
 					TextYAlignment = Enum.TextYAlignment.Center,
-				})
+				}),
 			}),
 		}),
 	})

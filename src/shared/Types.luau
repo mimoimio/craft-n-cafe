@@ -6,7 +6,7 @@ export type PlayerData = {
 	Drinks: { DrinkEntity },
 	Mixers: { [string]: MixerEntity },
 	Ingredients: { [string]: number },
-	ShelfCollector: ShelfCollectorEntity, -- NEW
+	ShelfCollector: ShelfCollectorEntity,
 	Customers: { CustomerEntity },
 	Shelves: { [string]: ShelfEntity },
 	DiscoveredDrinks: {
@@ -24,6 +24,7 @@ export type PlayerData = {
 export type PlayerId = string
 export type VariationId = string
 export type DrinkId = string
+
 -- 2. Define the Collector State
 export type ShelfCollectorEntity = {
 	LastClaimTime: number, -- Timestamp of the last time they claimed
@@ -36,10 +37,12 @@ export type ShelfCollectorEntity = {
 export type ShelfCollectorState = {
 	[PlayerId]: ShelfCollectorEntity,
 }
--- Shelves (NEW)
+
+-- Shelves
 export type DisplayDrink = {
 	drinkId: string,
 	variationId: string,
+	size: number, -- NEW
 }
 export type ShelfEntity = {
 	ShelfId: string,
@@ -52,6 +55,7 @@ export type ShelvesState = {
 		[string]: ShelfEntity,
 	},
 }
+
 -- Spawner
 export type SpawnerState = {
 	[string]: {
@@ -97,6 +101,7 @@ export type TableEntity = {
 -- Drinks
 export type DrinkEntity = {
 	id: string,
+	size: number, -- NEW
 	stock: number,
 	drinkId: string,
 	variationId: string?,
@@ -150,6 +155,7 @@ export type DiscoveredDrinksState = {
 		[string]: true,
 	},
 }
+
 -- Ingredients
 export type IngredientsState = {
 	[PlayerId]: {
@@ -162,10 +168,7 @@ export type MixerEntity = {
 	drinkId: string,
 	startTime: number?,
 	variationId: string?,
-
-	-- for the future
-	mixerLevel: number,
-	additionalStocks: number,
+	size: number?, -- NEW
 }
 export type MixersState = {
 	[PlayerId]: {
@@ -174,13 +177,15 @@ export type MixersState = {
 }
 
 -- Customers
+export type CustomerDrink = {
+	drinkId: string,
+	variationId: string?,
+	size: number,
+}
 export type CustomerEntity = {
 	id: string,
 	customerId: string?,
-	drinkEntities: {
-		drinkId: string,
-		variationId: string?,
-	}?,
+	drinkEntities: { CustomerDrink }?,
 	customerAction: string,
 	actionStartTime: number, -- FSM Timestamp tracker
 }
@@ -197,6 +202,7 @@ export type AddIngredientPayload = {
 }
 export type MixDrinkPayload = {
 	drinkId: string,
+	size: number, -- NEW
 	ingredients: { string },
 	mixer: string,
 	startTime: number,
@@ -218,6 +224,7 @@ export type PickUpPayload = {
 	drinkId: string,
 	variationId: string,
 	stock: number,
+	size: number, -- NEW
 	mixer: string,
 }
 export type CustomerItemPayload = {
@@ -225,10 +232,7 @@ export type CustomerItemPayload = {
 	drinksDeducted: {
 		[string]: number,
 	},
-	drinkEntities: {
-		drinkId: string,
-		variationId: string?,
-	},
+	drinkEntities: { CustomerDrink }, -- FIXED: Typed as an array of CustomerDrink objects
 	depletedDrinks: { [string]: boolean },
 	timestamp: number, -- Added to pass workspace:GetServerTimeNow() purely
 }
@@ -370,7 +374,7 @@ export type CoffeeConfigType = {
 	Cost: number, -- to buy the ingredient
 	Ingredients: { string }?,
 	RecipePath: { string }?, -- sorted at config initialization
-	Rate: number, -- NEW: Base passive income generated per second (or minute)
+	Rate: number, -- Base passive income generated per second (or minute)
 	Instruction: string?, -- Readable
 	Image: string?,
 	Price: number, -- when selling

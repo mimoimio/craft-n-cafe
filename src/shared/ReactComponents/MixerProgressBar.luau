@@ -10,36 +10,6 @@ local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConf
 local e = React.createElement
 local useCallback = React.useCallback
 
--- local DURATION = 5
--- local function delayedRevealSizeMap(startTimeRef, sec: number, finalSize: UDim2, startSize: UDim2?)
--- 	return function(t)
--- 		local startTime = startTimeRef.current -- Read the live value every tick!
-
--- 		if not startTime or startTime == math.huge then
--- 			return startSize or UDim2.new(0, 0, 0, 0) -- Return a default hidden size
--- 		end
-
--- 		if t > startTime then
--- 			if t > startTime + sec then
--- 				local elapsed = (t - startTime - sec)
--- 				elapsed = math.min(elapsed, DURATION) / DURATION
--- 				-- elapsed ^= 10
--- 				elapsed = 1 - ((1 - elapsed) ^ 20)
--- 				local size = UDim2.new(
--- 					startSize.X.Scale + (elapsed * (finalSize.X.Scale - startSize.X.Scale)),
--- 					startSize.X.Offset + (elapsed * (finalSize.X.Offset - startSize.X.Offset)),
--- 					startSize.Y.Scale + (elapsed * (finalSize.Y.Scale - startSize.Y.Scale)),
--- 					startSize.Y.Offset + (elapsed * (finalSize.Y.Offset - startSize.Y.Offset))
--- 				)
--- 				-- warn(size)
--- 				return size
--- 			end
--- 		end
-
--- 		return startSize or UDim2.new(0, 0, 0, 0) -- Make sure to always return a UDim2, not nil!
--- 	end
--- end
-
 local imageMap = function(p)
 	return p < 1 and "rbxassetid://125013557801199" or "rbxassetid://12402862092"
 end

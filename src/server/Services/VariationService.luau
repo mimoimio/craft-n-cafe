@@ -1,4 +1,4 @@
--- VariationService.luau
+-- Server/Services/VariationService.luau
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ShopCycle = require(ReplicatedStorage.Shared.ShopCycle)
 local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConfig)
@@ -6,18 +6,14 @@ local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConf
 export type VariationConfig = typeof(VariationsConfig.none)
 
 local VariationService = {}
+
 function VariationService.GetVariation(): VariationConfig?
 	local currentShop = ShopCycle.getCurrentState()
-
 	local rand = Random.new(Random.new():NextInteger(1, 999)):NextNumber()
 
 	local total = 0
 	local variationArray: { VariationConfig } = {}
 	for i, variation: VariationConfig in VariationsConfig do
-		-- if variation.VariationId == "none" then
-		-- 	continue
-		-- end
-
 		total += variation.Weight
 		table.insert(variationArray, variation)
 	end
@@ -32,7 +28,7 @@ function VariationService.GetVariation(): VariationConfig?
 		_total += variation.Weight
 		if weightRand <= _total then
 			if variation.VariationId == "none" then
-				return nil -- return nil if no variation
+				return nil
 			end
 			return variation
 		end
@@ -41,7 +37,6 @@ function VariationService.GetVariation(): VariationConfig?
 	return nil
 end
 
--- this is for event, must be special, cannot be "none"
 function VariationService.GetCurrentVariationEvent(): VariationConfig?
 	if not ShopCycle.getCurrentState().isSpecial then
 		return
@@ -79,4 +74,33 @@ function VariationService.GetCurrentVariationEvent(): VariationConfig?
 
 	return nil
 end
+
+-- Adds a steep weighted curve: Size 1 is extremely common, Size 5 is extremely rare.
+function VariationService.GetSize(): number
+	local weights = {
+		[1] = 1000,
+		[2] = 250,
+		[3] = 50,
+		[4] = 10,
+		[5] = 1,
+	}
+
+	local totalWeight = 0
+	for _, weight in weights do
+		totalWeight += weight
+	end
+
+	local rand = Random.new():NextNumber() * totalWeight
+
+	local currentWeight = 0
+	for size, weight in weights do
+		currentWeight += weight
+		if rand <= currentWeight then
+			return size
+		end
+	end
+
+	return 1
+end
+
 return VariationService

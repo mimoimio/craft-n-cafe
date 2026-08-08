@@ -99,7 +99,7 @@ local function ShelfCollectorUI(props: { collectorModel: Model })
 				local timePassed = math.min(currentTime - lastClaimTimeRef.current, MAX_ACCUMULATION_SECONDS)
 				local amount = math.floor(timePassed * totalRateRef.current)
 
-				local displayString = `$ {Mionum.new(amount):ToString()}`
+				local displayString = `$ {Mionum.new(amount):toString()}`
 				setAmountBinding(displayString)
 
 				if prompt and prompt.Parent then

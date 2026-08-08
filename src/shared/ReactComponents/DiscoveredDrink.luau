@@ -225,12 +225,15 @@ local function DiscoveredDrink(props: {})
 	end, { discoveredDrinks })
 
 	local setGamepadFocus = React.useCallback(function(rbx)
-		if rbx and rbx.Parent and rbx.Visible then
-			GuiService.SelectedObject = rbx
-			return
-		end
-		GuiService.SelectedObject = nil
-		
+		xpcall(function()
+			if rbx and rbx.Parent and rbx.Visible then
+				GuiService.SelectedObject = rbx
+				return
+			end
+			GuiService.SelectedObject = nil
+		end, function(err)
+			warn(`SelectedObject Error ({rbx}): {err}`)
+		end)
 	end, {})
 
 	-- If there's no active drink, render nothing.
