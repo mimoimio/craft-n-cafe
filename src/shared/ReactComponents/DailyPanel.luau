@@ -308,7 +308,7 @@ local function DailyPanel(props: {
 		),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = position:map(function(n)
-			return UDim2.new(0.5 + n, 0, 0.5 + 0, 0)
+			return UDim2.new(0.5 + 2 * n, 0, 0.5 + 0, 0)
 		end),
 		BackgroundColor3 = Color3.new(),
 		BackgroundTransparency = position:map(function(n)

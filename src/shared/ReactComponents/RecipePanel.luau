@@ -8,9 +8,14 @@ local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 local HStack = require(ReplicatedStorage.Shared.ReactComponents.ui.HStack)
 local VStack = require(ReplicatedStorage.Shared.ReactComponents.ui.VStack)
 local SmallButton = require(ReplicatedStorage.Shared.ReactComponents.ui.SmallButton)
+local SmallText = require(ReplicatedStorage.Shared.ReactComponents.ui.SmallText)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConfig)
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
+local Types = require(ReplicatedStorage.Shared.Types)
+
+local useBreakpoint = require(ReplicatedStorage.Shared.Hooks.useBreakpoint)
+
 local player = game.Players.LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
 -- CoffeeModule.Config is the keyed lookup (by Id)
@@ -21,21 +26,6 @@ local useState = React.useState
 local useEffect = React.useEffect
 local useRef = React.useRef
 
--- Build sorted list of craftable recipes (those with Ingredients)
-local function getSortedRecipes()
-	local list = {}
-	for _, config in ipairs(CoffeeConfigArray) do
-		if config.Ingredients then
-			table.insert(list, config)
-		end
-	end
-	table.sort(list, function(a, b)
-		return a.DisplayName < b.DisplayName
-	end)
-	return list
-end
-
--- local RECIPES = getSortedRecipes()
 local RECIPES = CoffeeModule.Array
 
 local BG = Color3.fromRGB(25, 25, 30)
@@ -49,7 +39,7 @@ local TEXT = Color3.fromRGB(230, 230, 230)
 local SUBTEXT = Color3.fromRGB(160, 160, 180)
 
 local function RecipeGridItem(props: {
-	config: any,
+	config: Types.CoffeeConfigType,
 	isSelected: boolean,
 	onSelect: () -> (),
 	layoutOrder: number,
@@ -57,12 +47,16 @@ local function RecipeGridItem(props: {
 	local hovered, setHovered = useState(false)
 	local locked = not props.discovered
 
+	local xs, sm, md, lg, xl = useBreakpoint()
+	local mobile = xs or sm
+
 	local bg = if props.isSelected
 		then (if locked then ITEM_BG_LOCKED_SELECTED else ITEM_SELECTED_BG)
 		elseif hovered then (if locked then Color3.new(0.5, 0.5, 0.5) else Color3.new(1, 0.956862, 0.901960))
 		else (if locked then ITEM_BG_LOCKED else ITEM_BG)
 	return e("ImageButton", {
 		Size = UDim2.new(0, 90, 0, 110),
+		-- Size = UDim2.new(1, 0, 1, 0),
 		BackgroundColor3 = bg,
 		BorderSizePixel = 0,
 		Image = "rbxassetid://103478691850846",
@@ -80,13 +74,13 @@ local function RecipeGridItem(props: {
 	}, {
 		UICorner = e("UICorner", { CornerRadius = UDim.new(0, 8) }),
 		UIPadding = e("UIPadding", {
-			PaddingLeft = UDim.new(0, 6),
-			PaddingRight = UDim.new(0, 6),
-			PaddingTop = UDim.new(0, 6),
-			PaddingBottom = UDim.new(0, 12),
+			PaddingLeft = UDim.new(0, mobile and 2 or 6),
+			PaddingRight = UDim.new(0, mobile and 2 or 6),
+			PaddingTop = UDim.new(0, mobile and 2 or 6),
+			PaddingBottom = UDim.new(0, mobile and 2 or 12),
 		}),
 		Image = e("ImageLabel", {
-			Size = UDim2.new(0, 70, 0, 70),
+			Size = UDim2.new(1, 0, 1, 0),
 			BackgroundColor3 = Color3.fromRGB(30, 30, 38),
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
@@ -118,7 +112,7 @@ local function RecipeGridItem(props: {
 		-- }, {
 		-- 	UICorner = e("UICorner", { CornerRadius = UDim.new(0, 6) }),
 		-- }),
-		Label = e("TextLabel", {
+		Label = not mobile and e("TextLabel", {
 			Size = UDim2.new(1, 0, 0, 28),
 			Position = UDim2.new(0, 0, 1, -28),
 			BackgroundTransparency = 1,
@@ -136,13 +130,15 @@ local function RecipeGridItem(props: {
 				MinTextSize = 11,
 				MaxTextSize = 12,
 			}),
-		}),
+		}) or nil,
 	})
 end
 
 local function IngredientChip(props: { name: string, layoutOrder: number })
+	local xs, sm, md, lg, xl = useBreakpoint()
+	local mobile = xs or sm
 	return e("Frame", {
-		Size = UDim2.new(0, 0, 0, 26),
+		Size = UDim2.new(0, 0, 0, mobile and 18 or 26),
 		AutomaticSize = Enum.AutomaticSize.X,
 		BackgroundTransparency = props.type and 1 or 0,
 		BackgroundColor3 = Color3.fromRGB(55, 55, 68),
@@ -160,130 +156,101 @@ local function IngredientChip(props: { name: string, layoutOrder: number })
 			BackgroundTransparency = 1,
 			Text = props.name,
 			TextColor3 = SUBTEXT,
-			TextSize = 13,
+			TextSize = mobile and 10 or 13,
 			Font = Enum.Font.FredokaOne,
 		}),
 	})
-end
-
+end -- RecipePanel.luau
 local function RecipeDetail(props: {
-	config: any,
+	config: Types.CoffeeConfigType?,
 	onNext: () -> (),
 	onPrev: () -> (),
 	locked: boolean,
 })
-	local config = props.config
+	local config = props.config or {}
+	local xs, sm, md, lg, xl = useBreakpoint()
+	local mobile = xs or sm
 
-	-- Build ingredient display names
-	local ingredientNames = {}
-	for i, id in ipairs(config.RecipePath or {}) do
-		local ing = CoffeeConfig[id]
-		ingredientNames[i] = props.locked and "???" or (ing and ing.DisplayName or id)
-	end
+	-- 1. Build the 3x3 Grid Elements matching MixerPanel's IngredientList
+	local selectedIngredientElements = {}
+	local recipePath = config.RecipePath or {}
 
-	local chips = {
+	for i = 1, 9 do
+		local id = recipePath[i]
+		local ingConfig = id and CoffeeModule.IngredientLookup[id]
 
-		UIListLayout = e("UIListLayout", {
-			FillDirection = Enum.FillDirection.Horizontal,
-			Padding = UDim.new(0, 6),
-			Wraps = true,
-			SortOrder = Enum.SortOrder.LayoutOrder,
-		}),
-	}
-	for i, name in ipairs(ingredientNames) do
-		chips["chip_" .. i * 2] = e(IngredientChip, { name = name, layoutOrder = i * 2 })
-		chips["chip_" .. (i * 2 + 1)] = (i < #(ingredientNames or {}))
-			and e(IngredientChip, { name = "->", layoutOrder = i * 2 + 1, type = "arrow" })
+		-- Handle undiscovered (locked) visualization
+		local text = ingConfig and ingConfig.DisplayName or "////"
+		local imageColor
+		local image = ingConfig and ingConfig.Image
+
+		if props.locked and id then
+			text = "???"
+			imageColor = Color3.new()
+		end
+
+		selectedIngredientElements[i] = e(SmallButton, {
+			OverlayText = id and text or "",
+			OverlayTextSize = mobile and 8 or 10,
+			LayoutOrder = i,
+			OverlayTextWrapped = true,
+			ButtonClass = "ImageButton",
+			AutomaticSize = Enum.AutomaticSize.None,
+			Image = image,
+			ImageColor3 = imageColor,
+			-- Dynamically scale button sizes for mobile landscape constraints
+			Size = mobile and UDim2.new(0, 36, 0, 36) or UDim2.new(0, 50, 0, 50),
+			Padding = { All = UDim.new(0, 4) },
+			BackgroundColor3 = id and Color3.fromRGB(84, 52, 52) or Color3.fromRGB(50, 50, 60),
+			BackgroundTransparency = id and 0 or 0.6, -- Dims empty slots to maintain the 3x3 layout
+		})
 	end
 
 	return e("Frame", {
 		Size = UDim2.new(1, 0, 1, 0),
 		BackgroundTransparency = 1,
 	}, {
-		SurfaceGui = e("Frame", {
+		Frame = e("Frame", {
 			Size = UDim2.new(1, 0, 1, 0),
 			BackgroundTransparency = 1,
-			-- PixelsPerStud = 45,
-			-- Face = "Right",
-			-- SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud,
-			-- Adornee = workspace:FindFirstChild("detailsurface") or nil,
-			-- Brightness = 2,
-			-- LightInfluence = 0,
 		}, {
 			UIListLayout = e("UIListLayout", {
 				FillDirection = Enum.FillDirection.Vertical,
-				Padding = UDim.new(0, 2),
+				Padding = UDim.new(0, mobile and 4 or 8),
 				SortOrder = Enum.SortOrder.LayoutOrder,
 				HorizontalFlex = Enum.UIFlexAlignment.Fill,
 				HorizontalAlignment = Enum.HorizontalAlignment.Center,
+				VerticalFlex = Enum.UIFlexAlignment.None,
 			}),
 			UIPadding = e("UIPadding", {
-				PaddingLeft = UDim.new(0, 16),
-				PaddingRight = UDim.new(0, 16),
-				PaddingTop = UDim.new(0, 16),
+				PaddingLeft = UDim.new(0, mobile and 4 or 16),
+				PaddingRight = UDim.new(0, mobile and 4 or 16),
+				PaddingTop = UDim.new(0, mobile and 4 or 16),
 			}),
-			Title = e("TextLabel", {
-				Size = UDim2.new(1, 0, 0, 30),
-				BackgroundTransparency = 1,
-				Text = props.locked and "???" or config.DisplayName,
-				TextColor3 = ACCENT,
-				TextSize = 22,
-				TextStrokeTransparency = 0,
-				Font = Enum.Font.SpecialElite,
-				TextXAlignment = Enum.TextXAlignment.Left,
-				LayoutOrder = 1,
-			}),
-			Flare = e("ImageLabel", {
-				Size = UDim2.new(1, 0, 1, 0),
-				BackgroundColor3 = Color3.fromRGB(30, 30, 38),
-				BackgroundTransparency = 1,
-				BorderSizePixel = 0,
-				-- Image = "rbxassetid://126550182137995",
-				ImageColor3 = props.locked and Color3.new(0.5, 0.5, 0.5) or Color3.new(1, 1, 1),
-				ScaleType = Enum.ScaleType.Fit,
-				ZIndex = 10,
-				Position = UDim2.new(0.5, 0, 0, 0),
-				AnchorPoint = Vector2.new(0.5, 0),
+			CenterStage = e(HStack, {
+				Size = UDim2.new(1, 0, 0, mobile and 22 or 28),
+				HorizontalFlex = Enum.UIFlexAlignment.Fill,
+				VerticalFlex = Enum.UIFlexAlignment.None,
+				VerticalAlignment = Enum.VerticalAlignment.Center,
 				LayoutOrder = 2,
+				ClipsDescendants = false,
 			}, {
-
-				-- UIAspectRatioConstraint = e("UIAspectRatioConstraint", {
-				-- 	AspectRatio = 1,
-				-- }),
-				UISizeConstraint = e("UISizeConstraint", {
-					MaxSize = Vector2.new(1000, 100),
-				}),
-				Flare = e("ImageLabel", {
-					Size = UDim2.new(1, 0, 1, 0),
-					BackgroundColor3 = Color3.fromRGB(30, 30, 38),
+				Title = e("TextLabel", {
+					Size = UDim2.new(1, 0, 0, 30),
+					TextWrapped = true,
+					Text = props.locked and "???" or config.DisplayName,
+					TextColor3 = ACCENT,
+					TextSize = mobile and 16 or 22,
+					TextStrokeTransparency = 0,
+					Font = Enum.Font.SpecialElite,
+					TextXAlignment = Enum.TextXAlignment.Left,
 					BackgroundTransparency = 1,
-					BorderSizePixel = 0,
-					Image = "rbxassetid://126550182137995",
-					ImageColor3 = props.locked and Color3.new(0.5, 0.5, 0.5) or Color3.new(1, 1, 1),
-					ScaleType = Enum.ScaleType.Fit,
-					ZIndex = 1,
-					Position = UDim2.new(0.5, 0, 0, 0),
-					AnchorPoint = Vector2.new(0.5, 0),
 					LayoutOrder = 2,
-				}, {
-					UICorner = e("UICorner", { CornerRadius = UDim.new(0, 6) }),
+					AutomaticSize = Enum.AutomaticSize.Y,
+					ClipsDescendants = false,
 				}),
-				Image = e("ImageLabel", {
-					Size = UDim2.new(1, 0, 1, 0),
-					BackgroundTransparency = 1,
-					BorderSizePixel = 0,
-					Image = props.config.Image or "",
-					ImageColor3 = props.locked and Color3.new(0.5, 0.5, 0.5) or nil,
-					ScaleType = Enum.ScaleType.Fit,
-					ZIndex = 10,
-					Position = UDim2.new(0.5, 0, 0, 0),
-					AnchorPoint = Vector2.new(0.5, 0),
-					LayoutOrder = 2,
-				}, {}),
 				PrevButton = e("TextButton", {
-					Size = UDim2.new(0, 50, 0, 50),
-					Position = UDim2.new(0, 0, 0.5, 0),
-					AnchorPoint = Vector2.new(1, 0.5),
+					Size = UDim2.new(0, mobile and 30 or 50, 1, 0),
 					BackgroundColor3 = Color3.fromRGB(50, 50, 65),
 					BorderSizePixel = 0,
 					Text = "<",
@@ -295,41 +262,130 @@ local function RecipeDetail(props: {
 				}, {
 					UICorner = e("UICorner", { CornerRadius = UDim.new(0, 8) }),
 				}),
+
 				NextButton = e("TextButton", {
-					Size = UDim2.new(0, 50, 0, 50),
-					Position = UDim2.new(1, 0, 0.5, 0),
-					AnchorPoint = Vector2.new(0, 0.5),
+					Size = UDim2.new(0, mobile and 30 or 50, 1, 0),
 					BackgroundColor3 = Color3.fromRGB(50, 50, 65),
 					BorderSizePixel = 0,
 					Text = ">",
 					TextColor3 = TEXT,
 					TextSize = 24,
 					Font = Enum.Font.FredokaOne,
-					LayoutOrder = 2,
+					LayoutOrder = 3,
 					[React.Event.Activated] = props.onNext,
 				}, {
 					UICorner = e("UICorner", { CornerRadius = UDim.new(0, 8) }),
 				}),
 			}),
 
+			-- 2. The Core Visual Flow: < [ 3x3 Grid ] = [ Flare + Result ] >
+
+			RecipeFlow = e(HStack, {
+				AutomaticSize = Enum.AutomaticSize.X,
+				Spacing = UDim.new(0, mobile and 6 or 16),
+				Size = UDim2.new(0, 0, 0, mobile and 100 or 170),
+				HorizontalAlignment = Enum.HorizontalAlignment.Center,
+				VerticalAlignment = Enum.VerticalAlignment.Center,
+				HorizontalFlex = Enum.UIFlexAlignment.Fill,
+				LayoutOrder = 2,
+			}, {
+				-- 3x3 Grid (Left)
+				IngredientsGrid = e(VStack, {
+					AutomaticSize = Enum.AutomaticSize.X,
+					Spacing = UDim.new(0, 2),
+					Size = UDim2.new(0, 0, 1, 0),
+					LayoutOrder = 1,
+				}, {
+					Row1 = e(HStack, {
+						AutomaticSize = Enum.AutomaticSize.XY,
+						Spacing = UDim.new(0, mobile and 0 or 2),
+						LayoutOrder = 1,
+					}, {
+						selectedIngredientElements[1],
+						selectedIngredientElements[2],
+						selectedIngredientElements[3],
+					}),
+					Row2 = e(HStack, {
+						AutomaticSize = Enum.AutomaticSize.XY,
+						Spacing = UDim.new(0, mobile and 0 or 2),
+						LayoutOrder = 2,
+					}, {
+						selectedIngredientElements[4],
+						selectedIngredientElements[5],
+						selectedIngredientElements[6],
+					}),
+					Row3 = e(HStack, {
+						AutomaticSize = Enum.AutomaticSize.XY,
+						Spacing = UDim.new(0, mobile and 0 or 2),
+						LayoutOrder = 3,
+					}, {
+						selectedIngredientElements[7],
+						selectedIngredientElements[8],
+						selectedIngredientElements[9],
+					}),
+				}),
+
+				-- Equals Sign (Center)
+				Equals = e("TextLabel", {
+					Size = UDim2.new(0, mobile and 20 or 30, 0, 50),
+					BackgroundTransparency = 1,
+					Text = "=",
+					TextColor3 = TEXT,
+					TextSize = mobile and 32 or 48,
+					Font = Enum.Font.FredokaOne,
+					LayoutOrder = 2,
+				}),
+
+				-- Result Graphic (Right)
+				ResultGraphic = e("Frame", {
+					Size = mobile and UDim2.new(0, 80, 0, 80) or UDim2.new(0, 110, 0, 110),
+					BackgroundTransparency = 1,
+					LayoutOrder = 3,
+				}, {
+					Flare = e("ImageLabel", {
+						Size = UDim2.new(1, 0, 1, 0),
+						BackgroundColor3 = Color3.fromRGB(30, 30, 38),
+						BackgroundTransparency = 1,
+						BorderSizePixel = 0,
+						Image = "rbxassetid://126550182137995",
+						ImageColor3 = props.locked and Color3.new(0.5, 0.5, 0.5) or Color3.new(1, 1, 1),
+						ScaleType = Enum.ScaleType.Fit,
+						ZIndex = 1,
+						Position = UDim2.new(0.5, 0, 0.5, 0),
+						AnchorPoint = Vector2.new(0.5, 0.5),
+					}, {
+						UICorner = e("UICorner", { CornerRadius = UDim.new(0, 6) }),
+						Image = e("ImageLabel", {
+							Size = UDim2.new(1, 0, 1, 0),
+							BackgroundTransparency = 1,
+							BorderSizePixel = 0,
+							Image = props.config.Image or "",
+							ImageColor3 = props.locked and Color3.new(0.5, 0.5, 0.5) or nil,
+							ScaleType = Enum.ScaleType.Fit,
+							ZIndex = 10,
+							Position = UDim2.new(0.5, 0, 0.5, 0),
+							AnchorPoint = Vector2.new(0.5, 0.5),
+						}),
+					}),
+				}),
+			}),
 			InstructionLabel = e("TextLabel", {
 				Size = UDim2.new(1, 0, 0, 20),
 				BackgroundTransparency = 1,
 				Text = config.Instruction and "How to make:" or "",
 				TextColor3 = SUBTEXT,
-				TextSize = 13,
+				TextSize = mobile and 12 or 14,
 				Font = Enum.Font.FredokaOne,
 				TextXAlignment = Enum.TextXAlignment.Left,
 				LayoutOrder = 3,
 			}),
-			ItemTip = e("TextLabel", {
+			ItemTip = not props.locked and e("TextLabel", {
 				Size = UDim2.new(1, 0, 0, 0),
 				AutomaticSize = Enum.AutomaticSize.Y,
 				BackgroundTransparency = 1,
-				-- Text = props.locked and "" or config.ItemTip,
 				Text = `{config.ItemTip or ""}\nPrice: {config.Price}\nMixing Duration: {config.Duration}`,
 				TextColor3 = SUBTEXT,
-				TextSize = 14,
+				TextSize = mobile and 12 or 14,
 				TextStrokeTransparency = 0,
 				Font = Enum.Font.FredokaOne,
 				TextXAlignment = Enum.TextXAlignment.Left,
@@ -342,24 +398,6 @@ local function RecipeDetail(props: {
 				BorderSizePixel = 0,
 				LayoutOrder = 5,
 			}),
-			Controls = e("Frame", {
-				Size = UDim2.new(1, 0, 0, 50),
-				BackgroundTransparency = 1,
-				LayoutOrder = 6,
-			}, {
-				UIListLayout = e("UIListLayout", {
-					FillDirection = Enum.FillDirection.Horizontal,
-					HorizontalAlignment = Enum.HorizontalAlignment.Right,
-					Padding = UDim.new(0, 10),
-					SortOrder = Enum.SortOrder.LayoutOrder,
-				}),
-			}),
-			Chips = e("Frame", {
-				Size = UDim2.new(1, 0, 0, 0),
-				AutomaticSize = Enum.AutomaticSize.Y,
-				BackgroundTransparency = 1,
-				LayoutOrder = 3,
-			}, chips),
 		}),
 	})
 end
@@ -372,6 +410,8 @@ local function RecipePanel(props: {
 	local variationId, setVariationId = useState("none")
 	local discoveredDrinks, setDiscoveredDrinks = useState(not player and { none = { espresso = true } } or nil)
 	local drinksOfVariation: { [string]: true } = discoveredDrinks and discoveredDrinks[variationId] or {}
+	local xs, sm, md, lg, xl = useBreakpoint()
+	local mobile = xs or sm
 
 	useEffect(function()
 		local unsub = GlobalState:subscribe(function(state: GlobalState.GlobalState)
@@ -451,15 +491,16 @@ local function RecipePanel(props: {
 
 	local gridItems = {
 		UIGridLayout = e("UIGridLayout", {
-			CellSize = UDim2.new(0, 70, 0, 120),
-			CellPadding = UDim2.new(0, 8, 0, 8),
+			CellSize = mobile and UDim2.new(0, 45, 0, 50) or UDim2.new(0, 70, 0, 120),
+			CellPadding = UDim2.new(0, mobile and 2 or 8, 0, mobile and 2 or 8),
 			SortOrder = Enum.SortOrder.LayoutOrder,
+			HorizontalAlignment = Enum.HorizontalAlignment.Center,
 		}),
 		UIPadding = e("UIPadding", {
-			PaddingLeft = UDim.new(0, 8),
-			PaddingRight = UDim.new(0, 8),
-			PaddingTop = UDim.new(0, 8),
-			PaddingBottom = UDim.new(0, 8),
+			PaddingLeft = UDim.new(0, mobile and 4 or 8),
+			PaddingRight = UDim.new(0, mobile and 4 or 8),
+			PaddingTop = UDim.new(0, mobile and 4 or 8),
+			PaddingBottom = UDim.new(0, mobile and 4 or 8),
 		}),
 	}
 	local count = 0
@@ -488,13 +529,21 @@ local function RecipePanel(props: {
 	for variationId, variation in VariationsConfig do
 		buttons[variationId] = e(SmallButton, {
 			LayoutOrder = variation.Multiplier,
-			OverlayText = variation.DisplayName,
 			BackgroundColor3 = variationId ~= "none" and variation.ColorPrimary
 				or Color3.new(0.768627, 0.549019, 0.549019),
 			Image = variation.Image,
 			[React.Event.Activated] = function()
 				setVariationId(variationId)
 			end,
+			Size = UDim2.new(1, 0, 0, 32),
+			AutomaticSize = Enum.AutomaticSize.None,
+		}, {
+			e(SmallText, {
+				Text = variation.DisplayName,
+				TextSize = 14,
+				TextWrapped = true,
+				Size = UDim2.new(1, 0, 0, 28),
+			}),
 		})
 	end
 	local variation = VariationsConfig[variationId]
@@ -523,14 +572,15 @@ local function RecipePanel(props: {
 			MaxSize = Vector2.new(1000, 1000),
 		}),
 		buttons = e(VStack, {
-			AutomaticSize = Enum.AutomaticSize.XY,
+			AutomaticSize = Enum.AutomaticSize.None,
 			AnchorPoint = Vector2.new(1, 0),
 			Spacing = UDim.new(0, 8),
 			Size = UDim2.new(0, 80, 0, 0),
+			VerticalFlex = Enum.UIFlexAlignment.None,
 		}, buttons),
 		-- Centered container
 		Container = e("Frame", {
-			Size = UDim2.new(1, -20, 1, -20),
+			Size = UDim2.new(1, -0, 1, -0),
 			-- Size = UDim2.new(0, 720, 0, 440),
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.new(0.5, 0, 0.5, 0),
@@ -542,7 +592,7 @@ local function RecipePanel(props: {
 
 			-- Header
 			Header = e("Frame", {
-				Size = UDim2.new(1, 0, 0, 48),
+				Size = UDim2.new(1, 0, 0, (mobile and 24 or 48)),
 				BackgroundColor3 = PANEL_BG,
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
@@ -585,8 +635,8 @@ local function RecipePanel(props: {
 
 			-- Body
 			Body = e(HStack, {
-				Size = UDim2.new(1, 0, 1, -48),
-				Position = UDim2.new(0, 0, 0, 48),
+				Size = UDim2.new(1, 0, 1, -(mobile and 24 or 48)),
+				Position = UDim2.new(0, 0, 0, (mobile and 24 or 48)),
 				BackgroundTransparency = 1,
 			}, {
 				-- Left grid
@@ -604,15 +654,21 @@ local function RecipePanel(props: {
 				}, {
 					-- UICorner = e("UICorner", { CornerRadius = UDim.new(0, 10) }),
 					-- Top fill for flat top
-					TopFill = e("Frame", {
-						Size = UDim2.new(1, 0, 0, 10),
-						BackgroundColor3 = PANEL_BG,
-						BackgroundTransparency = 1,
-						BorderSizePixel = 0,
+					-- TopFill = e("Frame", {
+					-- 	Size = UDim2.new(1, 0, 0, 10),
+					-- 	BackgroundColor3 = PANEL_BG,
+					-- 	BackgroundTransparency = 1,
+					-- 	BorderSizePixel = 0,
+					-- }),
+					padding = e("UIPadding", {
+						PaddingLeft = UDim.new(0, mobile and 2 or 6),
+						PaddingRight = UDim.new(0, mobile and 2 or 6),
+						PaddingTop = UDim.new(0, mobile and 2 or 6),
+						PaddingBottom = UDim.new(0, mobile and 2 or 12),
 					}),
 					ScrollFrame = e("ScrollingFrame", {
-						Size = UDim2.new(1, -8, 1, -8),
-						Position = UDim2.new(0, 4, 0, 8),
+						Size = UDim2.new(1, -0, 1, -0),
+						Position = UDim2.new(0, 0, 0, 0),
 						BackgroundTransparency = 1,
 						BorderSizePixel = 0,
 						ScrollBarThickness = 4,
@@ -623,31 +679,43 @@ local function RecipePanel(props: {
 				}),
 
 				-- Right detail
-				DetailPanel = e("ImageLabel", {
+				Holder = e("Frame", {
 					Size = UDim2.new(0.5, 0, 1, 0),
 					Position = UDim2.new(0, 328, 0, 0),
 					BackgroundTransparency = 1,
-
-					BackgroundColor3 = PANEL_BG,
-					Image = "rbxassetid://127657596958436",
-					ImageColor3 = bg, --Color3.new(0.505882, 0.254901, 0.254901),
-					-- ImageColor3 = PANEL_BG,
-					ScaleType = Enum.ScaleType.Slice,
-					SliceCenter = Rect.new(8, 8, 92, 92),
 					BorderSizePixel = 0,
 				}, {
-					if selected
-						then e(RecipeDetail, {
-							locked = locked,
-							config = selected,
-							onNext = function()
-								navigateRecipe(1)
-							end,
-							onPrev = function()
-								navigateRecipe(-1)
-							end,
-						})
-						else nil,
+					padding = e("UIPadding", {
+						PaddingLeft = UDim.new(0, mobile and 4 or 6),
+						PaddingRight = UDim.new(0, mobile and 4 or 6),
+						PaddingTop = UDim.new(0, mobile and 4 or 6),
+						PaddingBottom = UDim.new(0, mobile and 4 or 12),
+					}),
+					DetailPanel = e("ImageLabel", {
+						Size = UDim2.new(1, 0, 1, 0),
+						BackgroundTransparency = 1,
+
+						BackgroundColor3 = PANEL_BG,
+						Image = "rbxassetid://127657596958436",
+						ImageColor3 = bg, --Color3.new(0.505882, 0.254901, 0.254901),
+						-- ImageColor3 = PANEL_BG,
+						ScaleType = Enum.ScaleType.Slice,
+						SliceCenter = Rect.new(8, 8, 92, 92),
+						BorderSizePixel = 0,
+					}, {
+						if selected
+							then e(RecipeDetail, {
+								locked = locked,
+								config = selected,
+								onNext = function()
+									navigateRecipe(1)
+								end,
+								onPrev = function()
+									navigateRecipe(-1)
+								end,
+							})
+							else nil,
+					}),
 				}),
 			}),
 		}),

@@ -53,7 +53,7 @@ function DrinkModelUtil.BuildDrinkModel(drinkId: string, variationId: string?, o
 			-- Lerp ALL parts to preserve shading
 			if variation.ColorPrimary then
 				for _, desc in clone:GetDescendants() do
-					if desc:IsA("BasePart") then
+					if desc:IsA("BasePart") or desc:IsA("SurfaceAppearance") then
 						desc.Color = desc.Color:Lerp(variation.ColorPrimary, lerpAlpha)
 						if desc:IsA("UnionOperation") then
 							desc.UsePartColor = true

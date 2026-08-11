@@ -162,6 +162,10 @@ end
 
 -- Assign Image from model PackageLink
 for _, config in ipairs(CoffeeConfigArray) do
+	if config.Image then
+		-- image already given
+		continue
+	end
 	local model = ReplicatedStorage.Shared.Models:FindFirstChild(config.Id)
 	if model then
 		local ingredientPackageLink = model:FindFirstChildWhichIsA("PackageLink")
@@ -172,6 +176,10 @@ for _, config in ipairs(CoffeeConfigArray) do
 	end
 end
 for _, config in ipairs(IngredientConfigs) do
+	if config.Image then
+		-- image already given
+		continue
+	end
 	local model = ReplicatedStorage.Shared.Models:FindFirstChild(config.Id)
 	if model then
 		local ingredientPackageLink = model:FindFirstChildWhichIsA("PackageLink")
@@ -212,7 +220,7 @@ for index, config in ipairs(CoffeeConfigArray) do
 	config.Rate = index
 	config.Duration = 0
 	for i, ingId in config.Ingredients do
-		config.Duration += 3 * ingDuration[ingId] ^ 2
+		config.Duration += 3 * ingDuration[ingId] ^ 1.2 // 1
 	end
 end
 

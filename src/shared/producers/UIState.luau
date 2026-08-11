@@ -51,18 +51,33 @@ export type UIActions = {
 	setViewportSize: (viewportSize: Vector2) -> (),
 }
 
+-- Shared/producers/UIState.luau
+
 local function calculateBreakpoint(viewportSize: Vector2): Breakpoint
 	local width = viewportSize.X
-	if width < 640 then
-		return "xs"
-	elseif width < 768 then
-		return "sm"
-	elseif width < 1024 then
-		return "md"
-	elseif width < 1440 then
-		return "lg"
+	local height = viewportSize.Y
+
+	-- 1. Mobile Phone Check (Landscape)
+	-- If the vertical space is highly constrained (<= 500px), it is a phone.
+	if height <= 500 then
+		if width <= 800 then
+			return "xs" -- Smaller or older phones (e.g., iPhone 7, standard Galaxy)
+		else
+			return "sm" -- Modern ultra-wide phones (e.g., iPhone 11, iPhone 16 Pro Max)
+		end
+	end
+
+	-- 2. Tablet Check
+	-- Devices with decent height, but constrained width compared to desktop.
+	if width <= 1180 then
+		return "md" -- Fits most iPads shown in the emulator (e.g., iPad 10th Gen, iPad Air)
+	end
+
+	-- 3. Desktop & Console Check
+	if width <= 1440 then
+		return "lg" -- Average Laptops (1366x768) and smaller desktop monitors
 	else
-		return "xl"
+		return "xl" -- 1080p+ Desktops, Xbox, PS5, Android TV
 	end
 end
 
@@ -85,6 +100,9 @@ local initialState: UIState = {
 	firstCustomer = nil,
 	viewportSize = Vector2.zero,
 	breakpoint = "md",
+	mixerInstance = nil,
+	tableInstance = nil,
+	cafeBase = nil,
 }
 
 local producer = Reflex.createProducer(initialState, {
@@ -152,6 +170,15 @@ local producer = Reflex.createProducer(initialState, {
 			viewportSize = viewportSize,
 			breakpoint = currentBreakpoint,
 		})
+	end,
+	setMixerInstance = function(state: UIState, model: Model?)
+		return Set(state, "mixerInstance", model)
+	end,
+	setTableInstance = function(state: UIState, model: Model?)
+		return Set(state, "tableInstance", model)
+	end,
+	setCafeBase = function(state: UIState, model: Model?)
+		return Set(state, "cafeBase", model)
 	end,
 }) :: Reflex.Producer<UIState, UIActions>
 

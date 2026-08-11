@@ -7,6 +7,7 @@ local e = React.createElement
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local MixerPanel = require(ReplicatedStorage.Shared.ReactComponents.MixerPanel)
+local ViewportController = require(ReplicatedStorage.Shared.Controllers.ViewportController)
 
 -- We dynamically grab the LocalPlayer ID (or default to "0" if running in a weird Studio context)
 -- so that it perfectly aligns with MixerPanel's internal state lookup!
@@ -46,11 +47,12 @@ end
 -- 3. Mount the story
 local function story(frame: Frame)
 	local root = ReactRoblox.createRoot(frame)
-
+	ViewportController.initialize()
 	root:render(e(StoryWrapper))
 	UIState.toggle("mixer")
 
 	return function()
+		ViewportController.cleanup()
 		root:unmount()
 	end
 end

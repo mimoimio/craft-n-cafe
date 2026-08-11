@@ -4,12 +4,15 @@ local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UIProducer = require(ReplicatedStorage.Shared.producers.UIState)
 
-local currentConnection: RBXScriptConnection? = nil
+local ViewportController = {}
+local workspaceCurrentCameraChangeConn: RBXScriptConnection? = nil
+local cameraViewportSizeChangeConn: RBXScriptConnection? = nil
 
+-- this causes repeated stuffs in UILab stories.
 local function bindCamera(camera: Camera)
-	if currentConnection then
-		currentConnection:Disconnect()
-		currentConnection = nil
+	if cameraViewportSizeChangeConn then
+		cameraViewportSizeChangeConn:Disconnect()
+		cameraViewportSizeChangeConn = nil
 	end
 
 	local function update()
@@ -17,15 +20,30 @@ local function bindCamera(camera: Camera)
 	end
 
 	update()
-	currentConnection = camera:GetPropertyChangedSignal("ViewportSize"):Connect(update)
+	cameraViewportSizeChangeConn = camera:GetPropertyChangedSignal("ViewportSize"):Connect(update)
 end
 
 if Workspace.CurrentCamera then
 	bindCamera(Workspace.CurrentCamera)
 end
-
-Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
-	if Workspace.CurrentCamera then
-		bindCamera(Workspace.CurrentCamera)
+function ViewportController.initialize()
+	print("initailized")
+	workspaceCurrentCameraChangeConn = Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
+		if Workspace.CurrentCamera then
+			bindCamera(Workspace.CurrentCamera)
+		end
+	end)
+end
+function ViewportController.cleanup()
+	print("cleanedup")
+	if workspaceCurrentCameraChangeConn then
+		workspaceCurrentCameraChangeConn:Disconnect()
+		workspaceCurrentCameraChangeConn = nil
 	end
-end)
+	if cameraViewportSizeChangeConn then
+		cameraViewportSizeChangeConn:Disconnect()
+		cameraViewportSizeChangeConn = nil
+	end
+end
+
+return ViewportController

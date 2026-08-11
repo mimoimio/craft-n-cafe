@@ -1,4 +1,5 @@
 -- CharacterAnimation.story.luau
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
@@ -13,6 +14,9 @@ local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
 local Animations = ReplicatedStorage.Shared.Animations
 -- local holdcupAnim = Animations.HoldCup
 local holdcupAnim = Animations.Walk
+
+local player = Players.LocalPlayer
+local playerId = player and "player.UserId" or ""
 
 local lookVector = Vector3.new(-1, 0, 1)
 local initVector = Vector3.new(20, 0, -55)
@@ -128,7 +132,7 @@ local SkeletonApp = function()
 				local _now = workspace:GetServerTimeNow()
 				-- print("ticked")
 				local random = math.random()
-				if random < 1 / 200 then
+				if random < (player and 1 / 200 or 1) then
 					-- print("👀👀👀👀")
 					local id = tostring(_now)
 					task.defer(function()

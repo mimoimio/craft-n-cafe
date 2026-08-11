@@ -25,6 +25,7 @@ local BuildersIcon = require(ReplicatedStorage.Shared.Utils.BuildersIcon)
 local CLOCK = BuildersIcon.clock
 local STOCK = BuildersIcon["three-stacked-squares-tilted"]
 
+local useBreakpoint = require(ReplicatedStorage.Shared.Hooks.useBreakpoint)
 local player = game.Players.LocalPlayer
 local playerId: string? = player and tostring(player.UserId) or "0"
 local layoutOrders = {}
@@ -62,6 +63,9 @@ local function MixerPanel(props: {
 	local activeTrails, setActiveTrails = useState({})
 	local panelOpen, setPanelOpen = useState((not player) and true or false)
 	local activeMixerId, setMixerId = useState(nil)
+
+	local xs, sm, md, lg, xl = useBreakpoint()
+	local mobile = xs or sm
 
 	-- Reference to the selected ingredients UI to act as the target position
 	local targetRef = React.useRef(nil)
@@ -253,9 +257,10 @@ local function MixerPanel(props: {
 			end,
 		}, {
 			Count = e(SmallText, {
-				Size = UDim2.new(0, 20, 0, 20),
+				Size = UDim2.new(0, mobile and 12 or 20, 0, mobile and 12 or 20),
 				AnchorPoint = Vector2.new(0.25, 0.25),
 				Text = amountLeft,
+				TextSize = mobile and 16 or 20,
 				TextTransparency = transparency,
 				BackgroundTransparency = transparency,
 				TextXAlignment = Enum.TextXAlignment.Center,
@@ -281,7 +286,7 @@ local function MixerPanel(props: {
 			ButtonClass = "ImageButton",
 			AutomaticSize = Enum.AutomaticSize.None,
 			Image = config and config.Image,
-			Size = UDim2.new(0, 50, 0, 50),
+			Size = UDim2.new(0, mobile and 36 or 50, 0, mobile and 36 or 50),
 			Padding = { All = UDim.new(0, 4) },
 			BackgroundColor3 = Color3.fromRGB(84, 52, 52),
 			[React.Event.Activated] = function()
@@ -294,7 +299,7 @@ local function MixerPanel(props: {
 	local sec = resultConfig and resultConfig.Duration % 60 or nil
 	local stocks = resultConfig and resultConfig.InitialStock
 	local durationText = resultConfig
-			and `<font size="14">$$$</font><font size="18">: {resultConfig.Price} $\n{CLOCK}: {min > 0 and `{min} min ` or ""}{sec} sec </font>\n<font size="18">{STOCK}: {stocks}x</font>`
+			and `<font size="14">$$$</font><font size="18">: {resultConfig.Price} $\n{CLOCK}: {min > 0 and `{min} min ` or ""}{sec} sec </font>` --\n<font size="18">{STOCK}: {stocks}x</font>
 		or ""
 
 	-- new until discovered
@@ -312,13 +317,14 @@ local function MixerPanel(props: {
 	local resultLabelText = resultConfig and (not new and resultConfig.DisplayName or "???") or ""
 
 	return e("ImageLabel", {
-		Size = UDim2.new(1, 0, 1, 0),
+		Size = UDim2.new(1, 0, 1, mobile and -32 or 0),
 		BackgroundTransparency = 1,
 		Visible = panelOpen or false,
 		Position = UDim2.new(0.5, 0, 0.5, 0),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Image = "rbxassetid://127657596958436",
-		ImageTransparency = 0.6,
+		ImageTransparency = 0,
+		-- ImageTransparency = 0.6,
 		ImageColor3 = Color3.new(0.768627, 0.549019, 0.549019),
 		ScaleType = Enum.ScaleType.Slice,
 		SliceCenter = Rect.new(8, 8, 92, 92),
@@ -410,7 +416,7 @@ local function MixerPanel(props: {
 						e(HStack, {
 							HorizontalFlex = Enum.UIFlexAlignment.None,
 							HorizontalAlignment = Enum.HorizontalAlignment.Center,
-							Size = UDim2.new(1, 0, 0, 50),
+							Size = UDim2.new(1, 0, 0, mobile and 36 or 50),
 							AutomaticSize = Enum.AutomaticSize.None,
 							LayoutOrder = 1,
 							Spacing = UDim.new(0, 2),
@@ -424,7 +430,7 @@ local function MixerPanel(props: {
 						e(HStack, {
 							HorizontalFlex = Enum.UIFlexAlignment.None,
 							HorizontalAlignment = Enum.HorizontalAlignment.Center,
-							Size = UDim2.new(1, 0, 0, 50),
+							Size = UDim2.new(1, 0, 0, mobile and 36 or 50),
 							AutomaticSize = Enum.AutomaticSize.None,
 							LayoutOrder = 2,
 							Spacing = UDim.new(0, 2),
@@ -436,7 +442,7 @@ local function MixerPanel(props: {
 							}),
 						}),
 						e(HStack, {
-							Size = UDim2.new(1, 0, 0, 50),
+							Size = UDim2.new(1, 0, 0, mobile and 36 or 50),
 							AutomaticSize = Enum.AutomaticSize.None,
 							HorizontalFlex = Enum.UIFlexAlignment.None,
 							HorizontalAlignment = Enum.HorizontalAlignment.Center,
@@ -471,7 +477,6 @@ local function MixerPanel(props: {
 						AutomaticSize = Enum.AutomaticSize.XY,
 						VerticalFlex = Enum.UIFlexAlignment.None,
 						HorizontalFlex = Enum.UIFlexAlignment.None,
-						BackgroundTransparency = 1,
 						Padding = { All = UDim.new() },
 						HorizontalAlignment = Enum.HorizontalAlignment.Center,
 						VerticalAlignment = Enum.VerticalAlignment.Bottom,
@@ -511,13 +516,13 @@ local function MixerPanel(props: {
 						BackgroundTransparency = 1,
 					}, {
 						ResultImageFrame = e("Frame", {
-							Size = UDim2.new(0, 100, 0, 100),
+							Size = UDim2.new(0, mobile and 70 or 100, 0, mobile and 70 or 100),
 							Position = UDim2.new(0.5, 0, 0, 0),
 							BackgroundTransparency = 1,
 							AnchorPoint = Vector2.new(0.5, 0),
 						}, {
 							Background = e("ImageLabel", {
-								Size = UDim2.new(0, 100, 0, 100),
+								Size = UDim2.new(1, 0, 1, 0),
 								Position = UDim2.new(0.5, 0, 0, 0),
 								BackgroundTransparency = 1,
 								AnchorPoint = Vector2.new(0.5, 0),
@@ -530,7 +535,7 @@ local function MixerPanel(props: {
 							ResultLabel = resultConfig and e(SmallText, {
 								Text = resultLabelText,
 								Size = UDim2.new(1, 0, 0, 0),
-								TextSize = 16,
+								TextSize = mobile and 12 or 14,
 								Position = UDim2.new(0.5, 0, 1, -8),
 								AnchorPoint = Vector2.new(0.5, 1),
 								RichText = true,
@@ -540,8 +545,8 @@ local function MixerPanel(props: {
 							Duration = resultConfig and e(SmallText, {
 								Text = durationText,
 								MinTextSize = 14,
+								TextSize = mobile and 14 or 18,
 								-- MaxTextSize = 32,
-								TextSize = 18,
 								Size = UDim2.new(1, 0, 0, 0),
 								Position = UDim2.new(0.5, 0, 1, 0),
 								AnchorPoint = Vector2.new(0.5, 0),
@@ -550,7 +555,7 @@ local function MixerPanel(props: {
 								ZIndex = 2,
 							}),
 							ResultImage = e("ImageLabel", {
-								Size = UDim2.new(0, 100, 0, 100),
+								Size = UDim2.new(1, 0, 1, 0),
 								Position = UDim2.new(0.5, 0, 0, 0),
 								BackgroundTransparency = 1,
 								AnchorPoint = Vector2.new(0.5, 0),
@@ -578,6 +583,7 @@ local function MixerPanel(props: {
 								Size = UDim2.new(0, 30, 0, 30),
 								AnchorPoint = Vector2.new(0.75, 0.25),
 								Text = "NEW!",
+								TextSize = mobile and 14 or 18,
 								Position = UDim2.new(1, 0, 0, 0),
 								TextXAlignment = Enum.TextXAlignment.Center,
 								-- BackgroundColor3 = Color3.new(0.152941, 0.788235, 0.184313),
@@ -607,7 +613,7 @@ local function MixerPanel(props: {
 					}, {
 						Grid = e(Grid, {
 							Size = UDim2.new(1, 0, 0, 200),
-							CellSize = UDim2.new(0, 80, 0, 80), -- cellsize mandatory or will not work
+							CellSize = UDim2.new(0, mobile and 60 or 80, 0, mobile and 60 or 80), -- cellsize mandatory or will not work
 							Padding = { All = UDim.new(0, 4) },
 							CellPadding = UDim2.new(0, 2, 0, 2),
 							AutomaticSize = Enum.AutomaticSize.XY,
@@ -616,7 +622,8 @@ local function MixerPanel(props: {
 
 					SelectionText = e(SmallText, {
 						Text = "Ingredients",
-						Size = UDim2.new(1, 0, 0, 30),
+						Size = UDim2.new(1, 0, 0, mobile and 18 or 30),
+						TextSize = mobile and 12 or 18,
 					}),
 				}),
 			}),
