@@ -9,7 +9,7 @@ local Set = Dictionary.set
 local RemoveKey = Dictionary.removeKey
 
 type PlayerData = Types.PlayerData
-type ShelvesState = Types.ShelvesState
+export type ShelvesState = Types.ShelvesState
 
 local initialState: ShelvesState = {}
 
@@ -43,7 +43,7 @@ local actions = {
 					local currentSize = slotData.size or 1
 
 					if newSize > currentSize then
-						-- Upgrade the existing trophy to the larger size!
+						-- Upgrade the size, but crucially PRESERVE lastClaimTime!
 						local newSlotData = Dictionary.merge(slotData, { size = newSize })
 						local newSlots = Set(shelf.Slots, slotName, newSlotData)
 						local newShelf = Set(shelf, "Slots", newSlots)
@@ -86,12 +86,13 @@ local actions = {
 			return state
 		end
 
-		-- 3. Immutably add it to the display shelf!
+		-- 3. Immutably add it to the display shelf and init its timer!
 		local currentShelf = playerShelves[targetShelfUid]
 		local newSlots = Set(currentShelf.Slots, targetSlotName, {
 			drinkId = drinkId,
 			variationId = variationId,
 			size = newSize,
+			lastClaimTime = payload.timestamp, -- Track from the exact moment it's placed
 		})
 
 		local newShelf = Set(currentShelf, "Slots", newSlots)
@@ -99,6 +100,39 @@ local actions = {
 
 		return Set(state, playerId, newPlayerShelves)
 	end,
+    
+    claimShelfCollector = function(state: ShelvesState, playerId: string, payload: Types.ClaimShelfCollectorPayload)
+        local playerShelves = state[playerId]
+        if not playerShelves then
+            return state
+        end
+
+        local newPlayerShelves = table.clone(playerShelves)
+        local hasChanges = false
+
+        for shelfUid, shelf in playerShelves do
+            local newSlots = table.clone(shelf.Slots)
+            local shelfChanged = false
+
+            for slotName, slotData in shelf.Slots do
+                if type(slotData) == "table" then
+                    -- Reset the timer for this specific slot
+                    newSlots[slotName] = Dictionary.merge(slotData, { lastClaimTime = payload.timestamp })
+                    shelfChanged = true
+                    hasChanges = true
+                end
+            end
+
+            if shelfChanged then
+                newPlayerShelves[shelfUid] = Set(shelf, "Slots", newSlots)
+            end
+        end
+
+        if hasChanges then
+            return Set(state, playerId, newPlayerShelves)
+        end
+        return state
+    end,
 }
 
 return Reflex.createProducer(initialState, actions)

@@ -6,16 +6,22 @@ local e = React.createElement
 local useState = React.useState
 local useEffect = React.useEffect
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
+
 local CafeTypes = require(game.ReplicatedStorage.Shared.CafeTypes)
 local Types = require(game.ReplicatedStorage.Shared.Types)
 local DrinkModelUtil = require(ReplicatedStorage.Shared.Utils.DrinkModelUtil)
+local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
+local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConfig)
+
+local SmallText = require(ReplicatedStorage.Shared.ReactComponents.ui.SmallText)
+local VStack = require(ReplicatedStorage.Shared.ReactComponents.ui.VStack)
 
 -- 1. THE SLOT COMPONENT
 local function ShelfSlotComponent(
 	props: {
 		PlayerId: string,
-		SlotInstance: Part, -- For shelves, the slot itself is a Part
-		SlotData: Types.DisplayDrink, -- Can be "none" or { drinkId = string, variationId = string }
+		SlotInstance: CafeTypes.ShelfSlot, -- For shelves, the slot itself is a Part containing a DisplayPart
+		SlotData: any, -- Can be "none" or Types.DisplayDrink
 	}
 )
 	-- Render physical trophy drink
@@ -56,11 +62,82 @@ local function ShelfSlotComponent(
 	end, {
 		props.SlotData and props.SlotData.drinkId,
 		props.SlotData and props.SlotData.variationId,
+		props.SlotData and props.SlotData.size,
 		props.SlotInstance,
 	})
 
-	-- Unlike Tables, Shelf slots are just display! No ProximityPrompt interactions required here.
-	return e(React.Fragment)
+	-- Bail out of rendering UI if slot is empty
+	if not props.SlotData or props.SlotData == "none" then
+		return nil
+	end
+
+	local config = CoffeeModule.Config[props.SlotData.drinkId]
+	local variation = VariationsConfig[props.SlotData.variationId] or VariationsConfig["none"]
+
+	local rate = 0
+	if config and config.Rate then
+		local sizeMultiplier = props.SlotData.size or 1
+		rate = config.Rate * variation.Multiplier * sizeMultiplier
+	end
+
+	if rate <= 0 then
+		return nil
+	end
+
+	local displayname = config.DisplayName or "Unknown"
+	local variationName = variation.DisplayName or ""
+
+	-- Format the title with RichText to color the variation name
+	local titleText = displayname
+	if variation.VariationId ~= "none" and variationName ~= "" then
+		local color = variation.ColorPrimary or Color3.new(1, 1, 1)
+		local hex = color:ToHex()
+		titleText = `<font color="#{hex}">{displayname}</font>`
+	end
+
+	-- Attempt to find the specific display part (Fallback to SlotInstance if missing)
+	local adornee = props.SlotInstance:FindFirstChild("DisplayPart") or props.SlotInstance
+
+	return e(React.Fragment, nil, {
+		RateGui = e("SurfaceGui", {
+			ResetOnSpawn = false,
+			Active = false,
+			Adornee = adornee,
+			MaxDistance = 60,
+			CanvasSize = Vector2.new(200, 100),
+		}, {
+			Container = e(VStack, {
+				Size = UDim2.fromScale(1, 1),
+			}, {
+				NameLabel = e(SmallText, {
+					LayoutOrder = 1,
+					Text = titleText,
+					TextSize = 32,
+					TextWrapped = false,
+					TextColor3 = Color3.new(1, 1, 1),
+					TextXAlignment = Enum.TextXAlignment.Center,
+					TextYAlignment = Enum.TextYAlignment.Center,
+					RichText = true, -- Enables the Hex coloring
+					TextStrokeTransparency = 0,
+					TextStrokeColor3 = Color3.new(0, 0, 0),
+					AutomaticSize = Enum.AutomaticSize.XY,
+				}),
+				RateLabel = e(SmallText, {
+					LayoutOrder = 2,
+					Text = `+${rate}/s`,
+					TextColor3 = Color3.fromRGB(115, 255, 135), -- Money green
+					TextSize = 32,
+					TextWrapped = false,
+					TextXAlignment = Enum.TextXAlignment.Center,
+					TextYAlignment = Enum.TextYAlignment.Center,
+					RichText = true,
+					TextStrokeTransparency = 0,
+					TextStrokeColor3 = Color3.new(0, 0, 0),
+					AutomaticSize = Enum.AutomaticSize.XY,
+				}),
+			}),
+		}),
+	})
 end
 
 -- 2. THE SHELF COMPONENT
@@ -68,7 +145,7 @@ local function ShelfComponent(
 	props: {
 		PlayerId: string,
 		ShelfName: string,
-		ShelfData: CafeTypes.ShelfEntity, -- From State
+		ShelfData: Types.ShelfEntity, -- From State
 		ShelfAnchor: CafeTypes.Shelf, -- From Cafe Model
 	}
 )
@@ -88,7 +165,7 @@ local function ShelfComponent(
 				children[slotName] = e(ShelfSlotComponent, {
 					key = slotName,
 					PlayerId = props.PlayerId,
-					SlotInstance = slotInstance,
+					SlotInstance = slotInstance :: any, -- Coerced as it adheres to ShelfSlot in runtime
 					SlotData = slotData,
 				})
 			end

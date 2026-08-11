@@ -219,6 +219,7 @@ local function DailyClaimPopup(props: {})
 	if isActive then
 		return e("ScreenGui", {
 			IgnoreGuiInset = true,
+			ResetOnSpawn = false,
 			ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		}, {
 			e("Frame", {

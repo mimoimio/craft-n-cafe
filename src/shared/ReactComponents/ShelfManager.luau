@@ -81,6 +81,7 @@ local function ShelfSlotNode(
 	return e(React.Fragment, nil, {
 		RateGui = e("SurfaceGui", {
 			Active = false,
+			ResetOnSpawn = false,
 			Adornee = adornee,
 			MaxDistance = 60,
 			-- ref = warn,
@@ -217,4 +218,5 @@ local function ShelfManager(props: { CafeModel: Model })
 	return e(React.Fragment, nil, children)
 end
 
-return ShelfManager
+-- return ShelfManager
+return function() end

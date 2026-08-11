@@ -10,6 +10,7 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local TAG = "customparticle"
+local enabled = true
 
 local ParticleController = {}
 
@@ -153,6 +154,9 @@ local function _startHeartbeat()
 
 	_heartbeatConn = RunService.Heartbeat:Connect(function(dt: number)
 		local camera = workspace.CurrentCamera
+		if not enabled then
+			return
+		end
 		for original, data in pairs(_managed) do
 			-- Untrack if the original was destroyed or removed from Workspace
 			if not original:IsDescendantOf(game) or not _isInWorkspace(original) then
@@ -230,6 +234,10 @@ end
 
 function ParticleController.untrack(instance: Instance)
 	_untrack(instance)
+end
+
+function ParticleController.toggleParticle()
+	enabled = not enabled
 end
 
 function ParticleController.getManaged(): { { instance: Instance, rate: number } }

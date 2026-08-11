@@ -209,6 +209,7 @@ local function LevelUp(props: {})
 	if isActive then
 		return e("ScreenGui", {
 			IgnoreGuiInset = true,
+			ResetOnSpawn = false,
 			ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		}, {
 			e("Frame", {

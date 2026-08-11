@@ -15,8 +15,8 @@ local Types = require(ReplicatedStorage.Shared.Types)
 local Signal = require(game.ReplicatedStorage.Packages.Signal)
 local ShopCycle = require(game.ReplicatedStorage.Shared.ShopCycle)
 
--- local IS_PLAYTESTING = true
-
+local IS_PLAYTESTING = true
+--
 local DrinksBrewedLeaderboard = DataStoreService:GetOrderedDataStore("DrinksBrewed")
 
 --- Sycs the player's profile data to the OrderedDataStores
@@ -68,6 +68,7 @@ local PROFILE_TEMPLATE: PlayerData = {
 		MaxCustomersAtOnce = 5,
 		RollCooldown = 2,
 		Life = 1,
+		SkipTickets = 0,
 	},
 	Shelves = generateEmptyShelves(),
 	Tables = {
@@ -153,6 +154,42 @@ PlayerDataService.ProfileCreated = ProfileCreated
 local ProfileSessionEnded = Signal.new()
 PlayerDataService.ProfileSessionEnded = ProfileSessionEnded
 
+-- local ensureDrinkExist = function(data: PlayerData)
+-- 	local CoffeeModule = require(game.ReplicatedStorage.Shared.CoffeeModule)
+-- 	local newDrinks = {}
+-- 	for i, drink in data.Drinks do
+-- 		if not CoffeeModule.Config[drink.drinkId] then
+-- 			warn(`drink {drink.drinkId} removed`)
+-- 			continue
+-- 		end
+-- 		table.insert(newDrinks, drink)
+-- 	end
+-- 	data.Drinks = newDrinks
+
+-- 	local newShelves = {}
+-- 	for i, shelf in data.Shelves do
+-- 		local newSlot = {}
+-- 		for slotName, slot in shelf.Slots do
+-- 			if slot == "none" then
+-- 				newSlot[slotName] = "none"
+-- 				continue
+-- 			end
+-- 			if type(slot) ~= "table" then
+-- 				newSlot[slotName] = "none"
+-- 				continue
+-- 			end
+-- 			if not CoffeeModule.Config[slot.drinkId] then
+-- 				warn(`shelf {slot.drinkId} removed`)
+-- 				newSlot[slotName] = "none"
+-- 				continue
+-- 			end
+-- 			newSlot[slotName] = slot
+-- 		end
+-- 		newShelves[i] =
+-- 	end
+-- 	data.Shelves = newShelves
+-- end
+
 -- Function to handle when a player joins the game
 local function OnPlayerAdded(player: Player)
 	local profileKey = tostring(player.UserId) -- Use UserId as the key
@@ -161,7 +198,7 @@ local function OnPlayerAdded(player: Player)
 	local profile: Profile? = PlayerProfileStore:StartSessionAsync(profileKey)
 	print("profile", profileKey, profile)
 	if profile then
-		-- Add GDPR compliance UserIds (Recommended)
+		-- Add GDPR compliance UserIds
 		profile:AddUserId(player.UserId)
 
 		-- 1. ProfileStore's native reconcile handles the top layer
@@ -172,12 +209,11 @@ local function OnPlayerAdded(player: Player)
 
 		-- Store the active profile in the cache
 		Profiles[player] = profile
+		-- ensureDrinkExist(profile.Data)
 
 		ProfileCreated:Fire()
 	else
-		-- The profile couldn't be loaded
 		warn(`Critical error: Failed to load profile for {player.Name} ({player.UserId}). Kicking.`)
-		-- player:Kick("Failed to load your data. Please try rejoining the server.")
 	end
 end
 

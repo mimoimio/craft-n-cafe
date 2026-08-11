@@ -40,7 +40,7 @@ local actions = {
 		mixer.drinkId = payload.drinkId
 		mixer.startTime = payload.startTime
 		mixer.variationId = payload.variationId
-		mixer.size = payload.size -- NEW: Store the rolled size!
+		mixer.size = payload.size
 
 		return Set(state, playerId, Set(playersMixers, mixerId, mixer))
 	end,

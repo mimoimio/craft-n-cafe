@@ -1,6 +1,6 @@
 -- Shared/CoffeeModule.luau
-local CoffeeConfigArray: { CoffeeConfigType } = require(game.ReplicatedStorage.Shared.Configs.CoffeeConfig)
-local IngredientConfigs: { IngredientConfig } = require(game.ReplicatedStorage.Shared.Configs.IngredientsConfig)
+local CoffeeConfigArray: { CoffeeConfigType } = require(game.ReplicatedStorage.Shared.Configs.CoffeeConfig:Clone())
+local IngredientConfigs: { IngredientConfig } = require(game.ReplicatedStorage.Shared.Configs.IngredientsConfig:Clone())
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Types = require(ReplicatedStorage.Shared.Types)
 
@@ -10,14 +10,34 @@ local CoffeeModule = {}
 
 -- Build lookup by Id and track config order for ingredient priority
 local CoffeeConfig: { [string]: CoffeeConfigType } = {}
+CoffeeModule.IngredientLookup = {}
+for i, config in IngredientConfigs do
+	CoffeeModule.IngredientLookup[config.Id] = config
+end
 local ingredientPriority: { [string]: number } = {} -- lower = earlier in config = removed last
 
 for index, config in ipairs(IngredientConfigs) do
 	ingredientPriority[config.Id] = index
 end
+
+-- cross out with no ingredients, when update to ingredients, then add.
+local newFilteredArray = {}
 for index, config in ipairs(CoffeeConfigArray) do
+	local exist = true
+	for i, ing in config.Ingredients do
+		if not CoffeeModule.IngredientLookup[ing] then
+			exist = false
+			break
+		end
+	end
+	if not exist then
+		continue
+	end
+	table.insert(newFilteredArray, config)
 	CoffeeConfig[config.Id] = config
 end
+
+CoffeeConfigArray = newFilteredArray
 
 function CoffeeModule.GetId(Ingredients: { string }): string
 	-- Sort ingredients by alphabet and concatenate
@@ -166,24 +186,34 @@ end
 CoffeeModule.Config = CoffeeConfig
 CoffeeModule.Array = CoffeeConfigArray
 CoffeeModule.IngredientConfigs = IngredientConfigs
-CoffeeModule.IngredientLookup = {}
-for i, config in IngredientConfigs do
-	CoffeeModule.IngredientLookup[config.Id] = config
-end
 
 for index, config in ipairs(CoffeeConfigArray) do
 	CoffeeConfig[config.Id] = config
 	config.Price = 0
-	for i, ing in config.Ingredients do
-		config.Price += CoffeeModule.IngredientLookup[ing].Cost
-	end
+	xpcall(function()
+		for i, ing in config.Ingredients do
+			-- warn(`{ing}.Price: {CoffeeModule.IngredientLookup[ing].Price}`)
+			config.Price += CoffeeModule.IngredientLookup[ing].Price
+		end
+	end, function(err)
+		-- warn(`config:{config.Id}`, err)
+	end)
 end
 table.sort(CoffeeConfigArray, function(a, b)
 	return a.Price < b.Price
 end)
 
+local ingDuration = {}
+for i, config in IngredientConfigs do
+	ingDuration[config.Id] = i
+end
+
 for index, config in ipairs(CoffeeConfigArray) do
 	config.Rate = index
+	config.Duration = 0
+	for i, ingId in config.Ingredients do
+		config.Duration += 3 * ingDuration[ingId] ^ 2
+	end
 end
 
 function CoffeeModule.Craft(ingredients: { string }): CoffeeConfigType?

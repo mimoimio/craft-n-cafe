@@ -208,6 +208,7 @@ local function LuckProb(props)
 		and ReactRoblox.createPortal({
 			e("SurfaceGui", {
 				Adornee = adornee,
+				ResetOnSpawn = false,
 				CanvasSize = Vector2.new(2400 * (1 / 3), 1800 * (1 / 3)),
 				ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 			}, {

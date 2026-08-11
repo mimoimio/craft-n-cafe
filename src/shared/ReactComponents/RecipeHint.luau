@@ -114,6 +114,7 @@ local function RecipeHint()
 	return adornee
 			and ReactRoblox.createPortal({
 				e("SurfaceGui", {
+					ResetOnSpawn = false,
 					Adornee = adornee,
 					-- Parent = adornee,
 					CanvasSize = Vector2.new(300, 450),

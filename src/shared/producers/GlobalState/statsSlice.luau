@@ -164,6 +164,57 @@ local actions = {
 
 		return Set(state, playerId, Set(playersStats, "RollCooldown", 1))
 	end,
+	setPendingSkipMixer = function(state: StatsState, playerId: string, payload: Types.SetPendingSkipMixerPayload)
+		local playersStats = state[playerId]
+		if not playersStats then
+			return state
+		end
+		return Set(state, playerId, Set(playersStats, "PendingSkipMixer", payload.mixer))
+	end,
+
+	addSkipTickets = function(state: StatsState, playerId: string, payload: Types.AddSkipTicketsPayload)
+		local playersStats = state[playerId]
+		if not playersStats then
+			return state
+		end
+		return Set(state, playerId, Set(playersStats, "SkipTickets", (playersStats.SkipTickets or 0) + payload.amount))
+	end,
+
+	consumeSkipTicket = function(state: StatsState, playerId: string)
+		local playersStats = state[playerId]
+		if not playersStats or (playersStats.SkipTickets or 0) <= 0 then
+			return state
+		end
+		return Set(state, playerId, Set(playersStats, "SkipTickets", playersStats.SkipTickets - 1))
+	end,
+	-- Add to your actions table:
+	setOwnedGamePasses = function(state: StatsState, playerId: string, payload: Types.SetGamePassesPayload)
+		local playersStats = state[playerId]
+		if not playersStats then
+			return state
+		end
+		return Set(
+			state,
+			playerId,
+			Merge(playersStats, {
+				OwnedGamePasses = payload.passes,
+			})
+		)
+	end,
+
+	grantGamePass = function(state: StatsState, playerId: string, payload: Types.GrantGamePassPayload)
+		local playersStats = state[playerId]
+		if not playersStats then
+			return state
+		end
+
+		local currentPasses = playersStats.OwnedGamePasses or {}
+		local updatedPasses = Merge(currentPasses, {
+			[payload.passId] = true,
+		})
+
+		return Set(state, playerId, Set(playersStats, "OwnedGamePasses", updatedPasses))
+	end,
 }
 
 return Reflex.createProducer(initialState, actions)

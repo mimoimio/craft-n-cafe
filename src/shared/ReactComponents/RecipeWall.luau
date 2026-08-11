@@ -238,6 +238,7 @@ local function RecipeWall(props: {
 	return adornee
 		and ReactRoblox.createPortal({
 			e("SurfaceGui", {
+				ResetOnSpawn = false,
 				Adornee = adornee,
 				CanvasSize = Vector2.new(2400 * (1 / 3), 1800 * (1 / 3)),
 				ZIndexBehavior = Enum.ZIndexBehavior.Sibling,

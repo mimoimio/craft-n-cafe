@@ -14,6 +14,14 @@ function VariationService.GetVariation(): VariationConfig?
 	local total = 0
 	local variationArray: { VariationConfig } = {}
 	for i, variation: VariationConfig in VariationsConfig do
+		-- if
+		-- 	variation.VariationId == "none"
+		-- 	or variation.VariationId == "double"
+		-- 	or variation.VariationId == "gold"
+		-- 	or variation.VariationId == "diamond"
+		-- then
+		-- 	continue
+		-- end
 		total += variation.Weight
 		table.insert(variationArray, variation)
 	end
@@ -33,7 +41,6 @@ function VariationService.GetVariation(): VariationConfig?
 			return variation
 		end
 	end
-
 	return nil
 end
 
@@ -78,11 +85,16 @@ end
 -- Adds a steep weighted curve: Size 1 is extremely common, Size 5 is extremely rare.
 function VariationService.GetSize(): number
 	local weights = {
-		[1] = 1000,
-		[2] = 250,
-		[3] = 50,
-		[4] = 10,
+		[1] = 1,
+		[2] = 1,
+		[3] = 1,
+		[4] = 1,
 		[5] = 1,
+		-- [1] = 1000,
+		-- [2] = 250,
+		-- [3] = 50,
+		-- [4] = 10,
+		-- [5] = 1,
 	}
 
 	local totalWeight = 0

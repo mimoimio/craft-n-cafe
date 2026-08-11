@@ -14,7 +14,7 @@ local VStack = require(script.Parent.ui.VStack)
 local ReactFlow = require(ReplicatedStorage.Packages.ReactFlow)
 local useSpring = ReactFlow.useSpring
 local SmallButton = require(script.Parent.ui.SmallButton)
-local SmallText = require(script.Parent.ui.SmallText) -- Added SmallText import
+local SmallText = require(script.Parent.ui.SmallText)
 
 local BuildersIcon = require(ReplicatedStorage.Shared.Utils.BuildersIcon)
 local useInputDevice = require(ReplicatedStorage.Shared.Hooks.useInputDevice)
@@ -27,42 +27,20 @@ local useRef = React.useRef
 local player = Players.LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
 
-local function delayedRevealTransMap(startTime, sec: number, minTransparency: number?) -- from 1 to 0
-	return function(t)
-		if not startTime then
-			return 1
-		end
-		if t > startTime then
-			if t > startTime + sec then
-				local elapsed = math.min(t - startTime - sec, 1)
-				elapsed ^= 10
-				elapsed = 1 - elapsed
-
-				if minTransparency then
-					elapsed = math.max(minTransparency, elapsed)
-				end
-				return elapsed
-			end
-		end
-		return 1
-	end
-end
-
 local DURATION = 1
 
 local function delayedRevealSizeMap(startTimeRef, sec: number, finalSize: UDim2)
 	return function(t)
-		local startTime = startTimeRef.current -- Read the live value every tick!
+		local startTime = startTimeRef.current
 
 		if not startTime or startTime == math.huge then
-			return UDim2.new(0, 0, 0, 0) -- Return a default hidden size
+			return UDim2.new(0, 0, 0, 0)
 		end
 
 		if t > startTime then
 			if t > startTime + sec then
 				local elapsed = (t - startTime - sec)
 				elapsed = math.min(elapsed, DURATION) / DURATION
-				-- elapsed ^= 10
 				elapsed = 1 - ((1 - elapsed) ^ 20)
 				return UDim2.new(
 					elapsed * finalSize.X.Scale,
@@ -73,7 +51,7 @@ local function delayedRevealSizeMap(startTimeRef, sec: number, finalSize: UDim2)
 			end
 		end
 
-		return UDim2.new(0, 0, 0, 0) -- Make sure to always return a UDim2, not nil!
+		return UDim2.new(0, 0, 0, 0)
 	end
 end
 
@@ -85,7 +63,6 @@ local function MixerNode(props: {
 	local currentInput = useInputDevice()
 	local isOccupied = props.MixerData.drinkId ~= "none"
 
-	-- State for asynchronously resolved descendants
 	local prompt: ProximityPrompt?, setPrompt = useState(nil)
 	local shown: boolean, setShown = useState(false)
 	local progress, setProgress = React.useBinding(0)
@@ -113,7 +90,6 @@ local function MixerNode(props: {
 						finishRangRef.current = true
 					end
 				end
-				-- warn("updating")
 				setTime(now)
 			end
 		end)
@@ -123,13 +99,8 @@ local function MixerNode(props: {
 			finishRangRef.current = false
 			task.cancel(t)
 		end
-	end, {
-		startTime,
-		duration,
-		-- config and config.DisplayName or "",
-	})
+	end, { startTime, duration })
 
-	-- 1. Asynchronously resolve descendants following CafeTypes strictly
 	useEffect(function()
 		if not props.Instance then
 			return
@@ -138,7 +109,6 @@ local function MixerNode(props: {
 		UIState.setMixerInstance(props.Instance)
 
 		local promise = Promise.defer(function(resolve, reject)
-			-- CafeTypes dictates: Mixer -> Part -> TriggerPrompt
 			local part = props.Instance:WaitForChild("Part", 5)
 			if not part then
 				return reject("Mixer 'Part' replication timeout")
@@ -166,34 +136,6 @@ local function MixerNode(props: {
 		end
 	end, { props.Instance })
 
-	local variationId = props.MixerData and props.MixerData.variationId or "none"
-	local prevVariationRef = useRef(nil)
-	useEffect(function()
-		if not variationId then
-			return
-		end
-		if prevVariationRef.current == nil then
-			-- first mounted
-			prevVariationRef.current = variationId
-			return
-		end
-		if prevVariationRef.current == variationId then
-			return
-		end
-		-- only if (previously is nothing) and (variationid not "none")
-
-		if variationId == "double" then
-			SoundController.Sound("Fun Jingle A")
-		elseif variationId == "gold" then
-			SoundController.Sound("Premium Jingle")
-		elseif variationId == "diamond" then
-			SoundController.Sound("crystal_jingle")
-		elseif variationId == "starlight" then
-			SoundController.Sound("Stick RPG 2 Item Get! Jingle")
-		end
-	end, { variationId })
-
-	-- 2. Bind the ProximityPrompt safely
 	useEffect(function()
 		if not prompt then
 			return
@@ -208,10 +150,8 @@ local function MixerNode(props: {
 				if isOccupied then
 					if startTime and duration then
 						local now = workspace:GetServerTimeNow()
-						local elapsed = now - startTime
 						local left = startTime + duration - now
 						if left > 30 then
-							-- warn("skippable")
 							Remotes.SkipMix:FireServer(props.MixerName)
 							return
 						end
@@ -237,11 +177,11 @@ local function MixerNode(props: {
 		end
 	end, { prompt, isOccupied, props.MixerName, startTime })
 
-	-- set UIState's mixernodeshown
 	useEffect(function()
 		if not prompt then
 			return
 		end
+		prompt.RequiresLineOfSight = false
 		local conn = prompt.PromptShown:Connect(function()
 			UIState.setMixerNodeShown(props.MixerName)
 		end)
@@ -254,24 +194,20 @@ local function MixerNode(props: {
 		end
 	end, { prompt })
 
-	-- 3. Sound Effects
 	local isOccupiedRef = useRef(nil)
 	useEffect(function()
 		if isOccupiedRef.current == nil then
 			isOccupiedRef.current = isOccupied
 			return
 		end
-
 		if isOccupied then
 			SoundController.Sound("maximize_006")
 		else
 			SoundController.Sound("drop_001")
 		end
-
 		isOccupiedRef.current = isOccupied
 	end, { isOccupied })
 
-	-- 4. Render Progress Bar
 	local progressBar
 	if props.Instance and isOccupied and props.MixerData.startTime then
 		progressBar = e(MixerProgressBar, {
@@ -280,12 +216,12 @@ local function MixerNode(props: {
 			DrinkName = config and config.DisplayName or "",
 			Config = config,
 			Variation = props.MixerData.variationId,
+			Size = props.MixerData.size or 1, -- NEW: Pass Size
 			time = time,
 			progress = progress,
 		})
 	end
 
-	-- Abstract the correct prompt icon (Uses Prompt bindings if available, otherwise defaults to X / E)
 	local interactIcon = prompt
 			and BuildersIcon.GetPromptText(
 				currentInput == "Gamepad" and prompt.GamepadKeyCode or prompt.KeyboardKeyCode,

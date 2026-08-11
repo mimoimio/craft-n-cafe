@@ -57,7 +57,7 @@ function SpawnerService.RollIngredient(player: Player)
 
 		if not espresso or espresso < 1 then
 			GlobalState.rollIngredient(playerId, {
-				ingredientIds = { "espresso" },
+				ingredientIds = { "espresso", "milk" },
 				timePulled = workspace:GetServerTimeNow(),
 			})
 			return

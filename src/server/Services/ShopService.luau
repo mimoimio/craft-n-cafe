@@ -95,7 +95,7 @@ function ShopService.UpgradeLuck(player: Player, increment: number?)
 
 	local cost = 0
 	for i = 1, increment do
-		cost += ((playersStats.Luck + increment) * 10) ^ 1.2 // 1
+		cost += ((playersStats.Luck + increment) * 10) ^ 1.6 // 1
 	end
 
 	if playersStats.Cash < cost then
@@ -144,38 +144,38 @@ function ShopService.ShortenRollCooldown(player: Player)
 	GlobalState.shortenRoll(playerId)
 end
 function ShopService.initialize()
-    Remotes.LevelUp.OnServerEvent:Connect(ShopService.LevelUp)
-    Remotes.UpgradeLuck.OnServerEvent:Connect(ShopService.UpgradeLuck)
-    Remotes.UpgradeCafeCapacity.OnServerEvent:Connect(ShopService.UpgradeCafeCapacity)
+	Remotes.LevelUp.OnServerEvent:Connect(ShopService.LevelUp)
+	Remotes.UpgradeLuck.OnServerEvent:Connect(ShopService.UpgradeLuck)
+	Remotes.UpgradeCafeCapacity.OnServerEvent:Connect(ShopService.UpgradeCafeCapacity)
 
-    -- Spin up a background thread to watch for seed changes!
-    task.spawn(function()
-        local currentSeed = nil
-        local VariationService = require(ServerScriptService.Server.Services.VariationService)
+	-- Spin up a background thread to watch for seed changes!
+	task.spawn(function()
+		local currentSeed = nil
+		local VariationService = require(ServerScriptService.Server.Services.VariationService)
 
-        while true do
-            local activeCycle = ShopCycle.getCurrentState()
-            local newSeed = activeCycle.seed
+		while true do
+			local activeCycle = ShopCycle.getCurrentState()
+			local newSeed = activeCycle.seed
 
-            if currentSeed ~= newSeed then
-                if currentSeed ~= nil then
-                    print(`Shop Cycle advanced! Generating new shop for seed: {newSeed}`)
-                    local newShopBlueprint = ShopService.GenerateDeterministicShop(newSeed)
-                    local state = GlobalState:getState()
-                    local variation = VariationService.GetCurrentVariationEvent()
+			if currentSeed ~= newSeed then
+				if currentSeed ~= nil then
+					print(`Shop Cycle advanced! Generating new shop for seed: {newSeed}`)
+					local newShopBlueprint = ShopService.GenerateDeterministicShop(newSeed)
+					local state = GlobalState:getState()
+					local variation = VariationService.GetCurrentVariationEvent()
 
-                    for playerId, _ in state.Shop do
-                        GlobalState.refreshShop(playerId, {
-                            variationEvent = variation and variation.VariationId or nil,
-                            newestShop = newShopBlueprint,
-                            newestSeed = newSeed,
-                        })
-                    end
-                end
-                currentSeed = newSeed
-            end
-            task.wait(1)
-        end
-    end)
+					for playerId, _ in state.Shop do
+						GlobalState.refreshShop(playerId, {
+							variationEvent = variation and variation.VariationId or nil,
+							newestShop = newShopBlueprint,
+							newestSeed = newSeed,
+						})
+					end
+				end
+				currentSeed = newSeed
+			end
+			task.wait(1)
+		end
+	end)
 end
 return ShopService

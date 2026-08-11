@@ -6,7 +6,6 @@ export type PlayerData = {
 	Drinks: { DrinkEntity },
 	Mixers: { [string]: MixerEntity },
 	Ingredients: { [string]: number },
-	ShelfCollector: ShelfCollectorEntity,
 	Customers: { CustomerEntity },
 	Shelves: { [string]: ShelfEntity },
 	DiscoveredDrinks: {
@@ -25,29 +24,17 @@ export type PlayerId = string
 export type VariationId = string
 export type DrinkId = string
 
--- 2. Define the Collector State
-export type ShelfCollectorEntity = {
-	LastClaimTime: number, -- Timestamp of the last time they claimed
-
-	-- Optional future upgrades
-	MaxAccumulationTime: number?, -- e.g., 28800 seconds (8 hours)
-	CollectorLevel: number?,
-}
-
-export type ShelfCollectorState = {
-	[PlayerId]: ShelfCollectorEntity,
-}
-
 -- Shelves
 export type DisplayDrink = {
 	drinkId: string,
 	variationId: string,
-	size: number, -- NEW
+	size: number,
+	lastClaimTime: number, -- NEW: Each slot tracks its own time!
 }
 export type ShelfEntity = {
 	ShelfId: string,
 	Slots: {
-		[string]: DisplayDrink | "none", -- Can be the DisplayDrink object or "none"
+		[string]: DisplayDrink | "none",
 	},
 }
 export type ShelvesState = {
@@ -72,7 +59,7 @@ export type StatsEntity = {
 	Music: number,
 	SecondsPlayed: number,
 	Level: number,
-	CafeOpen: boolean, -- New Toggle for Tutorial
+	CafeOpen: boolean,
 	UnlockedIngredients: { string },
 	DiscoveredDrinks: {
 		[VariationId]: {
@@ -80,11 +67,13 @@ export type StatsEntity = {
 		},
 	},
 	RollCooldown: number,
-	-- for the future
 	MaxDrinksPerCustomer: number,
 	MaxCustomersAtOnce: number,
 	Luck: number,
 	CafeCapacity: number,
+	PendingSkipMixer: string?,
+	SkipTickets: number,
+	OwnedGamePasses: { [string]: boolean },
 }
 
 -- Tables
@@ -101,7 +90,7 @@ export type TableEntity = {
 -- Drinks
 export type DrinkEntity = {
 	id: string,
-	size: number, -- NEW
+	size: number,
 	stock: number,
 	drinkId: string,
 	variationId: string?,
@@ -146,7 +135,7 @@ export type DailyEntity = {
 	lastClaimedRoulette: number?,
 	lastClaimedShop: number?,
 	day: day,
-	today: day?, -- Added to track current server day!
+	today: day?,
 }
 
 -- DiscoveredDrinksState
@@ -168,7 +157,7 @@ export type MixerEntity = {
 	drinkId: string,
 	startTime: number?,
 	variationId: string?,
-	size: number?, -- NEW
+	size: number?,
 }
 export type MixersState = {
 	[PlayerId]: {
@@ -187,7 +176,7 @@ export type CustomerEntity = {
 	customerId: string?,
 	drinkEntities: { CustomerDrink }?,
 	customerAction: string,
-	actionStartTime: number, -- FSM Timestamp tracker
+	actionStartTime: number,
 }
 export type CustomersState = {
 	[PlayerId]: {
@@ -202,7 +191,7 @@ export type AddIngredientPayload = {
 }
 export type MixDrinkPayload = {
 	drinkId: string,
-	size: number, -- NEW
+	size: number,
 	ingredients: { string },
 	mixer: string,
 	startTime: number,
@@ -224,22 +213,23 @@ export type PickUpPayload = {
 	drinkId: string,
 	variationId: string,
 	stock: number,
-	size: number, -- NEW
+	size: number,
 	mixer: string,
+	timestamp: number, -- NEW: Syncs the exact pickup time
 }
 export type CustomerItemPayload = {
 	customerUid: string,
 	drinksDeducted: {
 		[string]: number,
 	},
-	drinkEntities: { CustomerDrink }, -- FIXED: Typed as an array of CustomerDrink objects
+	drinkEntities: { CustomerDrink },
 	depletedDrinks: { [string]: boolean },
-	timestamp: number, -- Added to pass workspace:GetServerTimeNow() purely
+	timestamp: number,
 }
 export type SpawnCustomerPayload = {
 	customerUid: string,
 	customerId: string,
-	timestamp: number, -- Added
+	timestamp: number,
 }
 export type PlaceDrinkPayload = {
 	tableUid: string,
@@ -299,10 +289,20 @@ export type UpgradeMaxCustomerAtOnce = {
 	cost: number,
 }
 export type ClaimShelfCollectorPayload = {
-	amount: number, -- The calculated cash to add
-	timestamp: number, -- The new LastClaimTime
+	timestamp: number,
 }
-
+export type SetPendingSkipMixerPayload = {
+	mixer: string?,
+}
+export type AddSkipTicketsPayload = {
+	amount: number,
+}
+export type SetGamePassesPayload = {
+	passes: { [string]: boolean },
+}
+export type GrantGamePassPayload = {
+	passId: string,
+}
 export type CombinedActions = {
 	startPlayerSession: (playerId: PlayerId, data: PlayerData, payload: StartPlayerSessionPayload) -> (),
 	endPlayerSession: (playerId: PlayerId) -> (),
@@ -328,7 +328,6 @@ export type CombinedActions = {
 		Level: number,
 	}) -> (),
 
-	-- Added toggle action for your tutorial
 	toggleCafeOpen: (playerId: PlayerId) -> (),
 
 	spawnCustomer: (playerId: PlayerId, payload: SpawnCustomerPayload) -> (),
@@ -339,14 +338,14 @@ export type CombinedActions = {
 		payload: {
 			customerUid: string,
 			Cash: number,
-			timestamp: number, -- Added
+			timestamp: number,
 		}
 	) -> (),
 	customerLeaveEmptyHanded: (
 		playerId: PlayerId,
 		payload: {
 			customerUid: string,
-			timestamp: number, -- Added
+			timestamp: number,
 		}
 	) -> (),
 
@@ -371,13 +370,13 @@ export type CoffeeModule = {
 export type CoffeeConfigType = {
 	Id: string,
 	DisplayName: string,
-	Cost: number, -- to buy the ingredient
+	Cost: number,
 	Ingredients: { string }?,
-	RecipePath: { string }?, -- sorted at config initialization
-	Rate: number, -- Base passive income generated per second (or minute)
-	Instruction: string?, -- Readable
+	RecipePath: { string }?,
+	Rate: number,
+	Instruction: string?,
 	Image: string?,
-	Price: number, -- when selling
+	Price: number,
 	Duration: number,
 	InitialStock: number,
 }
@@ -389,8 +388,8 @@ export type IngredientConfig = {
 	Image: string?,
 }
 export type VariationConfig = {
-	VariationId: "none" | "copper" | "silver" | "gold" | "diamond",
-	DisplayName: "" | "Copper" | "Silver" | "Gold" | "Diamond",
+	VariationId: "none" | "copper" | "silver" | "gold" | "diamond" | "starlight" | "hexed",
+	DisplayName: string,
 	Multiplier: number,
 	ColorPrimary: Color3,
 	ColorSecondary: Color3?,

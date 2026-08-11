@@ -41,6 +41,7 @@ local function CustomerNode(props: {
 		if not (props.CustomerData and props.CustomerData.id) then
 			return
 		end
+		-- make this so it wont pile up when first loaded
 		SoundController.Sound("phaserUp6")
 	end, { props.CustomerData and props.CustomerData.id })
 

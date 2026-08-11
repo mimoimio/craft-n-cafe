@@ -71,6 +71,7 @@ local function ScreenGuiCircle(props: { TargetButton: GuiButton?, Color: Color3?
 	end
 
 	return e("ScreenGui", {
+		ResetOnSpawn = false,
 		DisplayOrder = 1010,
 	}, {
 		Wrapper = e("Frame", {
@@ -138,6 +139,7 @@ return function()
 		speed = 1,
 		damper = 1,
 	})
+	local btn = useRef(nil)
 	useEffect(function()
 		if visible then
 			setPosition({
@@ -145,6 +147,10 @@ return function()
 				speed = 30,
 				damper = 0.6,
 			})
+
+			task.delay(1, function()
+				setFocus(btn.current)
+			end)
 		else
 			setPosition({
 				target = -1,
@@ -153,8 +159,6 @@ return function()
 			})
 		end
 	end, { visible })
-
-	local btn = useRef(nil)
 
 	return e("ImageLabel", {
 		Image = "rbxassetid://127657596958436",

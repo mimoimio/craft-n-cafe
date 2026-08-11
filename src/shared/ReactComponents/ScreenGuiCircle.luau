@@ -35,6 +35,7 @@ local function ScreenGuiCircle(
 	local targetSize = props.Size or UDim2.fromOffset(60, 60)
 
 	return e("ScreenGui", {
+		ResetOnSpawn = false,
 		DisplayOrder = 1010, -- Ensures it renders above standard UI panels
 	}, {
 		Wrapper = e("Frame", {

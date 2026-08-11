@@ -70,7 +70,7 @@ function SpawnedIngredient(props: {
 	local offset = (props.Index - (props.TotalCount + 1) / 2) * 2
 
 	-- Flawlessly stagger the Y position based on even/odd indices to prevent UI overlay
-	local yOffset = 2 + (props.Index % 2 == 0 and 1.5 or 0)
+	local yOffset = 3 + (props.Index % 2 == 0 and 1.5 or 0)
 
 	useEffect(function()
 		if props.Phase == "empty" or not props.Instance then
@@ -438,6 +438,7 @@ function SpawnerNode(props: { Instance: Spawner? })
 
 	return e("SurfaceGui", {
 		PixelsPerStud = 50,
+		ResetOnSpawn = false,
 		Adornee = props.Instance and props.Instance:FindFirstChild("Part") or nil,
 		SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud,
 	}, {

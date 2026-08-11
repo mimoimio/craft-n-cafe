@@ -30,62 +30,19 @@ local MAX_ACCUMULATION_SECONDS = 8 * 60 * 60
 local function ShelfCollectorUI(props: { collectorModel: Model })
 	local collectorPart = props.collectorModel:FindFirstChild("Part")
 	local prompt = collectorPart and collectorPart:FindFirstChild("TriggerPrompt")
+	local shelves, setShelves = useState({})
 
 	local amountBinding, setAmountBinding = useBinding("$0")
 
-	local lastClaimTimeRef = useRef(workspace:GetServerTimeNow())
-	local totalRateRef = useRef(0)
-
-	-- Synchronize with GlobalState for Shelves & Collector
 	useEffect(function()
-		local function calculateRate(shelves)
-			local rate = 0
-			if shelves then
-				for _, shelf in shelves do
-					for _, slot in shelf.Slots do
-						if type(slot) == "table" and slot.drinkId then
-							local config = CoffeeModule.Config[slot.drinkId]
-							local variation = VariationsConfig[slot.variationId] or VariationsConfig["none"]
-							if config and config.Rate then
-								rate += (config.Rate * variation.Multiplier)
-							end
-						end
-					end
-				end
-			end
-			return rate
-		end
+		local unsub = GlobalState:subscribe(function(state)
+			return state.Shelves[playerId]
+		end, function(newShelves)
+			setShelves(newShelves or {})
+		end)
 
-		local unsub = GlobalState:subscribe(
-			Reflex.createSelector({
-				function(state)
-					return state.ShelfCollector[playerId]
-				end,
-				function(state)
-					return state.Shelves[playerId]
-				end,
-			}, function(collector, shelves)
-				return {
-					collector = collector,
-					shelves = shelves,
-				}
-			end),
-			function(newData)
-				if newData.collector then
-					lastClaimTimeRef.current = newData.collector.LastClaimTime or workspace:GetServerTimeNow()
-				end
-				if newData.shelves then
-					totalRateRef.current = calculateRate(newData.shelves)
-				end
-			end
-		)
-
-		-- Initial fetch
 		local state = GlobalState:getState()
-		if state.ShelfCollector[playerId] then
-			lastClaimTimeRef.current = state.ShelfCollector[playerId].LastClaimTime or workspace:GetServerTimeNow()
-		end
-		totalRateRef.current = calculateRate(state.Shelves[playerId])
+		setShelves(state.Shelves[playerId] or {})
 
 		return unsub
 	end, {})
@@ -94,18 +51,33 @@ local function ShelfCollectorUI(props: { collectorModel: Model })
 	useEffect(function()
 		local running = true
 		local t = task.defer(function()
-			while task.wait(1 / 10) and running do
+			while running do
 				local currentTime = workspace:GetServerTimeNow()
-				local timePassed = math.min(currentTime - lastClaimTimeRef.current, MAX_ACCUMULATION_SECONDS)
-				local amount = math.floor(timePassed * totalRateRef.current)
+				local totalAmount = 0
+				for _, shelf in shelves do
+					for _, slotData in shelf.Slots do
+						if type(slotData) == "table" and slotData.drinkId and slotData.lastClaimTime then
+							local config = CoffeeModule.Config[slotData.drinkId]
+							local variation = VariationsConfig[slotData.variationId] or VariationsConfig["none"]
+							if config and config.Rate then
+								local sizeMultiplier = slotData.size or 1
+								local rate = config.Rate * variation.Multiplier * sizeMultiplier
 
-				local displayString = `$ {Mionum.new(amount):toString()}`
+								local timePassed =
+									math.min(currentTime - slotData.lastClaimTime, MAX_ACCUMULATION_SECONDS)
+								totalAmount += math.floor(timePassed * rate)
+							end
+						end
+					end
+				end
+				local displayString = `$ {Mionum.new(totalAmount):toString()}`
 				setAmountBinding(displayString)
 
-				if prompt and prompt.Parent then
+				if prompt then
 					prompt.ActionText = "Collect"
 					prompt.ObjectText = displayString
 				end
+				task.wait(1)
 			end
 		end)
 
@@ -113,7 +85,7 @@ local function ShelfCollectorUI(props: { collectorModel: Model })
 			running = false
 			task.cancel(t)
 		end
-	end, { prompt })
+	end, { shelves, prompt })
 
 	-- Handle Prompt Trigger
 	useEffect(function()

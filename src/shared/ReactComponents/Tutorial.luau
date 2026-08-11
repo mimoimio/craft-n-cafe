@@ -59,6 +59,7 @@ local function ScreenGuiCircle(props: { TargetButton: GuiButton?, Color: Color3?
 	end
 
 	return e("ScreenGui", {
+		ResetOnSpawn = false,
 		DisplayOrder = 1010,
 	}, {
 		Wrapper = e("Frame", {
@@ -531,6 +532,7 @@ return function()
 
 	-- Render
 	return e("ScreenGui", {
+		ResetOnSpawn = false,
 		DisplayOrder = 1005,
 	}, {
 		-- Main Text Banner

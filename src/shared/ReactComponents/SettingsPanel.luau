@@ -27,6 +27,17 @@ local HStack = require(Primitives.HStack)
 
 local player = game.Players.LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
+
+local function ToggleParticleButton()
+	local ParticleController = require(ReplicatedStorage.Shared.Controllers.ParticleController)
+	return e(SmallButton, {
+		Text = `Toggle Particles`,
+		[React.Event.Activated] = ParticleController.toggleParticle,
+		RichText = true,
+		MinTextSize = 14,
+	})
+end
+
 local function IngredientShopPanel(props: {
 	OnClose: () -> (),
 })
@@ -139,6 +150,7 @@ local function IngredientShopPanel(props: {
 					RichText = true,
 					MinTextSize = 14,
 				}),
+				e(ToggleParticleButton),
 			}),
 		}),
 	})

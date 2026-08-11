@@ -18,6 +18,7 @@ local SmallText = require(Primitives.SmallText)
 
 local e = React.createElement
 local useState = React.useState
+local useBinding = React.useBinding
 local useEffect = React.useEffect
 
 -- UIState actions
@@ -42,12 +43,12 @@ local VStack = require(script.Parent.ui.VStack)
 
 local player = game.Players.LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
+local admin = not player or playerId == "5470482596"
 
 local onMountShopButton = UIState.setShopButton
-local onMountCafeButton = UIState.setCafeButton
 
 local function Main(props)
-	local admin, setAdmin = useState(false)
+	local adminOpen, setAdminOpen = useState(false)
 	local tutorialDone, setTutorialDone = useState((player and nil) or (not player and false))
 
 	local textRef = React.useRef(nil)
@@ -161,6 +162,12 @@ local function Main(props)
 	})
 
 	-- local upgradeCafeTutorial = cash > 400 and not UpgradeCafeCompleted
+	local cafeTeleportButton, setCafeTB = useBinding(nil)
+	local cafeDetailsButton, setCafeDB = useBinding(nil)
+	local onMountCafeButton = function(rbx)
+		UIState.setCafeButton(rbx)
+		setCafeTB(rbx)
+	end
 
 	return e("Frame", {
 		Transparency = 1,
@@ -258,6 +265,7 @@ local function Main(props)
 				OnMount = onMountCafeButton,
 				Image = "rbxassetid://127657596958436",
 				Rounded = false,
+				NextSelectionDown = cafeDetailsButton,
 				[React.Event.Activated] = function()
 					local cf, s = UIState:getState().cafeBase.Cafe:WaitForChild("SpawnPoint"):GetPivot()
 					Players.LocalPlayer.Character:PivotTo((cf + Vector3.new(0, 5, 0)))
@@ -323,6 +331,8 @@ local function Main(props)
 				[React.Event.Activated] = function()
 					toggle("cafe")
 				end,
+				NextSelectionUp = cafeTeleportButton,
+				OnMount = setCafeDB,
 			}),
 			SettingsButton = e(SmallButton, {
 				LayoutOrder = 2,
@@ -453,13 +463,13 @@ local function Main(props)
 			Position = UDim2.new(1, 0, 0, 0),
 			AnchorPoint = Vector2.new(1, 1),
 			[React.Event.Activated] = function()
-				setAdmin(function(prev)
+				setAdminOpen(function(prev)
 					return not prev
 				end)
 			end,
 			MinTextSize = 8,
 		}),
-		admin = admin and e(require(script.Parent.ConsoleApp)),
+		admin = admin and adminOpen and e(require(script.Parent.ConsoleApp)) or nil,
 		e(require(script.Parent.DiscoveredDrink), { closeAllPanels = closeAllPanels }),
 		e(require(script.Parent.LevelUp)),
 		e(require(script.Parent.DailyPanel)),
@@ -467,6 +477,7 @@ local function Main(props)
 		e(require(script.Parent.DailyClaimPopup)),
 		e(require(script.Parent.ShopPrompt)),
 		e(require(script.Parent.UpgradePanel)),
+		e(require(script.Parent.Skeleton)),
 		Tutorial = tutorialDone == false and e(require(script.Parent.Tutorial)) or nil,
 		rejection = tutorialDone == false and e(require(script.Parent.RejectionLetter)) or nil,
 	})

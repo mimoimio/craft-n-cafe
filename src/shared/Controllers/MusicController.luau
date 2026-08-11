@@ -1,13 +1,4 @@
 -- MusicController.luau
--- Singleton that manages background music playback from ReplicatedStorage.Shared.Musics.
--- Usage:
---   MusicController.initialize()
---   MusicController.next()
---   MusicController.prev()
---   MusicController.setVolume(0.5)      -- 0..1 multiplier
---   MusicController.subscribe(fn)       -- fn({ index, trackName, volume, playing })
---   MusicController.getState()
-
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local Players = game:GetService("Players")
@@ -88,7 +79,6 @@ end
 function MusicController.Start()
 	-- Load all Sound instances from ReplicatedStorage.Shared.Musics
 	local folder = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Musics")
-	warn("folder", folder)
 	for _, child in ipairs(folder:GetChildren()) do
 		if child:IsA("Sound") then
 			table.insert(_tracks, child)
@@ -113,19 +103,7 @@ function MusicController.initialize()
 	end
 	_initialized = true
 
-	local playerId = tostring(game.Players.LocalPlayer.UserId)
-	GlobalState:once(function(state)
-		local player = state.players[playerId]
-		local Data = player and player.Data
-		local MusicVolume = Data and Data.MusicVolume
-		return MusicVolume
-	end, function(MusicVolume)
-		return type(MusicVolume) == "number"
-	end, function(state, prevState)
-		-- warn("MusicVolume", state)
-		MusicController.setVolume(state)
-		MusicController.Start()
-	end)
+	MusicController.Start()
 end
 
 function MusicController.next()
@@ -163,6 +141,4 @@ function MusicController.subscribe(fn: (state: any) -> ()): () -> ()
 	end
 end
 
--- return MusicController
-
-return {}
+return MusicController

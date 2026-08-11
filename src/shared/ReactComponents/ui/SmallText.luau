@@ -8,6 +8,7 @@ local SmallText = function(props)
 		MaxTextSize = props.MaxTextSize or props.TextSize or 18,
 		MinTextSize = props.MinTextSize or props.TextSize or 18,
 	})
+	children._UIStroke = e("UIStroke", { Thickness = 2 })
 	return e("TextLabel", {
 		AutomaticSize = props.AutomaticSize or Enum.AutomaticSize.XY,
 		BackgroundTransparency = props.BackgroundTransparency or 1,
@@ -25,7 +26,8 @@ local SmallText = function(props)
 		TextWrapped = props.TextWrapped,
 		Size = props.Size,
 		TextScaled = props.TextScaled,
-		Font = props.Font or "FredokaOne",
+		-- Font = props.Font or "FredokaOne",
+		Font = props.Font or Enum.Font.SpecialElite,
 		LayoutOrder = props.LayoutOrder,
 		Rotation = props.Rotation,
 		ZIndex = props.ZIndex,

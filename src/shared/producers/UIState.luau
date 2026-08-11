@@ -1,27 +1,24 @@
---!strict
 -- Shared/producers/UIState.luau
+--!strict
 local GuiService = game:GetService("GuiService")
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Reflex = require(ReplicatedStorage.Packages.Reflex)
-local Types = require(ReplicatedStorage.Shared.Types)
-local CafeTypes = require(ReplicatedStorage.Shared.CafeTypes)
 local Sift = require(ReplicatedStorage.Packages.Sift)
 local Dictionary = Sift.Dictionary
 local Set = Dictionary.set
 local Merge = Dictionary.merge
-local RemoveKey = Dictionary.removeKey
+
+export type Breakpoint = "xs" | "sm" | "md" | "lg" | "xl"
 
 export type UIState = {
 	panel: string,
-	activeMixerId: string,
-	mixerNodeShown: string,
+	activeMixerId: string?,
+	mixerNodeShown: string?,
 	isEspressoInserted: boolean,
 	isMilkInserted: boolean,
 	tableSlotNodeShown: boolean,
-	shopButton: GuiButton,
-	cafeButton: GuiButton,
-	cafeBase: CafeTypes.CafeBase?,
+	shopButton: GuiButton?,
+	cafeButton: GuiButton?,
 	shopPromptShown: boolean,
 	spawnerPromptShown: boolean,
 	spawnerInstance: Model?,
@@ -30,44 +27,69 @@ export type UIState = {
 	craftButton: GuiButton?,
 	buypadInstance: Model?,
 	firstCustomer: Model?,
+	viewportSize: Vector2,
+	breakpoint: Breakpoint,
 }
+
 export type UIActions = {
 	toggle: (panel: string) -> (),
 	toggleMixerInteract: (mixerName: string) -> (),
 	setMixerNodeShown: (mixerName: string) -> (),
 	setIsEspressoInserted: (is: boolean) -> (),
-	setIsMilkInserted: (is: boolean) -> (), -- ADD THIS
+	setIsMilkInserted: (is: boolean) -> (),
 	setTableSlotNodeShown: (is: boolean) -> (),
-	setShopButton: (shopButton: GuiButton) -> (),
-	setCafeButton: (cafeButton: GuiButton) -> (),
-	setCafeBase: (model: Model) -> (),
+	setShopButton: (shopButton: GuiButton?) -> (),
+	setCafeButton: (cafeButton: GuiButton?) -> (),
 	setShopPromptShown: (is: boolean) -> (),
 	setSpawnerPromptShown: (is: boolean) -> (),
-	setSpawnerInstance: (model: Model) -> (),
+	setSpawnerInstance: (spawner: Model?) -> (),
 	setEspressoButton: (button: GuiButton?) -> (),
 	setMilkButton: (button: GuiButton?) -> (),
 	setCraftButton: (button: GuiButton?) -> (),
 	setBuypadInstance: (model: Model?) -> (),
 	setFirstCustomer: (model: Model?) -> (),
+	setViewportSize: (viewportSize: Vector2) -> (),
 }
-local initialState = {
+
+local function calculateBreakpoint(viewportSize: Vector2): Breakpoint
+	local width = viewportSize.X
+	if width < 640 then
+		return "xs"
+	elseif width < 768 then
+		return "sm"
+	elseif width < 1024 then
+		return "md"
+	elseif width < 1440 then
+		return "lg"
+	else
+		return "xl"
+	end
+end
+
+local initialState: UIState = {
 	panel = "none",
 	activeMixerId = nil,
 	mixerNodeShown = nil,
 	isEspressoInserted = false,
-	isMilkInserted = false, -- ADD THIS
+	isMilkInserted = false,
 	tableSlotNodeShown = false,
-	cafeBase = nil,
+	shopButton = nil,
+	cafeButton = nil,
+	shopPromptShown = false,
+	spawnerPromptShown = false,
+	spawnerInstance = nil,
+	espressoButton = nil,
+	milkButton = nil,
+	craftButton = nil,
+	buypadInstance = nil,
+	firstCustomer = nil,
+	viewportSize = Vector2.zero,
+	breakpoint = "md",
 }
+
 local producer = Reflex.createProducer(initialState, {
 	toggle = function(state: UIState, panel: string)
-		local newPanel
-		if state.panel == panel then
-			newPanel = "none"
-		else
-			newPanel = panel
-		end
-
+		local newPanel = if state.panel == panel then "none" else panel
 		if newPanel == "none" then
 			GuiService.SelectedObject = nil
 		end
@@ -83,13 +105,13 @@ local producer = Reflex.createProducer(initialState, {
 		return Set(state, "mixerNodeShown", mixerName)
 	end,
 	setIsMilkInserted = function(state: UIState, is: boolean)
-		return Set(state, "isMilkInserted", is and true or false)
+		return Set(state, "isMilkInserted", is)
 	end,
 	setIsEspressoInserted = function(state: UIState, is: boolean)
-		return Set(state, "isEspressoInserted", is and true or false)
+		return Set(state, "isEspressoInserted", is)
 	end,
 	setTableSlotNodeShown = function(state: UIState, is: boolean)
-		return Set(state, "tableSlotNodeShown", is and true or false)
+		return Set(state, "tableSlotNodeShown", is)
 	end,
 	setShopButton = function(state: UIState, shopButton: GuiButton?)
 		return Set(state, "shopButton", shopButton)
@@ -97,22 +119,13 @@ local producer = Reflex.createProducer(initialState, {
 	setCafeButton = function(state: UIState, cafeButton: GuiButton?)
 		return Set(state, "cafeButton", cafeButton)
 	end,
-	setMixerInstance = function(state: UIState, model: Model?)
-		return Set(state, "mixerInstance", model)
-	end,
-	setTableInstance = function(state: UIState, model: Model?)
-		return Set(state, "tableInstance", model)
-	end,
-	setCafeBase = function(state: UIState, model: Model?)
-		return Set(state, "cafeBase", model)
-	end,
 	setShopPromptShown = function(state: UIState, is: boolean)
 		return Set(state, "shopPromptShown", is)
 	end,
 	setSpawnerPromptShown = function(state: UIState, is: boolean)
 		return Set(state, "spawnerPromptShown", is)
 	end,
-	setSpawnerInstance = function(state: UIState, spawner: Model)
+	setSpawnerInstance = function(state: UIState, spawner: Model?)
 		return Set(state, "spawnerInstance", spawner)
 	end,
 	setEspressoButton = function(state: UIState, button: GuiButton?)
@@ -129,6 +142,16 @@ local producer = Reflex.createProducer(initialState, {
 	end,
 	setFirstCustomer = function(state: UIState, model: Model?)
 		return Set(state, "firstCustomer", model)
+	end,
+	setViewportSize = function(state: UIState, viewportSize: Vector2)
+		local currentBreakpoint = calculateBreakpoint(viewportSize)
+		if state.viewportSize == viewportSize and state.breakpoint == currentBreakpoint then
+			return state
+		end
+		return Merge(state, {
+			viewportSize = viewportSize,
+			breakpoint = currentBreakpoint,
+		})
 	end,
 }) :: Reflex.Producer<UIState, UIActions>
 

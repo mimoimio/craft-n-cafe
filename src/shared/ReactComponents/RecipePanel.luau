@@ -238,7 +238,7 @@ local function RecipeDetail(props: {
 				BackgroundColor3 = Color3.fromRGB(30, 30, 38),
 				BackgroundTransparency = 1,
 				BorderSizePixel = 0,
-				Image = "rbxassetid://126550182137995",
+				-- Image = "rbxassetid://126550182137995",
 				ImageColor3 = props.locked and Color3.new(0.5, 0.5, 0.5) or Color3.new(1, 1, 1),
 				ScaleType = Enum.ScaleType.Fit,
 				ZIndex = 10,
@@ -246,13 +246,27 @@ local function RecipeDetail(props: {
 				AnchorPoint = Vector2.new(0.5, 0),
 				LayoutOrder = 2,
 			}, {
-				UICorner = e("UICorner", { CornerRadius = UDim.new(0, 6) }),
 
-				UIAspectRatioConstraint = e("UIAspectRatioConstraint", {
-					AspectRatio = 1,
-				}),
+				-- UIAspectRatioConstraint = e("UIAspectRatioConstraint", {
+				-- 	AspectRatio = 1,
+				-- }),
 				UISizeConstraint = e("UISizeConstraint", {
-					MaxSize = Vector2.new(100, 100),
+					MaxSize = Vector2.new(1000, 100),
+				}),
+				Flare = e("ImageLabel", {
+					Size = UDim2.new(1, 0, 1, 0),
+					BackgroundColor3 = Color3.fromRGB(30, 30, 38),
+					BackgroundTransparency = 1,
+					BorderSizePixel = 0,
+					Image = "rbxassetid://126550182137995",
+					ImageColor3 = props.locked and Color3.new(0.5, 0.5, 0.5) or Color3.new(1, 1, 1),
+					ScaleType = Enum.ScaleType.Fit,
+					ZIndex = 1,
+					Position = UDim2.new(0.5, 0, 0, 0),
+					AnchorPoint = Vector2.new(0.5, 0),
+					LayoutOrder = 2,
+				}, {
+					UICorner = e("UICorner", { CornerRadius = UDim.new(0, 6) }),
 				}),
 				Image = e("ImageLabel", {
 					Size = UDim2.new(1, 0, 1, 0),
@@ -373,10 +387,20 @@ local function RecipePanel(props: {
 		end
 		return unsub
 	end, {})
+	local panelRef = useRef(nil)
 	-- listen to panel
 	useEffect(function()
 		local unsub = UIState:subscribe(function(state: UIState.UIState)
-			setVisible(state.panel == "recipe")
+			local isOpen = state.panel == "recipe"
+			return isOpen
+		end, function(isOpen)
+			-- this is important, if just doing it at top, it will enable gamepadcursor everytime any under UIState changes
+			if isOpen and panelRef.current then
+				game:GetService("GamepadService"):EnableGamepadCursor(panelRef.current)
+			else
+				game:GetService("GamepadService"):DisableGamepadCursor()
+			end
+			setVisible(isOpen)
 		end)
 		local panel = UIState:getState().panel
 		if panel then

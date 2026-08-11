@@ -140,6 +140,7 @@ local function UpgradeWall(props)
 	return adornee
 		and ReactRoblox.createPortal({
 			e("SurfaceGui", {
+				ResetOnSpawn = false,
 				Adornee = adornee,
 				CanvasSize = Vector2.new(2400 * (1 / 3), 1800 * (1 / 3)),
 				ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
@@ -251,7 +252,7 @@ local function UpgradeWall(props)
 									e(SmallText, {
 										TextSize = 48,
 										LayoutOrder = 1,
-										Text = `Upgrade ${((luck + 1) * 10) ^ 1.2 // 1}`,
+										Text = `Upgrade ${((luck + 1) * 10) ^ 1.6 // 1}`,
 									}, {
 										uistroke,
 									}),

@@ -1,12 +1,14 @@
 -- Server/Services/CustomersService.luau
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Promise = require(ReplicatedStorage.Packages.Promise)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConfig)
 local Types = require(ReplicatedStorage.Shared.Types)
+local VariationService = require(ServerScriptService.Server.Services.VariationService)
 
 type DrinkEntity = Types.DrinkEntity
 

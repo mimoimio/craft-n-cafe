@@ -162,7 +162,7 @@ local function Customer(props: {
 					holdingAnimation.Looped = true
 					-- Priority ensures it plays OVER the default idle/walk animations
 					holdingAnimation.Priority = Enum.AnimationPriority.Action
-					holdingAnimation:Play(0.1, 0.2, 2)
+					holdingAnimation:Play(0.1, 1, 2)
 				end
 			end
 		end
@@ -234,7 +234,7 @@ local function Customer(props: {
 			local drinkModel, modelBasePart = DrinkModelUtil.BuildDrinkModel(drink.drinkId, drink.variationId, {
 				Anchored = false,
 				CanCollide = false,
-				Size = drink.Size,
+				Size = drink.size,
 			})
 
 			drinkModel:PivotTo(rig.Head:GetPivot() + Vector3.new(0, 2 * i, 0))

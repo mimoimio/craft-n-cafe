@@ -2,6 +2,9 @@
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
+local ReactFlow = require(ReplicatedStorage.Packages.ReactFlow) -- Required for useSpring
+local useSpring = ReactFlow.useSpring
+
 local SoundController = require(ReplicatedStorage.Shared.Controllers.SoundController)
 local Types = require(ReplicatedStorage.Shared.Types)
 local VStack = require(ReplicatedStorage.Shared.ReactComponents.ui.VStack)
@@ -9,22 +12,125 @@ local SmallText = require(ReplicatedStorage.Shared.ReactComponents.ui.SmallText)
 local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConfig)
 local e = React.createElement
 local useCallback = React.useCallback
+local useState = React.useState
+local useEffect = React.useEffect
 
 local imageMap = function(p)
 	return p < 1 and "rbxassetid://125013557801199" or "rbxassetid://12402862092"
 end
 
-local function MixerProgressBar(props: {
-	Adornee: Instance,
-	StartTime: number,
-	Duration: number,
-	Config: Types.CoffeeConfigType,
-	DrinkName: string,
-	Variation: string,
-	time: React.ReactBinding<number>,
-	progress: React.ReactBinding<number>,
-})
-	-- We use bindings here so we can update the UI at 60FPS without re-rendering the component
+local STAGGER_DURATION = 0.3
+
+local function MixerProgressBar(
+	props: {
+		Adornee: Instance?,
+		StartTime: number,
+		Duration: number,
+		Config: Types.CoffeeConfigType,
+		DrinkName: string,
+		Variation: string,
+		Size: number, -- NEW: Incoming rolled Size
+		time: React.ReactBinding<number>,
+		progress: React.ReactBinding<number>,
+	}
+)
+	local displayedSize, setDisplayedSize = useState(1)
+	local displayedVariation, setDisplayedVariation = useState("none")
+	local rotation, setRotation = useSpring({ start = 0, target = 0, speed = 1, damper = 1 })
+
+	-- Order variations by Weight (Highest weight = most common = earliest in sequence)
+	local orderedVariations = React.useMemo(function()
+		local list = {}
+		for _, v in VariationsConfig do
+			table.insert(list, v)
+		end
+		table.sort(list, function(a, b)
+			return a.Weight > b.Weight
+		end)
+		return list
+	end, {})
+
+	-- The Stagger State Machine
+	useEffect(function()
+		if not props.StartTime then
+			return
+		end
+
+		local running = true
+		local timePassed = workspace:GetServerTimeNow() - props.StartTime
+
+		-- Catch-up logic: If you walk away and walk back, skip the animation
+		if timePassed > 2 then
+			setDisplayedSize(props.Size)
+			setDisplayedVariation(props.Variation)
+			return
+		end
+
+		task.spawn(function()
+			-- Phase 1: Stagger Size
+			for i = 1, props.Size do
+				if not running then
+					return
+				end
+				setDisplayedSize(i)
+				setRotation({ start = 15, target = 0, speed = 40, damper = 0.4 })
+
+				if i < props.Size or props.Variation == "none" then
+					SoundController.Sound("Cranking Sound (Wrench)", {
+						PlaybackSpeed = 1 + 0.2 * i,
+					})
+				end
+				task.wait(STAGGER_DURATION)
+			end
+			SoundController.Sound("skate-trick-1")
+
+			-- Phase 2: Stagger Variation (Skips if "none")
+			local targetIndex = 1
+			for i, v in ipairs(orderedVariations) do
+				if v.VariationId == props.Variation then
+					targetIndex = i
+					break
+				end
+			end
+			task.wait(STAGGER_DURATION)
+
+			for i = 2, targetIndex do
+				if not running then
+					return
+				end
+				setDisplayedVariation(orderedVariations[i].VariationId)
+				setRotation({ start = 30, target = 0, speed = 40, damper = 0.4 })
+
+				if i < targetIndex then
+					SoundController.Sound("powerUp7", {
+						PlaybackSpeed = 1 + 0.2 * i,
+					})
+				end
+				task.wait(STAGGER_DURATION)
+			end
+
+			if not running then
+				return
+			end
+
+			-- Phase 3: Final Jingle
+			local finalVar = props.Variation
+			if finalVar == "double" then
+				SoundController.Sound("Fun Jingle A")
+			elseif finalVar == "gold" then
+				SoundController.Sound("Premium Jingle")
+			elseif finalVar == "diamond" then
+				SoundController.Sound("crystal_jingle")
+			elseif finalVar == "starlight" or finalVar == "hexed" then
+				SoundController.Sound("Stick RPG 2 Item Get! Jingle")
+			end
+		end)
+
+		return function()
+			running = false
+		end
+	end, { props.StartTime, props.Size, props.Variation })
+
 	local textMap = useCallback(function(t)
 		local now = t
 		local timePassed = now - props.StartTime
@@ -36,33 +142,36 @@ local function MixerProgressBar(props: {
 		else
 			return `{timeLeft // 60}m {timeLeft % 60 // 1}s`
 		end
-		return
 	end, { props.StartTime, props.Duration, props.DrinkName })
 
-	local variation = props.Variation and VariationsConfig[props.Variation] or nil
-	local ColorGradient = variation
-			and ColorSequence.new({
-				ColorSequenceKeypoint.new(0, variation.ColorPrimary),
-				ColorSequenceKeypoint.new(0.22, variation.ColorPrimary),
-				ColorSequenceKeypoint.new(0.255, Color3.new(1, 1, 1)),
-				ColorSequenceKeypoint.new(0.3, Color3.new(1, 1, 1)),
-				ColorSequenceKeypoint.new(0.35, variation.ColorPrimary),
-				ColorSequenceKeypoint.new(0.399, variation.ColorPrimary),
-				ColorSequenceKeypoint.new(0.4, Color3.new(1, 1, 1)),
-				ColorSequenceKeypoint.new(0.6, Color3.new(1, 1, 1)),
-				ColorSequenceKeypoint.new(0.601, variation.ColorPrimary),
-				ColorSequenceKeypoint.new(0.62, variation.ColorPrimary),
-				ColorSequenceKeypoint.new(0.655, Color3.new(1, 1, 1)),
-				ColorSequenceKeypoint.new(0.7, Color3.new(1, 1, 1)),
-				ColorSequenceKeypoint.new(0.9, variation.ColorPrimary),
-				ColorSequenceKeypoint.new(1, variation.ColorPrimary),
-			})
-		or nil
+	-- Use the dynamically ticking variation state for the UI, not props.Variation!
+	local currentVarData = VariationsConfig[displayedVariation] or VariationsConfig["none"]
+	local ColorGradient = nil
+	if currentVarData.VariationId ~= "none" then
+		ColorGradient = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, currentVarData.ColorPrimary),
+			ColorSequenceKeypoint.new(0.22, currentVarData.ColorPrimary),
+			ColorSequenceKeypoint.new(0.255, Color3.new(1, 1, 1)),
+			ColorSequenceKeypoint.new(0.3, Color3.new(1, 1, 1)),
+			ColorSequenceKeypoint.new(0.35, currentVarData.ColorPrimary),
+			ColorSequenceKeypoint.new(0.399, currentVarData.ColorPrimary),
+			ColorSequenceKeypoint.new(0.4, Color3.new(1, 1, 1)),
+			ColorSequenceKeypoint.new(0.6, Color3.new(1, 1, 1)),
+			ColorSequenceKeypoint.new(0.601, currentVarData.ColorPrimary),
+			ColorSequenceKeypoint.new(0.62, currentVarData.ColorPrimary),
+			ColorSequenceKeypoint.new(0.655, Color3.new(1, 1, 1)),
+			ColorSequenceKeypoint.new(0.7, Color3.new(1, 1, 1)),
+			ColorSequenceKeypoint.new(0.9, currentVarData.ColorPrimary),
+			ColorSequenceKeypoint.new(1, currentVarData.ColorPrimary),
+		})
+	end
 
 	local mappedImage = props.progress and props.progress:map(imageMap) or ""
 
+	-- Calculate visual scale of drink image
+	local scaleMultiplier = 0.7 + (displayedSize * 0.3)
+
 	return e(VStack, {
-		-- Size = UDim2.new(0, 100, 0, 100),
 		Size = UDim2.new(1, 0, 3 / 4, 0),
 		BackgroundColor3 = Color3.new(0.15, 0.15, 0.15),
 		HorizontalFlex = Enum.UIFlexAlignment.None,
@@ -74,11 +183,11 @@ local function MixerProgressBar(props: {
 	}, {
 		UICorner = e("UICorner", { CornerRadius = UDim.new(0, 6) }),
 
-		VariationLabel = variation and e(SmallText, {
+		VariationLabel = currentVarData.VariationId ~= "none" and e(SmallText, {
 			TextXAlignment = Enum.TextXAlignment.Center,
 			BackgroundTransparency = 1,
-			Text = variation.DisplayName,
-			TextColor3 = variation.ColorPrimary or Color3.new(1, 1, 1),
+			Text = currentVarData.DisplayName,
+			TextColor3 = currentVarData.ColorPrimary or Color3.new(1, 1, 1),
 			Size = UDim2.new(2, 0, 1 / 6, 0),
 			TextSize = 18,
 			TextTruncate = Enum.TextTruncate.SplitWord,
@@ -90,13 +199,12 @@ local function MixerProgressBar(props: {
 				Thickness = 4,
 				Color = Color3.new(0.070588, 0.070588, 0.168627),
 			}, {
-
-				UIGradient = e("UIGradient", {
+				UIGradient = ColorGradient and e("UIGradient", {
 					Color = ColorGradient,
 					Rotation = 78,
 				}),
 			}),
-			UIGradient = e("UIGradient", {
+			UIGradient = ColorGradient and e("UIGradient", {
 				Color = ColorGradient,
 				Rotation = 69,
 			}),
@@ -108,7 +216,6 @@ local function MixerProgressBar(props: {
 			}),
 		}),
 		FillBackground = e(VStack, {
-			-- Map the 0-1 progress binding to the X scale of the fill frame
 			HorizontalFlex = Enum.UIFlexAlignment.None,
 			Size = UDim2.new(1, 0, 2 / 3, 0),
 			BackgroundTransparency = 1,
@@ -133,18 +240,18 @@ local function MixerProgressBar(props: {
 					AnchorPoint = Vector2.new(0.5, 0.5),
 				}, {
 					ImageCenter = e("ImageLabel", {
-						Size = UDim2.new(1, 0, 1, 0),
+						Size = UDim2.fromScale(scaleMultiplier, scaleMultiplier), -- Dynamically growing!
 						BackgroundColor3 = Color3.fromRGB(30, 30, 38),
 						BackgroundTransparency = 1,
 						BorderSizePixel = 0,
 						Image = props.Config.Image or "",
 						Active = false,
-						-- ImageColor3 = bg,
 						ScaleType = Enum.ScaleType.Fit,
 						ZIndex = 10,
-						Position = UDim2.new(0.5, 0, 0, 0),
-						AnchorPoint = Vector2.new(0.5, 0),
-					}, {}),
+						Position = UDim2.fromScale(0.5, 0.5), -- Anchored dead center so scaling/rotating is flawless
+						AnchorPoint = Vector2.new(0.5, 0.5),
+						Rotation = rotation, -- The Bounce!
+					}),
 					ImageLeft = e("Frame", {
 						Size = UDim2.new(0.5, 0, 1, 0),
 						Active = false,
@@ -164,9 +271,8 @@ local function MixerProgressBar(props: {
 								return p < 0.5 and 1 or 0
 							end),
 							BorderSizePixel = 0,
-							-- Image = "rbxassetid://12402862092",125013557801199
 							Image = mappedImage,
-							ImageColor3 = variation and variation.ColorPrimary or nil,
+							ImageColor3 = currentVarData.VariationId ~= "none" and currentVarData.ColorPrimary or nil,
 							ScaleType = Enum.ScaleType.Fit,
 							ZIndex = 9,
 							Position = UDim2.new(0, 0, 0.5, 0),
@@ -204,7 +310,7 @@ local function MixerProgressBar(props: {
 							BackgroundTransparency = 1,
 							BorderSizePixel = 0,
 							Image = mappedImage,
-							ImageColor3 = variation and variation.ColorPrimary or nil,
+							ImageColor3 = currentVarData.VariationId ~= "none" and currentVarData.ColorPrimary or nil,
 							ScaleType = Enum.ScaleType.Fit,
 							ZIndex = 9,
 							Position = UDim2.new(1, 0, 0.5, 0),
@@ -225,18 +331,18 @@ local function MixerProgressBar(props: {
 					}),
 				}),
 			}),
-			UICorner = e("UICorner", { CornerRadius = UDim.new(0, 6) }),
 		}),
 
 		DisplayName = e(SmallText, {
 			TextXAlignment = Enum.TextXAlignment.Center,
-			Text = props.DrinkName,
+			Text = `{props.DrinkName} ({displayedSize}x)`, -- Displays staggered size
 			TextColor3 = Color3.new(1, 1, 1),
 			Size = UDim2.new(2, 0, 1 / 6, 0),
 			TextSize = 18,
 			Active = false,
 			TextTruncate = Enum.TextTruncate.SplitWord,
 			LayoutOrder = 3,
+			Rotation = rotation, -- The Bounce!
 		}, {
 			UIPadding = e("UIPadding", {
 				PaddingTop = UDim.new(0, 4),
@@ -252,7 +358,6 @@ local function MixerProgressBar(props: {
 			Text = props.time:map(textMap),
 			AnchorPoint = Vector2.new(0.5, 0),
 			Position = UDim2.new(0.5, 0, 1, 0),
-			-- AutomaticSize = Enum.AutomaticSize.XY,
 			TextColor3 = Color3.new(1, 1, 1),
 			TextSize = 18,
 			TextTruncate = Enum.TextTruncate.SplitWord,
