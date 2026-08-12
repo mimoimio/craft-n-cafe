@@ -169,17 +169,17 @@ function SoundController.initialize()
 	end)
 
 	local playerId = tostring(game.Players.LocalPlayer.UserId)
-	GlobalState:once(function(state)
-		local stats = state.Stats[playerId]
-		if not stats then
-			return
-		end
-		return stats.sfx
-	end, function(SFXVolume)
-		return type(SFXVolume)
-	end, function(state)
-		SoundController.setVolume(state)
-	end)
+
+	-- 1. get player's SfxOn and Volume
+	-- 2. wait if not exist yet
+	-- 3. apply volume
+	-- 4. listen to SfxOn change
+
+	-- GlobalState:once(selectVolumeAndOn, function() end, function(SFXVolume)
+	-- 	return type(SFXVolume)
+	-- end, function(state)
+	-- 	SoundController.setVolume(state)
+	-- end)
 end
 
 return SoundController

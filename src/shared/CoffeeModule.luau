@@ -220,7 +220,7 @@ for index, config in ipairs(CoffeeConfigArray) do
 	config.Rate = index
 	config.Duration = 0
 	for i, ingId in config.Ingredients do
-		config.Duration += 3 * ingDuration[ingId] ^ 1.2 // 1
+		config.Duration += ingDuration[ingId] ^ 1.5 // 1
 	end
 end
 

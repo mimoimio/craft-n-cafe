@@ -1,6 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GuiService = game:GetService("GuiService")
 local React = require(ReplicatedStorage.Packages.React)
+local Promise = require(ReplicatedStorage.Packages.Promise)
 local e = React.createElement
 local useState = React.useState
 local useRef = React.useRef
@@ -125,21 +126,39 @@ local function MixerPanel(props: {
 			return isOpen
 		end, function(isOpen)
 			-- this is important, if just doing it at top, it will enable gamepadcursor everytime any under UIState changes
+			setPanelOpen(isOpen)
 			if isOpen and panelRef.current then
+				-- this doesnt work
+				-- local ancestor: GuiObject = panelRef.current
+				-- repeat
+				-- 	if ancestor.Visible == false then
+				-- 		Promise.fromEvent(ancestor:GetPropertyChangedSignal("Visible"))
+				-- 			:timeout(1)
+				-- 			:andThen(function()
+				-- 				warn("done")
+				-- 			end)
+				-- 			:catch(function(err)
+				-- 				warn(`Error waiting once: {err}`)
+				-- 			end)
+				-- 		if (not ancestor and ancestor.Parent) or ancestor.Visible == false then
+				-- 			return
+				-- 		end
+				-- 	end
+				-- 	ancestor = ancestor:FindFirstAncestorWhichIsA("GuiObject")
+				-- until not ancestor
 				game:GetService("GamepadService"):EnableGamepadCursor(panelRef.current)
 			else
 				game:GetService("GamepadService"):DisableGamepadCursor()
 			end
-			setPanelOpen(isOpen)
 		end)
 		return unsub
 	end, {})
 
-	React.useEffect(function()
+	useEffect(function()
 		setCurrentIngredients({})
 		setPendingIngredients({}) -- Safety clear
 	end, { panelOpen })
-	React.useEffect(function()
+	useEffect(function()
 		return function()
 			-- Clean up refs when the MixerPanel is destroyed/unmounted
 			UIState.setEspressoButton(nil)
@@ -148,7 +167,7 @@ local function MixerPanel(props: {
 		end
 	end, {})
 
-	React.useEffect(function()
+	useEffect(function()
 		if not currentIngredients then
 			return
 		end

@@ -54,9 +54,13 @@ export type SpawnerState = {
 -- Stats
 export type StatsEntity = {
 	Cash: number,
-	Sfx: number,
+	SfxVolume: number,
+	SfxOn: boolean,
+	MusicVolume: number,
+	MusicOn: boolean,
+	ParticleOn: boolean,
+
 	TutorialCompleted: boolean,
-	Music: number,
 	SecondsPlayed: number,
 	Level: number,
 	CafeOpen: boolean,
@@ -329,6 +333,11 @@ export type CombinedActions = {
 	}) -> (),
 
 	toggleCafeOpen: (playerId: PlayerId) -> (),
+	toggleMusic: (playerId: PlayerId) -> (),
+	toggleSfx: (playerId: PlayerId) -> (),
+	toggleParticle: (playerId: PlayerId) -> (),
+	setSfxVolume: (playerId: PlayerId, volume: number) -> (),
+	setMusicVolume: (playerId: PlayerId, volume: number) -> (),
 
 	spawnCustomer: (playerId: PlayerId, payload: SpawnCustomerPayload) -> (),
 	customerTakeItems: (playerId: PlayerId, payload: CustomerItemPayload) -> (),

@@ -587,6 +587,7 @@ local function RecipePanel(props: {
 			BackgroundColor3 = BG,
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
+			ref = panelRef,
 		}, {
 			UICorner = e("UICorner", { CornerRadius = UDim.new(0, 12) }),
 

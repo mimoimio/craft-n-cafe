@@ -64,6 +64,41 @@ local actions = {
 		end
 		return Set(state, playerId, Set(playersStats, "CafeOpen", not playersStats.CafeOpen))
 	end,
+	toggleMusic = function(state: StatsState, playerId: string)
+		local playersStats = state[playerId]
+		if not playersStats then
+			return state
+		end
+		return Set(state, playerId, Set(playersStats, "MusicOn", not playersStats.MusicOn))
+	end,
+	toggleSfx = function(state: StatsState, playerId: string)
+		local playersStats = state[playerId]
+		if not playersStats then
+			return state
+		end
+		return Set(state, playerId, Set(playersStats, "SfxOn", not playersStats.SfxOn))
+	end,
+	toggleParticle = function(state: StatsState, playerId: string)
+		local playersStats = state[playerId]
+		if not playersStats then
+			return state
+		end
+		return Set(state, playerId, Set(playersStats, "ParticleOn", not playersStats.ParticleOn))
+	end,
+	setMusicVolume = function(state: StatsState, playerId: string, volume: number)
+		local playersStats = state[playerId]
+		if not playersStats then
+			return state
+		end
+		return Set(state, playerId, Set(playersStats, "MusicVolume", volume))
+	end,
+	setSfxVolume = function(state: StatsState, playerId: string, volume: number)
+		local playersStats = state[playerId]
+		if not playersStats then
+			return state
+		end
+		return Set(state, playerId, Set(playersStats, "MusicVolume", volume))
+	end,
 	completeTutorial = function(state: StatsState, playerId: string)
 		local playersStats = state[playerId]
 		if not playersStats then

@@ -132,7 +132,7 @@ local SkeletonApp = function()
 				local _now = workspace:GetServerTimeNow()
 				-- print("ticked")
 				local random = math.random()
-				if random < (player and 1 / 200 or 1) then
+				if random < (player and (1 / 1000) or 1) then
 					-- print("👀👀👀👀")
 					local id = tostring(_now)
 					task.defer(function()

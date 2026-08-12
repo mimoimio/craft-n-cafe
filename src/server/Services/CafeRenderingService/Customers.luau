@@ -33,6 +33,32 @@ local function getPlayer(playerId: string): Player?
 	return Players:GetPlayerByUserId(userId)
 end
 
+local observeRigClone = function(clone: Model): (() -> ())?
+	if not clone then
+		warn("NO CLONE TO OBSERVE")
+		return nil
+	end
+	local conn = clone:GetPropertyChangedSignal("Parent"):Connect(function()
+		warn(`Parent changed: {clone.Parent}`)
+		return
+	end)
+	local conn2 = clone.Destroying:Connect(function()
+		warn(`Clone destroying: {clone}`)
+		return
+	end)
+	return function()
+		if conn then
+			conn:Disconnect()
+		end
+		if conn2 then
+			conn2:Disconnect()
+		end
+	end
+end
+
+local original = workspace.Rig:Clone()
+workspace.Rig:Destroy()
+
 local function Customer(props: {
 	PlayerId: string,
 	CafeModel: CafeTypes.Cafe,
@@ -46,7 +72,8 @@ local function Customer(props: {
 	-- 1. Mounting Effect: Clone the rig and Pivot to the deterministic start state
 	useEffect(function()
 		-- warn(`props.CafeModel {props.CafeModel}`)
-		local clone = workspace.Rig:Clone() :: CafeTypes.CustomerRig
+		local clone = original:Clone() :: CafeTypes.CustomerRig
+		local unsub = observeRigClone(clone)
 		local tag = "Customer" .. props.PlayerId
 		clone.Parent = workspace
 		clone:AddTag(tag)
@@ -102,6 +129,9 @@ local function Customer(props: {
 			end
 			if conn then
 				conn:Disconnect()
+			end
+			if unsub then
+				unsub()
 			end
 			setRig(nil)
 			setPrompt(nil)

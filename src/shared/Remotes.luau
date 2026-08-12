@@ -94,4 +94,9 @@ return {
 	-- ShortenRollCooldown = CreateRemote("ShortenRollCooldown"),
 	LogTutorialStep = CreateRemote("LogTutorialStep"),
 	ClaimShelfCollector = CreateRemote("ClaimShelfCollector"),
+	ToggleSfx = CreateRemote("ToggleSfx"),
+	ToggleMusic = CreateRemote("ToggleMusic"),
+	ToggleParticle = CreateRemote("ToggleParticle"),
+	SetSfxVolume = CreateRemote("SetSfxVolume"),
+	SetMusicVolume = CreateRemote("SetMusicVolume"),
 }

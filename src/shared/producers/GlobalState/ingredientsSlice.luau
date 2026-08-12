@@ -67,7 +67,6 @@ local actions = {
 		end
 
 		local newIngredients = table.clone(playersIngredients)
-		warn(`payload.ingredientIds`, payload.ingredientIds)
 		for i, ingredient in payload.ingredientIds do
 			-- newIngredients[ingredient] = (playersIngredients[ingredient] or 0) + 1
 			-- payload.ingredientIds :: {string}, therefore, keys can repeat.

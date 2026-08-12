@@ -200,7 +200,7 @@ function DrinksService.RequestSkipMix(player: Player, mixer: string)
 	GlobalState.setPendingSkipMixer(playerId, { mixer = mixer })
 	print(`Prompting DevProduct purchase for {player.Name} to skip {mixer}...`)
 	local DeveloperProducts = require(ServerScriptService.Server.Services.DeveloperProducts)
-	MarketplaceService:PromptProductPurchase(player, DeveloperProducts.productIdByName)
+	MarketplaceService:PromptProductPurchase(player, DeveloperProducts.productIdByName.smallSkipBrew)
 end
 function DrinksService.initialize()
 	Remotes.MixDrink.OnServerEvent:Connect(DrinksService.MixDrink)

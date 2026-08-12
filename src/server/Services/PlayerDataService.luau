@@ -1,5 +1,5 @@
 -- PlayerDataService.luau
-local DATASTORENAME = "DATASTORENAME"
+local DATASTORENAME = "PLAYERS"
 local DRINKS_MIXED_DATASTORE = "DRINKS_MIXED_DATASTORE"
 local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
@@ -15,7 +15,7 @@ local Types = require(ReplicatedStorage.Shared.Types)
 local Signal = require(game.ReplicatedStorage.Packages.Signal)
 local ShopCycle = require(game.ReplicatedStorage.Shared.ShopCycle)
 
-local IS_PLAYTESTING = true
+-- local IS_PLAYTESTING = true
 --
 local DrinksBrewedLeaderboard = DataStoreService:GetOrderedDataStore("DrinksBrewed")
 
@@ -55,8 +55,10 @@ local function generateEmptyShelves()
 end
 local PROFILE_TEMPLATE: PlayerData = {
 	Stats = {
-		Sfx = 0.5,
-		Music = 0.5,
+		SfxVolume = 0.5,
+		SfxOn = true,
+		MusicVolume = 0.5,
+		MusicOn = true,
 		SecondsPlayed = 0,
 		Cash = 30,
 		Level = 1,

@@ -9,9 +9,35 @@ function StatsService.initialize()
 	Remotes.ToggleCafeOpen.OnServerEvent:Connect(function(player)
 		GlobalState.toggleCafeOpen(tostring(player.UserId))
 	end)
+	Remotes.ToggleSfx.OnServerEvent:Connect(function(player)
+		GlobalState.toggleSfx(tostring(player.UserId))
+	end)
+	Remotes.ToggleMusic.OnServerEvent:Connect(function(player)
+		GlobalState.toggleMusic(tostring(player.UserId))
+	end)
+	Remotes.ToggleParticle.OnServerEvent:Connect(function(player)
+		GlobalState.toggleParticle(tostring(player.UserId))
+	end)
 	Remotes.CompleteTutorial.OnServerEvent:Connect(function(player)
 		GlobalState.completeTutorial(tostring(player.UserId))
 	end)
+	Remotes.SetSfxVolume.OnServerEvent:Connect(function(player, volume: number)
+		if not volume then
+			return
+		end
+		GlobalState.setSfxVolume(tostring(player.UserId), volume)
+	end)
+	Remotes.SetMusicVolume.OnServerEvent:Connect(function(player, volume: number)
+		if not volume then
+			return
+		end
+		GlobalState.setMusicVolume(tostring(player.UserId), volume)
+	end)
+
+	Remotes.CompleteTutorial.OnServerEvent:Connect(function(player)
+		GlobalState.completeTutorial(tostring(player.UserId))
+	end)
+
 	local maxStep = 17 -- The total number of steps in your tutorial
 
 	Remotes.LogTutorialStep.OnServerEvent:Connect(function(player: Player, stepLevel: number, stepName: string)
