@@ -4,6 +4,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local React = require(ReplicatedStorage.Packages.React)
+local Mionum = require(ReplicatedStorage.Packages.Mionum)
 local Promise = require(ReplicatedStorage.Packages.Promise)
 local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
 local Reflex = require(ReplicatedStorage.Packages.Reflex)
@@ -229,7 +230,11 @@ local function DrinkTool(props: {
 						NameAndPrice = e(SmallText, {
 							LayoutOrder = 2,
 							TextXAlignment = Enum.TextXAlignment.Center,
-							Text = `{displayname}: {variation and config and (variation.Multiplier * config.Price * props.Drink.size) or config and config.Price or 0}$`,
+							Text = `{displayname}: {Mionum.new(
+								variation and config and (variation.Multiplier * config.Price * props.Drink.size)
+									or config and config.Price
+									or 0
+							):toString()}$`,
 						}),
 					}),
 				}),

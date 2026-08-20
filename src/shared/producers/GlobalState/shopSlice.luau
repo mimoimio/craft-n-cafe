@@ -77,8 +77,6 @@ local actions = {
 			shops = newShops,
 		})
 	end,
-
-	
 }
 
 return Reflex.createProducer(initialState, actions)

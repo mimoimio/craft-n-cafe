@@ -43,6 +43,16 @@ export type ShelvesState = {
 	},
 }
 
+export type CashierId = string | "Cashier1"
+
+export type CashierEntity = {}
+
+export type CashiersState = {
+	[PlayerId]: {
+		[CashierId]: CashierEntity,
+	},
+}
+
 -- Spawner
 export type SpawnerState = {
 	[string]: {
@@ -54,30 +64,28 @@ export type SpawnerState = {
 -- Stats
 export type StatsEntity = {
 	Cash: number,
+
 	SfxVolume: number,
 	SfxOn: boolean,
 	MusicVolume: number,
 	MusicOn: boolean,
 	ParticleOn: boolean,
+	CafeOpen: boolean,
 
 	TutorialCompleted: boolean,
-	SecondsPlayed: number,
+
 	Level: number,
-	CafeOpen: boolean,
-	UnlockedIngredients: { string },
-	DiscoveredDrinks: {
-		[VariationId]: {
-			[DrinkId]: true,
-		},
-	},
 	RollCooldown: number,
-	MaxDrinksPerCustomer: number,
-	MaxCustomersAtOnce: number,
+
 	Luck: number,
 	CafeCapacity: number,
+
 	PendingSkipMixer: string?,
 	SkipTickets: number,
 	OwnedGamePasses: { [string]: boolean },
+
+	-- unimplemented
+	SecondsPlayed: number,
 }
 
 -- Tables
@@ -145,7 +153,7 @@ export type DailyEntity = {
 -- DiscoveredDrinksState
 export type DiscoveredDrinksState = {
 	[PlayerId]: {
-		[string]: true,
+		[VariationId]: { [string]: true },
 	},
 }
 
@@ -219,7 +227,7 @@ export type PickUpPayload = {
 	stock: number,
 	size: number,
 	mixer: string,
-	timestamp: number, -- NEW: Syncs the exact pickup time
+	timestamp: number,
 }
 export type CustomerItemPayload = {
 	customerUid: string,

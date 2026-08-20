@@ -8,11 +8,20 @@ local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 
 local SmallText = require(ReplicatedStorage.Shared.ReactComponents.ui.SmallText)
 
+local function getCount(discoveredDrinks)
+	local count = 0
+	for variationId, drinksOfVariation in discoveredDrinks or {} do
+		for drinkId, _ in drinksOfVariation do
+			count += 1
+		end
+	end
+	return count
+end
 local player = Players.LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
 local BonusHud = function(props)
 	local playersDiscoveredDrinks, setDD = useState(nil)
-	local bonus = 0
+	local bonus = getCount(playersDiscoveredDrinks)
 
 	useEffect(function()
 		local unsub = GlobalState:subscribe(function(state: GlobalState.GlobalState)
@@ -29,11 +38,6 @@ local BonusHud = function(props)
 		return unsub
 	end, {})
 
-	for variationId, drinksOfVariation in playersDiscoveredDrinks or {} do
-		for drinkId, _ in drinksOfVariation do
-			bonus += 1
-		end
-	end
 	return e("Frame", {
 		Size = UDim2.new(1, 0, 1, 0),
 		BackgroundTransparency = 1,

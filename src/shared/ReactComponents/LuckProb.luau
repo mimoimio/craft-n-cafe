@@ -47,7 +47,7 @@ local variation = nil
 
 -- local IsEdit = RunService:IsStudio() and not RunService:IsRunMode()
 
-local player = game.Players.LocalPlayer
+local player = game:GetService("Players").LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
 local tag = playerId .. "Cafe"
 local function LuckProb(props)

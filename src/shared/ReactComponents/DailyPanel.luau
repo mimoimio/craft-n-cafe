@@ -17,7 +17,7 @@ local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConfig)
 local DailyConfig = require(ReplicatedStorage.Shared.Configs.DailyConfig)
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
-local player = game.Players.LocalPlayer
+local player = game:GetService("Players").LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
 -- CoffeeModule.Config is the keyed lookup (by Id)
 local CoffeeConfig = CoffeeModule.Config

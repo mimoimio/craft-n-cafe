@@ -23,9 +23,18 @@ local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConf
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local CafeTypes = require(ReplicatedStorage.Shared.CafeTypes)
 
-local player = game.Players.LocalPlayer
+local player = game:GetService("Players").LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
 
+local function getCount(discoveredDrinks)
+	local count = 0
+	for variationId, drinksOfVariation in discoveredDrinks or {} do
+		for drinkId, _ in drinksOfVariation do
+			count += 1
+		end
+	end
+	return count
+end
 local MAX_ACCUMULATION_SECONDS = 8 * 60 * 60
 local function ShelfCollectorUI(props: { collectorModel: Model })
 	local collectorPart = props.collectorModel:FindFirstChild("Part")
@@ -33,6 +42,7 @@ local function ShelfCollectorUI(props: { collectorModel: Model })
 	local shelves, setShelves = useState({})
 
 	local amountBinding, setAmountBinding = useBinding("$0")
+	local bonus = useRef(1)
 
 	useEffect(function()
 		local unsub = GlobalState:subscribe(function(state)
@@ -44,6 +54,21 @@ local function ShelfCollectorUI(props: { collectorModel: Model })
 		local state = GlobalState:getState()
 		setShelves(state.Shelves[playerId] or {})
 
+		return unsub
+	end, {})
+	useEffect(function()
+		local unsub = GlobalState:subscribe(function(state)
+			return state.DiscoveredDrinks[playerId]
+		end, function(discoveredDrinks)
+			local count = getCount(discoveredDrinks)
+			bonus.current = 1 + count * 0.05
+		end)
+
+		local dd = GlobalState:getState().DiscoveredDrinks
+		if dd then
+			local count = getCount(dd[playerId])
+			bonus.current = 1 + count * 0.05
+		end
 		return unsub
 	end, {})
 
@@ -61,11 +86,12 @@ local function ShelfCollectorUI(props: { collectorModel: Model })
 							local variation = VariationsConfig[slotData.variationId] or VariationsConfig["none"]
 							if config and config.Rate then
 								local sizeMultiplier = slotData.size or 1
-								local rate = config.Rate * variation.Multiplier * sizeMultiplier
+								local rate = config.Rate * variation.Multiplier * sizeMultiplier * bonus.current
 
 								local timePassed =
 									math.min(currentTime - slotData.lastClaimTime, MAX_ACCUMULATION_SECONDS)
-								totalAmount += math.floor(timePassed * rate)
+								totalAmount += math.floor(timePassed // 1 == 0 and 0 or timePassed * rate)
+								-- empty zero
 							end
 						end
 					end

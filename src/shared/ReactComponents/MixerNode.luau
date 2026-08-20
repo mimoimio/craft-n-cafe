@@ -151,7 +151,7 @@ local function MixerNode(props: {
 					if startTime and duration then
 						local now = workspace:GetServerTimeNow()
 						local left = startTime + duration - now
-						if left > 30 then
+						if left > 15 then
 							Remotes.SkipMix:FireServer(props.MixerName)
 							return
 						end
@@ -240,7 +240,7 @@ local function MixerNode(props: {
 			local timeLeft = duration - timePassed
 			if p >= 1 then
 				return `{interactIcon} Pick Up`
-			elseif timeLeft > 30 then
+			elseif timeLeft > 15 then
 				return `{interactIcon} Skip?`
 			else
 				return `Mixing...`

@@ -10,20 +10,12 @@ local useSpring = ReactFlow.useSpring
 local e = React.createElement
 local useState = React.useState
 local useEffect = React.useEffect
-local useRef = React.useRef
 
-local SmallButton = require(ReplicatedStorage.Shared.ReactComponents.ui.SmallButton)
-local HStack = require(ReplicatedStorage.Shared.ReactComponents.ui.HStack)
 local SmallText = require(ReplicatedStorage.Shared.ReactComponents.ui.SmallText)
 local DefaultPanel = require(ReplicatedStorage.Shared.ReactComponents.DefaultPanel)
 local VStack = require(ReplicatedStorage.Shared.ReactComponents.ui.VStack)
-local LevelConfig = require(ReplicatedStorage.Shared.Configs.LevelConfig)
-local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 
-local ICON =
-	[[<font family="rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json"><b>robux</b></font>]]
-
-local player = game.Players.LocalPlayer
+local player = game:GetService("Players").LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
 local function CafePanel(props: {})
 	--listen to active panel
@@ -60,28 +52,7 @@ local function CafePanel(props: {})
 	end, {})
 
 	local nextLevel = stats and (stats.Level + 1)
-	local config = LevelConfig[nextLevel]
 	local nextIngredients, nextNumOfTables, nextNumOfMixers
-	if config then
-		local texts = {}
-		local count = 1
-		for i, id in config.NewIngredients do
-			local cofeeg = CoffeeModule.IngredientLookup[id]
-			table.insert(texts, `{count}. {cofeeg and cofeeg.DisplayName}`)
-			count += 1
-		end
-		nextIngredients = table.concat(texts, "\n")
-
-		local mixers = config.Mixers
-		if type(mixers) == "table" and #mixers >= 1 then
-			nextNumOfMixers = #mixers
-		end
-		local tables = config.Tables
-		if type(tables) == "table" and #tables >= 1 then
-			nextNumOfTables = #tables
-		end
-	end
-
 	local position, setPosition = useSpring({
 		start = -1,
 		target = -1,
@@ -147,56 +118,8 @@ local function CafePanel(props: {})
 					TextSize = 18,
 				}),
 			}),
-			-- LevelUp = e(SmallButton, {
-			-- 	Text = `Level Up: {ICON}{config and config.Cost and Mionum.new(config.Cost):toString()}`,
-			-- 	RichText = true,
-			-- 	[React.Event.Activated] = function()
-			-- 		Remotes.LevelUp:FireServer()
-			-- 	end,
-			-- }),
 		}),
 	})
-	-- return e(VStack, {
-	-- 	Size = UDim2.new(1, -80, 1, -80),
-	-- 	Visible = panelOpen,
-	-- 	AnchorPoint = Vector2.new(0.5, 0.5),
-	-- 	Position = UDim2.fromScale(0.5, 0.5),
-
-	-- 	VerticalFlex = Enum.UIFlexAlignment.Fill,
-	-- 	BackgroundTransparency = 1,
-	-- }, {
-	-- 	UISizeConstraint = e("UISizeConstraint", {
-	-- 		MinSize = Vector2.new(300, 200),
-	-- 		MaxSize = Vector2.new(400, 400),
-	-- 	}),
-	-- 	e(VStack, {
-	-- 		Size = UDim2.new(1, 0, 1, 0),
-	-- 		VerticalFlex = Enum.UIFlexAlignment.None,
-	-- 		BackgroundTransparency = 1,
-	-- 	}, {
-	-- 		e(SmallButton, {
-	-- 			Text = `Next Cafe Level: {nextLevel}`,
-	-- 			TextSize = 30,
-	-- 		}),
-	-- 		e(SmallButton, {
-	-- 			Text = `<font size="10">Ingredients Unlocked Next Level:</font>\n{nextIngredients or ". . ."}`,
-	-- 			TextSize = 18,
-	-- 			RichText = true,
-	-- 			MinTextSize = 14,
-	-- 		}),
-	-- 		e(SmallButton, {
-	-- 			Text = `Unlock {nextNumOfMixers and `+{nextNumOfMixers} mixers` or ""}{nextNumOfMixers and nextNumOfTables and " and " or ""}{nextNumOfTables and `+{nextNumOfTables} tables`}! `,
-	-- 			TextSize = 18,
-	-- 		}),
-	-- 	}),
-	-- 	LevelUp = e(SmallButton, {
-	-- 		Text = `Level Up: {ICON}{config and config.Cost and Mionum.new(config.Cost):toString()}`,
-	-- 		RichText = true,
-	-- 		[React.Event.Activated] = function()
-	-- 			Remotes.LevelUp:FireServer()
-	-- 		end,
-	-- 	}),
-	-- })
 end
 
 return CafePanel

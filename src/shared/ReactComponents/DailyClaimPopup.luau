@@ -40,7 +40,7 @@ end
 -- Slightly faster delay than LevelUp since Day 7 drops a lot of items!
 local INTER_DELAY = 0.15
 
-local player = game.Players.LocalPlayer
+local player = game:GetService("Players").LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
 
 local function delayedRevealTransMap(startTime, sec: number, minTransparency: number?)

@@ -23,7 +23,7 @@ local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConf
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local CafeTypes = require(ReplicatedStorage.Shared.CafeTypes)
 
-local player = game.Players.LocalPlayer
+local player = game:GetService("Players").LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
 
 local feedbackPrompt = function(props: { prompt: ProximityPrompt })

@@ -8,32 +8,34 @@ export type VariationConfig = typeof(VariationsConfig.none)
 local VariationService = {}
 
 function VariationService.GetVariation(): VariationConfig?
-	local currentShop = ShopCycle.getCurrentState()
-	local rand = Random.new(Random.new():NextInteger(1, 999)):NextNumber()
+	local variationEvent: VariationConfig = VariationService.GetCurrentVariationEvent()
+	if not variationEvent then
+		variationEvent = VariationsConfig.none
+	end
+	local eventVariationId = variationEvent.VariationId
 
+	local rand = Random.new(Random.new():NextInteger(1, 999)):NextNumber()
 	local total = 0
 	local variationArray: { VariationConfig } = {}
-	for i, variation: VariationConfig in VariationsConfig do
-		-- if
-		-- 	variation.VariationId == "none"
-		-- 	or variation.VariationId == "double"
-		-- 	or variation.VariationId == "gold"
-		-- 	or variation.VariationId == "diamond"
-		-- then
-		-- 	continue
-		-- end
-		total += variation.Weight
-		table.insert(variationArray, variation)
+
+	-- Fix 1: Typed weight as number
+	for variationId, weight: number in VariationsConfig[eventVariationId].Weights do
+		total += weight
+		table.insert(variationArray, VariationsConfig[variationId])
 	end
+
+	-- Fix 2: Look up the weights inside the current event's table
 	table.sort(variationArray, function(vA: VariationConfig, vB: VariationConfig)
-		return vA.Weight < vB.Weight
+		return VariationsConfig[eventVariationId].Weights[vA.VariationId]
+			< VariationsConfig[eventVariationId].Weights[vB.VariationId]
 	end)
 
 	local weightRand = total * rand
 
 	local _total = 0
 	for i, variation in variationArray do
-		_total += variation.Weight
+		-- Fix 3: Changed .Weight to .Weights to access the dictionary correctly
+		_total += VariationsConfig[eventVariationId].Weights[variation.VariationId]
 		if weightRand <= _total then
 			if variation.VariationId == "none" then
 				return nil
@@ -46,7 +48,7 @@ end
 
 function VariationService.GetCurrentVariationEvent(): VariationConfig?
 	if not ShopCycle.getCurrentState().isSpecial then
-		return
+		return nil
 	end
 	local currentShop = ShopCycle.getCurrentState()
 	local seedNumber = tonumber(currentShop.seed)
@@ -85,10 +87,10 @@ end
 -- Adds a steep weighted curve: Size 1 is extremely common, Size 5 is extremely rare.
 function VariationService.GetSize(): number
 	local weights = {
-		[1] = 1,
-		[2] = 1,
-		[3] = 1,
-		[4] = 1,
+		[1] = 100,
+		[2] = 40,
+		[3] = 16,
+		[4] = 4,
 		[5] = 1,
 		-- [1] = 1000,
 		-- [2] = 250,

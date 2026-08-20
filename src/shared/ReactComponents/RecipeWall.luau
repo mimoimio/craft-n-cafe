@@ -120,6 +120,7 @@ local variationOrder = {
 	"gold",
 	"diamond",
 	"starlight",
+	"hexed",
 }
 
 -- local IsEdit = RunService:IsStudio() and not RunService:IsRunMode()

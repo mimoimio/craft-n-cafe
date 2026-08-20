@@ -12,7 +12,7 @@ local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 
 local CafeTypes = require(ReplicatedStorage.Shared.CafeTypes)
 
-local player = game.Players.LocalPlayer
+local player = game:GetService("Players").LocalPlayer
 local playerId = player and player.UserId or ""
 
 local CafeBase = function(props: {})

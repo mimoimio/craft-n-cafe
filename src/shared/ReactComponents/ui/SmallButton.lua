@@ -153,7 +153,7 @@ local function SmallButton(props)
 				TextWrapped = props.OverlayTextWrapped,
 				TextColor3 = overlayColor,
 				BorderSizePixel = 0,
-				Active = false,
+				Active = props.Active,
 			}, {
 				UITextSizeConstraint = e("UITextSizeConstraint", {
 					MaxTextSize = props.OverlayTextSize or 18,

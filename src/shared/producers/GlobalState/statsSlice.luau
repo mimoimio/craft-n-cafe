@@ -52,8 +52,6 @@ local actions = {
 			Merge(playerStats, {
 				Level = payload.level,
 				Cash = playerStats.Cash - payload.cost,
-				MaxCustomersAtOnce = 4 + payload.level,
-				MaxDrinksPerCustomer = 2 + payload.level,
 			})
 		)
 	end,

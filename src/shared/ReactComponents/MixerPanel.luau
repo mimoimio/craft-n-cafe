@@ -1,6 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local GuiService = game:GetService("GuiService")
 local React = require(ReplicatedStorage.Packages.React)
+local Mionum = require(ReplicatedStorage.Packages.Mionum)
 local Promise = require(ReplicatedStorage.Packages.Promise)
 local e = React.createElement
 local useState = React.useState
@@ -10,6 +11,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
+local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConfig)
 
 local Primitives = ReplicatedStorage.Shared.ReactComponents.ui
 local DefaultScrollFrame = require(script.Parent.DefaultScrollFrame)
@@ -33,6 +35,9 @@ local layoutOrders = {}
 for i, config in CoffeeModule.IngredientConfigs do
 	layoutOrders[config.Id] = i
 end
+
+local grid_sm = 40
+local grid_lg = 50
 
 local TEST_INGREDIENTS = {
 	espresso = 1,
@@ -64,6 +69,7 @@ local function MixerPanel(props: {
 	local activeTrails, setActiveTrails = useState({})
 	local panelOpen, setPanelOpen = useState((not player) and true or false)
 	local activeMixerId, setMixerId = useState(nil)
+	local eventId: string?, setEventId = useState(nil)
 
 	local xs, sm, md, lg, xl = useBreakpoint()
 	local mobile = xs or sm
@@ -71,7 +77,46 @@ local function MixerPanel(props: {
 	-- Reference to the selected ingredients UI to act as the target position
 	local targetRef = React.useRef(nil)
 	local ingredients, setIngredients = useState((not player) and TEST_INGREDIENTS or {})
-	local discoveredDrinks, setDiscoveredDrinks = useState((not player) and { starlight = { espresso = true } } or {})
+	local discoveredDrinks, setDiscoveredDrinks = useState((not player) and {
+		starlight = { espresso = true },
+		diamond = { espresso = true },
+		gold = { espresso = true },
+		double = { espresso = true },
+		hexed = { espresso = true },
+	} or {})
+
+	-- listen to event
+	useEffect(function()
+		local unsub = GlobalState:subscribe(function(state: GlobalState.GlobalState)
+			local shop = state.Shop[playerId]
+			return shop and shop.variationEvent
+		end, setEventId)
+
+		local state = GlobalState:getState()
+		local shop = state.Shop[playerId]
+		if shop then
+			setEventId(shop.variationEvent)
+		end
+
+		return unsub
+	end, {})
+	useEffect(function()
+		if player then
+			return
+		end
+		local t = task.defer(function()
+			while true do
+				for variationId, variation in VariationsConfig do
+					setEventId(variationId)
+					task.wait(1)
+				end
+			end
+		end)
+
+		return function()
+			task.cancel(t)
+		end
+	end, {})
 
 	--  listen to discoveredDrinks
 	useEffect(function()
@@ -147,8 +192,8 @@ local function MixerPanel(props: {
 				-- 	ancestor = ancestor:FindFirstAncestorWhichIsA("GuiObject")
 				-- until not ancestor
 				game:GetService("GamepadService"):EnableGamepadCursor(panelRef.current)
-			else
-				game:GetService("GamepadService"):DisableGamepadCursor()
+				-- else
+				-- 	game:GetService("GamepadService"):DisableGamepadCursor()
 			end
 		end)
 		return unsub
@@ -218,7 +263,8 @@ local function MixerPanel(props: {
 			OverlayTextSize = 10,
 			OverlayTextWrapped = true,
 			ButtonClass = "ImageButton",
-			Image = config.Image,
+			Image = "rbxassetid://127657596958436",
+			-- Image = config.Image,
 			OverlayTextTransparency = transparency,
 			BackgroundTransparency = transparency,
 			LayoutOrder = layoutOrders[id],
@@ -275,7 +321,15 @@ local function MixerPanel(props: {
 				end
 			end,
 		}, {
+			e("ImageLabel", {
+				Image = config.Image,
+				Size = UDim2.new(1, 0, 1, 0),
+				BackgroundTransparency = 1,
+				Active = false,
+				ZIndex = 1,
+			}),
 			Count = e(SmallText, {
+				ZIndex = 2,
 				Size = UDim2.new(0, mobile and 12 or 20, 0, mobile and 12 or 20),
 				AnchorPoint = Vector2.new(0.25, 0.25),
 				Text = amountLeft,
@@ -298,14 +352,14 @@ local function MixerPanel(props: {
 		local config = CoffeeModule.IngredientLookup[id] -- Adjusted to grab from Config
 		selectedIngredientElements[i] = e(SmallButton, {
 			OverlayText = config and config.DisplayName,
-			OverlayTextSize = 12,
+			OverlayTextSize = mobile and 10 or 12,
 			-- LayoutOrder = config and config.Price,
 			LayoutOrder = i,
 			OverlayTextWrapped = true,
 			ButtonClass = "ImageButton",
 			AutomaticSize = Enum.AutomaticSize.None,
 			Image = config and config.Image,
-			Size = UDim2.new(0, mobile and 36 or 50, 0, mobile and 36 or 50),
+			Size = UDim2.new(0, mobile and grid_sm or grid_lg, 0, mobile and grid_sm or grid_lg),
 			Padding = { All = UDim.new(0, 4) },
 			BackgroundColor3 = Color3.fromRGB(84, 52, 52),
 			[React.Event.Activated] = function()
@@ -318,7 +372,7 @@ local function MixerPanel(props: {
 	local sec = resultConfig and resultConfig.Duration % 60 or nil
 	local stocks = resultConfig and resultConfig.InitialStock
 	local durationText = resultConfig
-			and `<font size="14">$$$</font><font size="18">: {resultConfig.Price} $\n{CLOCK}: {min > 0 and `{min} min ` or ""}{sec} sec </font>` --\n<font size="18">{STOCK}: {stocks}x</font>
+			and `<font size="14">$$$</font><font size="18">: {Mionum.new(resultConfig.Price):toString()} $\n{CLOCK}: {min > 0 and `{min} min ` or ""}{sec} sec </font>` --\n<font size="18">{STOCK}: {stocks}x</font>
 		or ""
 
 	-- new until discovered
@@ -334,6 +388,63 @@ local function MixerPanel(props: {
 		end
 	end
 	local resultLabelText = resultConfig and (not new and resultConfig.DisplayName or "???") or ""
+	local discoveredVariations
+	local eventConfig = VariationsConfig[eventId]
+	local eventColor = (
+		if eventConfig
+			then (if eventConfig.VariationId == "none" then Color3.new(1, 1, 1) else eventConfig.ColorPrimary)
+			else Color3.new(1, 1, 1)
+	)
+	if resultConfig then
+		discoveredVariations = {
+			e(SmallText, {
+				LayoutOrder = 1,
+				Size = UDim2.new(1, 0, 0, 0),
+				AutomaticSize = Enum.AutomaticSize.Y,
+				ButtonClass = "ImageButton",
+				TextSize = mobile and 12 or 14,
+				-- TextWrapped = true,
+				Text = "Discovered Variations:",
+			}),
+		}
+
+		for variationId, config in VariationsConfig do
+			local discovered = discoveredDrinks[variationId] and discoveredDrinks[variationId][resultConfig.Id] or nil
+			local transparency = discovered and 0 or 0.9
+
+			local chance = eventId and eventConfig.Chances[variationId] or config.Chance
+			local variationColor = if variationId == "none" then Color3.new(1, 1, 1) else config.ColorPrimary
+			discoveredVariations[variationId] = e(SmallButton, {
+				BackgroundColor3 = variationColor,
+				-- BackgroundColor3 = variationColor:Lerp(Color3.new(1, 1, 1), eventId == variationId and 0 or 0.2),
+				LayoutOrder = 7 - config.Multiplier,
+				Size = UDim2.new(1, 0, 0, 20),
+				-- Size = UDim2.new(1, 0, 0, 0),
+				AutomaticSize = Enum.AutomaticSize.Y,
+				ButtonClass = "ImageButton",
+				Active = false,
+				AutoButtonColor = false,
+				BackgroundTransparency = transparency,
+			}, {
+				e("UIStroke", {
+					Thickness = mobile and 1 or 2,
+					Transparency = transparency,
+				}),
+				e(SmallText, {
+					Text = `{config.DisplayName} ({chance * 1000 // 1 / 10}%)`,
+					TextTransparency = transparency - 0.4,
+					TextSize = mobile and (eventId == variationId and 12 or 10)
+						or (eventId == variationId and 24 or 18),
+				}, {
+					e("UIStroke", {
+						Thickness = mobile and (eventId == variationId and 3 or 1)
+							or (eventId == variationId and 4 or 2),
+						Transparency = transparency,
+					}),
+				}),
+			})
+		end
+	end
 
 	return e("ImageLabel", {
 		Size = UDim2.new(1, 0, 1, mobile and -32 or 0),
@@ -344,7 +455,7 @@ local function MixerPanel(props: {
 		Image = "rbxassetid://127657596958436",
 		ImageTransparency = 0,
 		-- ImageTransparency = 0.6,
-		ImageColor3 = Color3.new(0.768627, 0.549019, 0.549019),
+		ImageColor3 = Color3.new(0.768627, 0.549019, 0.549019):Lerp(eventColor, 0.5),
 		ScaleType = Enum.ScaleType.Slice,
 		SliceCenter = Rect.new(8, 8, 92, 92),
 	}, {
@@ -399,7 +510,7 @@ local function MixerPanel(props: {
 				end,
 			}),
 
-			Left = e(HStack, {
+			Top = e(HStack, {
 				Size = UDim2.new(0.3, 0, 0.5, 0),
 				AnchorPoint = Vector2.new(0, 0.5),
 				Position = UDim2.new(0, 0, 0.5, 0),
@@ -421,6 +532,7 @@ local function MixerPanel(props: {
 					HorizontalAlignment = Enum.HorizontalAlignment.Center,
 					AutomaticSize = Enum.AutomaticSize.None,
 					LayoutOrder = 3,
+					Size = UDim2.new(0.8, 0, 1, 0),
 				}, {
 					e(VStack, {
 						Size = UDim2.new(1, 0, 0, 0),
@@ -435,7 +547,7 @@ local function MixerPanel(props: {
 						e(HStack, {
 							HorizontalFlex = Enum.UIFlexAlignment.None,
 							HorizontalAlignment = Enum.HorizontalAlignment.Center,
-							Size = UDim2.new(1, 0, 0, mobile and 36 or 50),
+							Size = UDim2.new(1, 0, 0, mobile and grid_sm or grid_lg),
 							AutomaticSize = Enum.AutomaticSize.None,
 							LayoutOrder = 1,
 							Spacing = UDim.new(0, 2),
@@ -449,7 +561,7 @@ local function MixerPanel(props: {
 						e(HStack, {
 							HorizontalFlex = Enum.UIFlexAlignment.None,
 							HorizontalAlignment = Enum.HorizontalAlignment.Center,
-							Size = UDim2.new(1, 0, 0, mobile and 36 or 50),
+							Size = UDim2.new(1, 0, 0, mobile and grid_sm or grid_lg),
 							AutomaticSize = Enum.AutomaticSize.None,
 							LayoutOrder = 2,
 							Spacing = UDim.new(0, 2),
@@ -461,7 +573,7 @@ local function MixerPanel(props: {
 							}),
 						}),
 						e(HStack, {
-							Size = UDim2.new(1, 0, 0, mobile and 36 or 50),
+							Size = UDim2.new(1, 0, 0, mobile and grid_sm or grid_lg),
 							AutomaticSize = Enum.AutomaticSize.None,
 							HorizontalFlex = Enum.UIFlexAlignment.None,
 							HorizontalAlignment = Enum.HorizontalAlignment.Center,
@@ -478,147 +590,165 @@ local function MixerPanel(props: {
 				}),
 				-- }),
 
-				Controls = e(VStack, {
+				Controls = e(HStack, {
 					Size = UDim2.new(1, 0, 1, 0),
 					Spacing = UDim.new(0, 2),
 					LayoutOrder = 4,
 					AutomaticSize = Enum.AutomaticSize.None,
-					HorizontalFlex = Enum.UIFlexAlignment.None,
+					HorizontalFlex = Enum.UIFlexAlignment.Fill,
 					VerticalFlex = Enum.UIFlexAlignment.SpaceBetween,
 					HorizontalAlignment = Enum.HorizontalAlignment.Center,
 					Padding = { All = UDim.new() },
-					-- BackgroundTransparency = 0,
 				}, {
-					Controls = e(HStack, {
-						Size = UDim2.new(0, 0, 0, 0),
-						Spacing = UDim.new(0, 8),
-						LayoutOrder = 4,
-						AutomaticSize = Enum.AutomaticSize.XY,
-						VerticalFlex = Enum.UIFlexAlignment.None,
+					e(VStack, {
+						Size = UDim2.new(1, 0, 1, 0),
+						Spacing = UDim.new(0, 2),
+						LayoutOrder = 2,
+						AutomaticSize = Enum.AutomaticSize.None,
 						HorizontalFlex = Enum.UIFlexAlignment.None,
-						Padding = { All = UDim.new() },
+						VerticalFlex = Enum.UIFlexAlignment.SpaceBetween,
 						HorizontalAlignment = Enum.HorizontalAlignment.Center,
-						VerticalAlignment = Enum.VerticalAlignment.Bottom,
-					}, {
-						CraftButton = e(SmallButton, {
-							Text = "Craft!",
-							Size = UDim2.new(0, 60, 0, 30),
-							BackgroundColor3 = resultConfig and Color3.new(0.5, 1, 0) or nil,
-							[React.Event.Activated] = function()
-								if resultConfig and activeMixerId then
-									Remotes.MixDrink:FireServer(resultConfig.Id, activeMixerId)
-									setCurrentIngredients({})
-									setPendingIngredients({}) -- Safety clear
-									if props.OnClose then
-										props.OnClose()
-									end
-								end
-							end,
-							TextTransparency = resultConfig and 0 or 0.8,
-							TextThickness = resultConfig and 1 or 0.6,
-							LayoutOrder = 2,
-							OnMount = UIState.setCraftButton,
-						}),
-						ClearButton = e(SmallButton, {
-							Text = "Clear",
-							Size = UDim2.new(0, 60, 0, 30),
-							[React.Event.Activated] = function()
-								setCurrentIngredients({})
-							end,
-							LayoutOrder = 1,
-						}),
-					}),
-
-					ResultFrame = e("ImageLabel", {
-						Size = UDim2.new(1, 0, 0, 100),
+						Padding = { All = UDim.new(0, 8) },
+					}, discoveredVariations),
+					e(VStack, {
+						Size = UDim2.new(1, 0, 1, 0),
+						Spacing = UDim.new(0, 2),
 						LayoutOrder = 1,
-						BackgroundTransparency = 1,
+						AutomaticSize = Enum.AutomaticSize.None,
+						HorizontalFlex = Enum.UIFlexAlignment.None,
+						VerticalFlex = Enum.UIFlexAlignment.SpaceBetween,
+						HorizontalAlignment = Enum.HorizontalAlignment.Center,
+						Padding = { All = UDim.new() },
 					}, {
-						ResultImageFrame = e("Frame", {
-							Size = UDim2.new(0, mobile and 70 or 100, 0, mobile and 70 or 100),
-							Position = UDim2.new(0.5, 0, 0, 0),
-							BackgroundTransparency = 1,
-							AnchorPoint = Vector2.new(0.5, 0),
+						Controls = e(HStack, {
+							Size = UDim2.new(0, 0, 0, 0),
+							Spacing = UDim.new(0, 8),
+							LayoutOrder = 4,
+							AutomaticSize = Enum.AutomaticSize.XY,
+							VerticalFlex = Enum.UIFlexAlignment.None,
+							HorizontalFlex = Enum.UIFlexAlignment.None,
+							Padding = { All = UDim.new() },
+							HorizontalAlignment = Enum.HorizontalAlignment.Center,
+							VerticalAlignment = Enum.VerticalAlignment.Bottom,
 						}, {
-							Background = e("ImageLabel", {
-								Size = UDim2.new(1, 0, 1, 0),
-								Position = UDim2.new(0.5, 0, 0, 0),
-								BackgroundTransparency = 1,
-								AnchorPoint = Vector2.new(0.5, 0),
-								Image = "rbxassetid://127657596958436",
-								ImageColor3 = Color3.new(0.768627, 0.549019, 0.549019),
-								ScaleType = Enum.ScaleType.Slice,
-								SliceCenter = Rect.new(8, 8, 92, 92),
-								ZIndex = 1,
-							}, {}),
-							ResultLabel = resultConfig and e(SmallText, {
-								Text = resultLabelText,
-								Size = UDim2.new(1, 0, 0, 0),
-								TextSize = mobile and 12 or 14,
-								Position = UDim2.new(0.5, 0, 1, -8),
-								AnchorPoint = Vector2.new(0.5, 1),
-								RichText = true,
-								TextXAlignment = Enum.TextXAlignment.Center,
-								ZIndex = 8,
+							CraftButton = e(SmallButton, {
+								Text = "Craft!",
+								Size = UDim2.new(0, 60, 0, 30),
+								BackgroundColor3 = resultConfig and Color3.new(0.5, 1, 0) or nil,
+								[React.Event.Activated] = function()
+									if resultConfig and activeMixerId then
+										Remotes.MixDrink:FireServer(resultConfig.Id, activeMixerId)
+										setCurrentIngredients({})
+										setPendingIngredients({}) -- Safety clear
+										UIState.toggle("none")
+									end
+								end,
+								TextTransparency = resultConfig and 0 or 0.8,
+								TextThickness = resultConfig and 1 or 0.6,
+								LayoutOrder = 2,
+								OnMount = UIState.setCraftButton,
 							}),
-							Duration = resultConfig and e(SmallText, {
-								Text = durationText,
-								MinTextSize = 14,
-								TextSize = mobile and 14 or 18,
-								-- MaxTextSize = 32,
-								Size = UDim2.new(1, 0, 0, 0),
-								Position = UDim2.new(0.5, 0, 1, 0),
-								AnchorPoint = Vector2.new(0.5, 0),
-								RichText = true,
-								TextXAlignment = Enum.TextXAlignment.Left,
-								ZIndex = 2,
+							ClearButton = e(SmallButton, {
+								Text = "Clear",
+								Size = UDim2.new(0, 60, 0, 30),
+								[React.Event.Activated] = function()
+									setCurrentIngredients({})
+								end,
+								LayoutOrder = 1,
 							}),
-							ResultImage = e("ImageLabel", {
-								Size = UDim2.new(1, 0, 1, 0),
-								Position = UDim2.new(0.5, 0, 0, 0),
-								BackgroundTransparency = 1,
-								AnchorPoint = Vector2.new(0.5, 0),
-								Image = resultConfig and resultConfig.Image,
-								ZIndex = 3,
-							}, {}),
+						}),
 
-							-- Count = e(SmallText, {
-							-- 	Visible = resultConfig and true or false,
-							-- 	Size = UDim2.new(0, 30, 0, 30),
-							-- 	AnchorPoint = Vector2.new(0.25, 0.25),
-							-- 	Text = `Price: ${resultConfig and resultConfig.Price} `,
-							-- 	-- TextTransparency = transparency,
-							-- 	BackgroundTransparency = 1,
-							-- 	TextXAlignment = Enum.TextXAlignment.Center,
-							-- 	-- BackgroundColor3 = Color3.new(1, 0, 0),
-							-- 	ZIndex = 4,
-							-- }, {
-							-- 	UICorner = e("UICorner", {
-							-- 		CornerRadius = UDim.new(0, 4),
-							-- 	}),
-							-- }),
-							New = new and e(SmallText, {
-								Visible = resultConfig and true or false,
-								Size = UDim2.new(0, 30, 0, 30),
-								AnchorPoint = Vector2.new(0.75, 0.25),
-								Text = "NEW!",
-								TextSize = mobile and 14 or 18,
-								Position = UDim2.new(1, 0, 0, 0),
-								TextXAlignment = Enum.TextXAlignment.Center,
-								-- BackgroundColor3 = Color3.new(0.152941, 0.788235, 0.184313),
-								TextColor3 = Color3.new(0.152941, 0.788235, 0.184313),
-								TextStrokeColor3 = Color3.new(1, 1, 1),
-								ZIndex = 5,
+						ResultFrame = e("ImageLabel", {
+							Size = UDim2.new(1, 0, 0, 100),
+							LayoutOrder = 1,
+							BackgroundTransparency = 1,
+						}, {
+							ResultImageFrame = e("Frame", {
+								Size = UDim2.new(0, mobile and 70 or 100, 0, mobile and 70 or 100),
+								Position = UDim2.new(0.5, 0, 0, 0),
+								BackgroundTransparency = 1,
+								AnchorPoint = Vector2.new(0.5, 0),
 							}, {
-								UICorner = e("UICorner", {
-									CornerRadius = UDim.new(0, 4),
+								Background = e("ImageLabel", {
+									Size = UDim2.new(1, 0, 1, 0),
+									Position = UDim2.new(0.5, 0, 0, 0),
+									BackgroundTransparency = 1,
+									AnchorPoint = Vector2.new(0.5, 0),
+									Image = "rbxassetid://127657596958436",
+									ImageColor3 = Color3.new(0.768627, 0.549019, 0.549019),
+									ScaleType = Enum.ScaleType.Slice,
+									SliceCenter = Rect.new(8, 8, 92, 92),
+									ZIndex = 1,
+								}, {}),
+								ResultLabel = resultConfig and e(SmallText, {
+									Text = resultLabelText,
+									Size = UDim2.new(1, 0, 0, 0),
+									TextSize = mobile and 12 or 14,
+									Position = UDim2.new(0.5, 0, 1, -8),
+									AnchorPoint = Vector2.new(0.5, 1),
+									RichText = true,
+									TextXAlignment = Enum.TextXAlignment.Center,
+									ZIndex = 8,
+								}),
+								Duration = resultConfig and e(SmallText, {
+									Text = durationText,
+									MinTextSize = 14,
+									TextSize = mobile and 14 or 18,
+									-- MaxTextSize = 32,
+									Size = UDim2.new(1, 0, 0, 0),
+									Position = UDim2.new(0.5, 0, 1, 0),
+									AnchorPoint = Vector2.new(0.5, 0),
+									RichText = true,
+									TextXAlignment = Enum.TextXAlignment.Left,
+									ZIndex = 2,
+								}),
+								ResultImage = e("ImageLabel", {
+									Size = UDim2.new(1, 0, 1, 0),
+									Position = UDim2.new(0.5, 0, 0, 0),
+									BackgroundTransparency = 1,
+									AnchorPoint = Vector2.new(0.5, 0),
+									Image = resultConfig and resultConfig.Image,
+									ZIndex = 3,
+								}, {}),
+
+								-- Count = e(SmallText, {
+								-- 	Visible = resultConfig and true or false,
+								-- 	Size = UDim2.new(0, 30, 0, 30),
+								-- 	AnchorPoint = Vector2.new(0.25, 0.25),
+								-- 	Text = `Price: ${resultConfig and resultConfig.Price} `,
+								-- 	-- TextTransparency = transparency,
+								-- 	BackgroundTransparency = 1,
+								-- 	TextXAlignment = Enum.TextXAlignment.Center,
+								-- 	-- BackgroundColor3 = Color3.new(1, 0, 0),
+								-- 	ZIndex = 4,
+								-- }, {
+								-- 	UICorner = e("UICorner", {
+								-- 		CornerRadius = UDim.new(0, 4),
+								-- 	}),
+								-- }),
+								New = new and e(SmallText, {
+									Visible = resultConfig and true or false,
+									Size = UDim2.new(0, 30, 0, 30),
+									AnchorPoint = Vector2.new(0.75, 0.25),
+									Text = "NEW!",
+									TextSize = mobile and 14 or 18,
+									Position = UDim2.new(1, 0, 0, 0),
+									TextXAlignment = Enum.TextXAlignment.Center,
+									-- BackgroundColor3 = Color3.new(0.152941, 0.788235, 0.184313),
+									TextColor3 = Color3.new(0.152941, 0.788235, 0.184313),
+									TextStrokeColor3 = Color3.new(1, 1, 1),
+									ZIndex = 5,
+								}, {
+									UICorner = e("UICorner", {
+										CornerRadius = UDim.new(0, 4),
+									}),
 								}),
 							}),
 						}),
 					}),
 				}),
 			}),
-			Right = e("Frame", {
+			Bottom = e("Frame", {
 				Size = UDim2.new(1, -20, 0.5, 0),
 				AnchorPoint = Vector2.new(1, 0.5),
 				Position = UDim2.new(1, 0, 0.5, 0),
@@ -641,7 +771,8 @@ local function MixerPanel(props: {
 
 					SelectionText = e(SmallText, {
 						Text = "Ingredients",
-						Size = UDim2.new(1, 0, 0, mobile and 18 or 30),
+						Size = UDim2.new(1, 0, 0, mobile and 12 or 18),
+						-- BackgroundTransparency = 0,
 						TextSize = mobile and 12 or 18,
 					}),
 				}),

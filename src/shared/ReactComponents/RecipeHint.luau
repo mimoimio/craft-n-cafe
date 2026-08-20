@@ -26,7 +26,7 @@ local CLOCK =
 local STOCK =
 	[[<font family="rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json">three-stacked-squares-tilted</font>]]
 
-local player = game.Players.LocalPlayer
+local player = game:GetService("Players").LocalPlayer
 local playerId: string? = player and tostring(player.UserId) or "0"
 
 local function RecipeHint()

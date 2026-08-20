@@ -11,7 +11,7 @@ local useEffect = React.useEffect
 local useRef = React.useRef
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
-local LevelConfig = require(ReplicatedStorage.Shared.Configs.LevelConfig)
+-- local LevelConfig = require(ReplicatedStorage.Shared.Configs.LevelConfig)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 
@@ -25,7 +25,7 @@ local SmallText = require(Primitives.SmallText)
 local VStack = require(Primitives.VStack)
 local HStack = require(Primitives.HStack)
 
-local player = game.Players.LocalPlayer
+local player = game:GetService("Players").LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
 
 local function ToggleParticleButton()

@@ -3,10 +3,12 @@ local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local React = require(ReplicatedStorage.Packages.React)
+local Mionum = require(ReplicatedStorage.Packages.Mionum)
 local Promise = require(ReplicatedStorage.Packages.Promise)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local CafeTypes = require(game.ReplicatedStorage.Shared.CafeTypes)
 local Types = require(game.ReplicatedStorage.Shared.Types)
+local MixerConfig = require(game.ReplicatedStorage.Shared.Configs.MixerConfig)
 
 local e = React.createElement
 local useState = React.useState
@@ -59,8 +61,15 @@ local function Mixer(props: {
 			local prompt = props.Mixer.Part.TriggerPrompt
 			local actionText = prompt.ActionText
 			local ObjectText = prompt.ObjectText
-			prompt.ActionText = "Buy ($50)"
-			prompt.ObjectText = "Another Cauldron"
+			Promise.defer(function()
+				local strNum = string.gsub(props.Mixer.Name, "Mixer", function(string)
+					return ""
+				end)
+				local num = tonumber(strNum)
+				local cost = MixerConfig[props.Mixer.Name]
+				prompt.ActionText = `Buy (${Mionum.new(cost):toString()})`
+				prompt.ObjectText = `Cauldron {num}`
+			end)
 			local buyPromptConn = prompt.Triggered:Connect(function(player: Player)
 				if tostring(player.UserId) ~= props.PlayerId then
 					return

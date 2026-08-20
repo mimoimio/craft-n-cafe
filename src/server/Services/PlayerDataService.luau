@@ -38,10 +38,10 @@ end
 
 type PlayerData = Types.PlayerData
 type Profile = ProfileStoreModule.Profile<PlayerData> -- Typed Profile object
--- Helper to quickly generate our 6 shelves without cluttering the file!
+-- Helper to quickly generate our 32 shelves without cluttering the file!
 local function generateEmptyShelves()
 	local shelves = {}
-	for shelfIndex = 1, 6 do
+	for shelfIndex = 1, 32 do
 		local slots = {}
 		for slotIndex = 1, 20 do
 			slots["Slot" .. tostring(slotIndex)] = "none"
@@ -66,8 +66,6 @@ local PROFILE_TEMPLATE: PlayerData = {
 		Luck = 1,
 		TutorialCompleted = false,
 		CafeCapacity = 5,
-		MaxDrinksPerCustomer = 3,
-		MaxCustomersAtOnce = 5,
 		RollCooldown = 2,
 		Life = 1,
 		SkipTickets = 0,
@@ -347,7 +345,7 @@ Remotes.start.OnServerEvent:Connect(function(player)
 
 	local currentSeed = shopCycleState.seed
 	local seedString = tostring(currentSeed)
-	local generatedShop = ShopService.GenerateDeterministicShop(currentSeed)
+	local generatedShop = {} --ShopService.GenerateDeterministicShop(currentSeed)
 
 	local VariationService = require(game.ServerScriptService.Server.Services.VariationService)
 	local variation = VariationService.GetCurrentVariationEvent() or nil

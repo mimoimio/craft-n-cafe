@@ -2,6 +2,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
+local Mionum = require(ReplicatedStorage.Packages.Mionum)
 local Promise = require(ReplicatedStorage.Packages.Promise)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
@@ -29,6 +30,7 @@ local function SlotNode(props: {
 	SlotName: string,
 	DrinkUid: string,
 	Instance: CafeTypes.Slot,
+	Count: number,
 })
 	local currentInput = useInputDevice()
 
@@ -190,7 +192,6 @@ local function SlotNode(props: {
 			})
 		or nil
 
-	-- Derived dynamically from the custom hook!
 	local interactIcon = prompt
 			and BuildersIcon.GetPromptText(
 				currentInput == "Gamepad" and prompt.GamepadKeyCode or prompt.KeyboardKeyCode,
@@ -211,51 +212,51 @@ local function SlotNode(props: {
 		}) or nil,
 
 		-- Drink details (Only when a drink exists)
-		DrinkInfo = (drink and drink.stock > 0 and adornee)
-				and e(React.Fragment, nil, {
-					StockGui = e("BillboardGui", {
-						Active = true,
-						Adornee = adornee,
-						Size = UDim2.new(0, 60, 0, 30),
-						StudsOffsetWorldSpace = Vector3.new(0, 1.5, 0),
-						AlwaysOnTop = true,
-						MaxDistance = 100,
-					}, {
-						Label = e(SmallText, {
-							TextXAlignment = Enum.TextXAlignment.Center,
-							Size = UDim2.new(1, 0, 1, 0),
-							BackgroundTransparency = 1,
-							Text = `{drink.stock}x`,
-							TextColor3 = Color3.new(1, 1, 1),
-							TextStrokeTransparency = 0,
-							TextStrokeColor3 = Color3.new(0, 0, 0),
-						}),
+		DrinkInfo = (drink and drink.stock > 0 and adornee) and e(React.Fragment, nil, {
+			StockGui = e("BillboardGui", {
+				Active = true,
+				Adornee = adornee,
+				Size = UDim2.new(0, 60, 0, 30),
+				StudsOffsetWorldSpace = Vector3.new(0, 1.5, 0),
+				AlwaysOnTop = true,
+				MaxDistance = 100,
+			}, {
+				Label = e(SmallText, {
+					TextXAlignment = Enum.TextXAlignment.Center,
+					Size = UDim2.new(1, 0, 1, 0),
+					BackgroundTransparency = 1,
+					Text = `{drink.stock}x`,
+					TextColor3 = Color3.new(1, 1, 1),
+					TextStrokeTransparency = 0,
+					TextStrokeColor3 = Color3.new(0, 0, 0),
+				}),
+			}),
+			VariationGui = e("BillboardGui", {
+				Active = true,
+				Adornee = adornee,
+				Size = UDim2.new(0, 60, 0, 30),
+				StudsOffsetWorldSpace = Vector3.new(0, 3.5, 0),
+				AlwaysOnTop = true,
+				MaxDistance = 100,
+			}, {
+				LabelContainer = on and e(HStack, {
+					Size = UDim2.new(3, 0, 0, 0),
+					Position = UDim2.new(0.5, 0, 1, 0),
+					AnchorPoint = Vector2.new(0.5, 1),
+					HorizontalAlignment = Enum.HorizontalAlignment.Center,
+				}, {
+					VariationLabel = VariationLabel,
+					NameAndPrice = e(SmallText, {
+						LayoutOrder = 2,
+						TextXAlignment = Enum.TextXAlignment.Center,
+						Text = `{displayname}: {Mionum.new(
+							variation and (variation.Multiplier * config.Price * drink.size * (1 + props.Count * 0.05))
+								or config.Price
+						):toString()}$`,
 					}),
-					VariationGui = e("BillboardGui", {
-						Active = true,
-						Adornee = adornee,
-						Size = UDim2.new(0, 60, 0, 30),
-						StudsOffsetWorldSpace = Vector3.new(0, 3.5, 0),
-						AlwaysOnTop = true,
-						MaxDistance = 100,
-					}, {
-						LabelContainer = on
-							and e(HStack, {
-								Size = UDim2.new(3, 0, 0, 0),
-								Position = UDim2.new(0.5, 0, 1, 0),
-								AnchorPoint = Vector2.new(0.5, 1),
-								HorizontalAlignment = Enum.HorizontalAlignment.Center,
-							}, {
-								VariationLabel = VariationLabel,
-								NameAndPrice = e(SmallText, {
-									LayoutOrder = 2,
-									TextXAlignment = Enum.TextXAlignment.Center,
-									Text = `{displayname}: {variation and (variation.Multiplier * config.Price * drink.size) or config.Price}$`,
-								}),
-							}),
-					}),
-				})
-			or nil,
+				}),
+			}),
+		}) or nil,
 
 		-- Contextual Interaction Button
 		InteractGui = e("BillboardGui", {

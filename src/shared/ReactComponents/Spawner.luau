@@ -31,7 +31,7 @@ local useBinding = React.useBinding
 local useRef = React.useRef
 local useSpring = ReactFlow.useSpring
 
-local player = game.Players.LocalPlayer
+local player = game:GetService("Players").LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
 
 local spawnerTag = playerId .. "Spawner"
@@ -266,13 +266,16 @@ local function Spawner(props)
 		end
 
 		if not player then
+			setSpawnerInstance(workspace.Cafe1.Spawner)
+			setBuyPadInstance(workspace.Cafe1.BuyPad)
 			task.defer(function()
-				task.wait(1)
-				setSpawner({ IngredientIds = { "milk", "milk" }, TimePulled = workspace:GetServerTimeNow() })
-				task.wait(1)
-				setSpawner({ IngredientIds = { "milk", "milk" }, TimePulled = workspace:GetServerTimeNow() })
-				task.wait(1)
-				setSpawner({ IngredientIds = { "milk", "milk" }, TimePulled = workspace:GetServerTimeNow() })
+				-- task.wait(1)
+
+				-- setSpawner({ IngredientIds = { "milk", "milk" }, TimePulled = workspace:GetServerTimeNow() })
+				-- task.wait(1)
+				-- setSpawner({ IngredientIds = { "milk", "milk" }, TimePulled = workspace:GetServerTimeNow() })
+				-- task.wait(1)
+				-- setSpawner({ IngredientIds = { "milk", "milk" }, TimePulled = workspace:GetServerTimeNow() })
 				task.wait(1)
 				setSpawner({ IngredientIds = { "milk", "milk" }, TimePulled = workspace:GetServerTimeNow() })
 			end)
@@ -473,8 +476,9 @@ function BuyPadNode(props: { Instance: Instance?, IngredientIds: { string }?, Ti
 
 	useEffect(function()
 		if not props.Instance then
-			return
+			return --
 		end
+
 		local promise = Promise.defer(function(resolve)
 			setPrompt(props.Instance:WaitForChild("TriggerPart"):WaitForChild("TriggerPrompt"))
 			return resolve()
@@ -489,6 +493,9 @@ function BuyPadNode(props: { Instance: Instance?, IngredientIds: { string }?, Ti
 	useEffect(function()
 		promptRef.current = prompt
 	end, { prompt })
+	useEffect(function()
+		promptRef.current = prompt
+	end, {})
 
 	local totalCost = 0
 	for i, id in props.IngredientIds or {} do
@@ -530,6 +537,11 @@ function BuyPadNode(props: { Instance: Instance?, IngredientIds: { string }?, Ti
 				setCash(playerStats.Cash)
 			end
 		end)
+
+		local playerStats = GlobalState:getState().Stats[playerId]
+		if playerStats then
+			setCash(playerStats.Cash)
+		end
 		return unsub
 	end, {})
 
@@ -546,20 +558,16 @@ function BuyPadNode(props: { Instance: Instance?, IngredientIds: { string }?, Ti
 
 			local model = template:Clone()
 			model.Parent = cache
-			local packageLink = model:FindFirstChild("PackageLink")
-			for i, desc in model:GetDescendants() do
-				if desc:IsA("BasePart") then
-					desc.CanCollide = false
-				end
-			end
-			if packageLink then
-				packageLink:Destroy()
-			end
+			-- local packageLink = model:FindFirstChild("PackageLink")
+			-- for i, desc in model:GetDescendants() do
+			-- 	if desc:IsA("BasePart") then
+			-- 		desc.CanCollide = false
+			-- 	end
+			-- end
+			-- if packageLink then
+			-- 	packageLink:Destroy()
+			-- end
 
-			local hi = Instance.new("Highlight", model)
-			hi.FillColor = Color3.new()
-			hi.FillTransparency = 0.2
-			hi.DepthMode = Enum.HighlightDepthMode.Occluded
 			table.insert(models, model)
 		end
 		randomModels.current = models
@@ -713,8 +721,13 @@ function BuyPadNode(props: { Instance: Instance?, IngredientIds: { string }?, Ti
 							Size = UDim2.new(1.2, 0, 0.5, 0),
 							Position = UDim2.new(0.5, 0, 0.5, 0),
 							TextWrapped = false,
-							[React.Event.Activated] = function()
-								Remotes.BuyIngredientFromSpawner:FireServer()
+							[React.Event.MouseButton1Down] = function()
+								prompt:InputHoldBegin()
+								-- Remotes.BuyIngredientFromSpawner:FireServer()
+							end,
+							[React.Event.MouseButton1Up] = function()
+								prompt:InputHoldEnd()
+								-- Remotes.BuyIngredientFromSpawner:FireServer()
 							end,
 							BackgroundTransparency = 1,
 							Image = "rbxassetid://127657596958436",

@@ -70,7 +70,7 @@ end
 
 local ScreenGui, root
 local isLoadedOnce
-local localPlayerId = tostring(game.Players.LocalPlayer.UserId)
+local localPlayerId = tostring(game:GetService("Players").LocalPlayer.UserId)
 
 local function loadApp(character: Model)
 	if ScreenGui then
@@ -80,7 +80,7 @@ local function loadApp(character: Model)
 		root:unmount()
 	end
 
-	ScreenGui = Instance.new("ScreenGui", game.Players.LocalPlayer.PlayerGui)
+	ScreenGui = Instance.new("ScreenGui", game:GetService("Players").LocalPlayer.PlayerGui)
 	ScreenGui.ResetOnSpawn = false
 	ScreenGui.Name = "ReactRoot"
 	ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling

@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local React = require(ReplicatedStorage.Packages.React)
+local Mionum = require(ReplicatedStorage.Packages.Mionum)
 local Reflex = require(ReplicatedStorage.Packages.Reflex)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local Types = require(ReplicatedStorage.Shared.Types)
@@ -35,15 +36,15 @@ end
 
 local observeRigClone = function(clone: Model): (() -> ())?
 	if not clone then
-		warn("NO CLONE TO OBSERVE")
+		-- warn("NO CLONE TO OBSERVE")
 		return nil
 	end
 	local conn = clone:GetPropertyChangedSignal("Parent"):Connect(function()
-		warn(`Parent changed: {clone.Parent}`)
+		-- warn(`Parent changed: {clone.Parent}`)
 		return
 	end)
 	local conn2 = clone.Destroying:Connect(function()
-		warn(`Clone destroying: {clone}`)
+		-- warn(`Clone destroying: {clone}`)
 		return
 	end)
 	return function()
@@ -87,6 +88,7 @@ local function Customer(props: {
 
 		setRig(clone)
 		clone.TriggerPrompt.MaxActivationDistance = 15
+
 		setPrompt(clone.TriggerPrompt)
 
 		local entranceCF = props.BaseModel.Entrance:GetPivot()
@@ -115,6 +117,7 @@ local function Customer(props: {
 
 		clone.TriggerPrompt.RequiresLineOfSight = false
 		clone.TriggerPrompt.ActionText = "Tend Customer"
+		clone.TriggerPrompt.Style = Enum.ProximityPromptStyle.Custom
 
 		local conn = clone.TriggerPrompt.Triggered:Connect(function(player: Player)
 			if tostring(player.UserId) ~= props.PlayerId then

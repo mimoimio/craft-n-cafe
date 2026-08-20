@@ -14,7 +14,7 @@ local useRef = React.useRef
 local useEffect = React.useEffect
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
-local LevelConfig = require(ReplicatedStorage.Shared.Configs.LevelConfig)
+-- local LevelConfig = require(ReplicatedStorage.Shared.Configs.LevelConfig)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local ShopCycle = require(ReplicatedStorage.Shared.ShopCycle)
@@ -30,7 +30,7 @@ local SmallText = require(Primitives.SmallText)
 local VStack = require(Primitives.VStack)
 local HStack = require(Primitives.HStack)
 
-local player = game.Players.LocalPlayer
+local player = game:GetService("Players").LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
 local function IngredientShopPanel(props: {
 	OnClose: () -> (),
@@ -365,4 +365,8 @@ local function IngredientShopPanel(props: {
 	})
 end
 
-return IngredientShopPanel
+-- return IngredientShopPanel
+
+return function()
+	warn("d o n t  u s e  t h i s")
+end

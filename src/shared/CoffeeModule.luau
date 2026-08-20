@@ -198,17 +198,20 @@ CoffeeModule.IngredientConfigs = IngredientConfigs
 for index, config in ipairs(CoffeeConfigArray) do
 	CoffeeConfig[config.Id] = config
 	config.Price = 0
+	config.Cost = 0
 	xpcall(function()
 		for i, ing in config.Ingredients do
 			-- warn(`{ing}.Price: {CoffeeModule.IngredientLookup[ing].Price}`)
 			config.Price += CoffeeModule.IngredientLookup[ing].Price
+			config.Cost += CoffeeModule.IngredientLookup[ing].Cost
 		end
 	end, function(err)
-		-- warn(`config:{config.Id}`, err)
+		warn(`config:{config.Id}`, err)
 	end)
 end
 table.sort(CoffeeConfigArray, function(a, b)
-	return a.Price < b.Price
+	return a.Cost < b.Cost
+	-- return a.Price < b.Price
 end)
 
 local ingDuration = {}
@@ -217,11 +220,35 @@ for i, config in IngredientConfigs do
 end
 
 for index, config in ipairs(CoffeeConfigArray) do
-	config.Rate = index
+	config.Rate = math.ceil(math.sqrt(index)) + math.ceil(math.max(0, (index - 20) / 1.4) ^ 2)
 	config.Duration = 0
+
+	local totalCost = 0
 	for i, ingId in config.Ingredients do
-		config.Duration += ingDuration[ingId] ^ 1.5 // 1
+		totalCost += CoffeeModule.IngredientLookup[ingId].Cost
+
+		config.Duration += ingDuration[ingId] ^ 2 // 1
+		local extraTime = index ^ 1.7 // 10
+		config.Duration += extraTime
 	end
+
+	local moreExtraTime = math.max(0, (index - 15)) -- cuz too quick
+	config.Duration = math.max(5, config.Duration + moreExtraTime)
+
+	local stock = 5 + index
+
+	-- if config.Id == "lemonsoda" then
+	-- 	warn(
+	-- 		`5 + totalCost({totalCost}) / stock({stock}) + ((#CoffeeConfigArray({#CoffeeConfigArray}) - index({index})) / #CoffeeConfigArray({#CoffeeConfigArray}) / 10) // 1`
+	-- 	)
+	-- end
+	local price = 5 + totalCost / stock // 10
+
+	config.InitialStock = stock
+	config.Price = price
+	-- if config.Id == "lemonsoda" then
+	-- 	warn(config)
+	-- end
 end
 
 function CoffeeModule.Craft(ingredients: { string }): CoffeeConfigType?

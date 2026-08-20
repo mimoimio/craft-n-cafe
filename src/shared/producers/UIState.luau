@@ -2,6 +2,8 @@
 --!strict
 local GuiService = game:GetService("GuiService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local GamepadService = game:GetService("GamepadService")
+local StarterGui = game:GetService("StarterGui")
 local Reflex = require(ReplicatedStorage.Packages.Reflex)
 local Sift = require(ReplicatedStorage.Packages.Sift)
 local Dictionary = Sift.Dictionary
@@ -110,6 +112,11 @@ local producer = Reflex.createProducer(initialState, {
 		local newPanel = if state.panel == panel then "none" else panel
 		if newPanel == "none" then
 			GuiService.SelectedObject = nil
+			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true)
+			GamepadService:DisableGamepadCursor()
+		else
+			print("setted")
+			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
 		end
 		return Set(state, "panel", newPanel)
 	end,
@@ -181,5 +188,14 @@ local producer = Reflex.createProducer(initialState, {
 		return Set(state, "cafeBase", model)
 	end,
 }) :: Reflex.Producer<UIState, UIActions>
+
+-- if game.Players.LocalPlayer then
+-- 	producer:subscribe(function(state)
+-- 		return state.panel
+-- 	end, function(panel)
+-- 		if panel == "none" then
+-- 		end
+-- 	end)
+-- end
 
 return producer

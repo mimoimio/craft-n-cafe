@@ -24,6 +24,7 @@ local initialState: DiscoveredDrinksState = {}
 -- /// REDUCERS ///
 local actions = {
 	startPlayerSession = function(state: DiscoveredDrinksState, playerId: string, data: PlayerData)
+		data.DiscoveredDrinks._Count = nil
 		return Set(state, playerId, data.DiscoveredDrinks)
 	end,
 	endPlayerSession = function(state: DiscoveredDrinksState, playerId: string, data: PlayerData)

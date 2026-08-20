@@ -3,7 +3,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
-local LevelConfig = require(ReplicatedStorage.Shared.Configs.LevelConfig)
 local Types = require(ReplicatedStorage.Shared.Types)
 local ShopCycle = require(ReplicatedStorage.Shared.ShopCycle)
 

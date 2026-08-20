@@ -1,6 +1,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local React = require(ReplicatedStorage.Packages.React)
+local Mionum = require(ReplicatedStorage.Packages.Mionum)
 local ReactFlow = require(ReplicatedStorage.Packages.ReactFlow)
 local useSpring = ReactFlow.useSpring
 local CoffeeConfigArray = require(ReplicatedStorage.Shared.Configs.CoffeeConfig)
@@ -13,10 +14,13 @@ local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConfig)
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local Types = require(ReplicatedStorage.Shared.Types)
+local BuildersIcon = require(ReplicatedStorage.Shared.Utils.BuildersIcon)
+local CLOCK = BuildersIcon.clock
+local STOCK = BuildersIcon["three-stacked-squares-tilted"]
 
 local useBreakpoint = require(ReplicatedStorage.Shared.Hooks.useBreakpoint)
 
-local player = game.Players.LocalPlayer
+local player = game:GetService("Players").LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
 -- CoffeeModule.Config is the keyed lookup (by Id)
 local CoffeeConfig = CoffeeModule.Config
@@ -166,6 +170,7 @@ local function RecipeDetail(props: {
 	onNext: () -> (),
 	onPrev: () -> (),
 	locked: boolean,
+	variation: Types.VariationConfig,
 })
 	local config = props.config or {}
 	local xs, sm, md, lg, xl = useBreakpoint()
@@ -206,6 +211,12 @@ local function RecipeDetail(props: {
 		})
 	end
 
+	local price = config and config.Price or nil
+	local stock = config and config.InitialStock or nil
+	local min = config and config.Duration // 60 or nil
+	local sec = config and config.Duration % 60 or nil
+	local detailsLabel = config
+		and `$$$: {price and Mionum.new(price):toString()} $\n{CLOCK}: {min > 0 and `{min} min ` or ""}{sec} sec\n{STOCK}: {stock}x`
 	return e("Frame", {
 		Size = UDim2.new(1, 0, 1, 0),
 		BackgroundTransparency = 1,
@@ -337,13 +348,15 @@ local function RecipeDetail(props: {
 				}),
 
 				-- Result Graphic (Right)
-				ResultGraphic = e("Frame", {
-					Size = mobile and UDim2.new(0, 80, 0, 80) or UDim2.new(0, 110, 0, 110),
-					BackgroundTransparency = 1,
+				ResultGraphic = e(VStack, {
+					Size = mobile and UDim2.new(0, 80, 1, 0) or UDim2.new(0, 110, 1, 0),
+					-- BackgroundTransparency = 0,
 					LayoutOrder = 3,
+					VerticalAlignment = Enum.VerticalAlignment.Top,
+					VerticalFlex = "None",
 				}, {
 					Flare = e("ImageLabel", {
-						Size = UDim2.new(1, 0, 1, 0),
+						Size = mobile and UDim2.new(0, 80, 0, 80) or UDim2.new(0, 110, 0, 110),
 						BackgroundColor3 = Color3.fromRGB(30, 30, 38),
 						BackgroundTransparency = 1,
 						BorderSizePixel = 0,
@@ -351,12 +364,13 @@ local function RecipeDetail(props: {
 						ImageColor3 = props.locked and Color3.new(0.5, 0.5, 0.5) or Color3.new(1, 1, 1),
 						ScaleType = Enum.ScaleType.Fit,
 						ZIndex = 1,
-						Position = UDim2.new(0.5, 0, 0.5, 0),
-						AnchorPoint = Vector2.new(0.5, 0.5),
+						LayoutOrder = 1,
+						-- Position = UDim2.new(0.5, 0, 0.5, 0),
+						-- AnchorPoint = Vector2.new(0.5, 0.5),
 					}, {
 						UICorner = e("UICorner", { CornerRadius = UDim.new(0, 6) }),
 						Image = e("ImageLabel", {
-							Size = UDim2.new(1, 0, 1, 0),
+							Size = mobile and UDim2.new(0, 80, 0, 80) or UDim2.new(0, 110, 0, 110),
 							BackgroundTransparency = 1,
 							BorderSizePixel = 0,
 							Image = props.config.Image or "",
@@ -366,6 +380,25 @@ local function RecipeDetail(props: {
 							Position = UDim2.new(0.5, 0, 0.5, 0),
 							AnchorPoint = Vector2.new(0.5, 0.5),
 						}),
+						e(SmallText, {
+							Text = `${Mionum.new(
+								(config and config.Rate or 0) * (props.variation and props.variation.Multiplier or 1)
+							):toString()}/s`,
+							TextXAlignment = Enum.TextXAlignment.Center,
+							AnchorPoint = Vector2.new(0.5, 0),
+							Position = UDim2.new(0.5, 0, 0, 12),
+							BackgroundTransparency = 1,
+							Size = UDim2.new(1, 0, 0, 0),
+							RichText = true,
+							ZIndex = 11,
+							TextSize = mobile and 14 or 18,
+						}),
+					}),
+					e(SmallText, {
+						LayoutOrder = 2,
+						Text = detailsLabel,
+						RichText = true,
+						TextSize = mobile and 14 or 18,
 					}),
 				}),
 			}),
@@ -437,8 +470,8 @@ local function RecipePanel(props: {
 			-- this is important, if just doing it at top, it will enable gamepadcursor everytime any under UIState changes
 			if isOpen and panelRef.current then
 				game:GetService("GamepadService"):EnableGamepadCursor(panelRef.current)
-			else
-				game:GetService("GamepadService"):DisableGamepadCursor()
+				-- else
+				-- 	game:GetService("GamepadService"):DisableGamepadCursor()
 			end
 			setVisible(isOpen)
 		end)
@@ -707,6 +740,7 @@ local function RecipePanel(props: {
 						if selected
 							then e(RecipeDetail, {
 								locked = locked,
+								variation = VariationsConfig[variationId],
 								config = selected,
 								onNext = function()
 									navigateRecipe(1)

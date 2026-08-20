@@ -58,11 +58,11 @@ local actions = {
 			end
 		end
 
-		-- 2. It's a new discovery! Let's find the first empty slot across all 6 shelves
+		-- 2. It's a new discovery! Let's find the first empty slot across all 16 shelves
 		local targetShelfUid = nil
 		local targetSlotName = nil
 
-		for shelfIndex = 1, 6 do
+		for shelfIndex = 1, 32 do
 			local shelfUid = "Shelf" .. tostring(shelfIndex)
 			local shelf = playerShelves[shelfUid]
 
@@ -100,39 +100,39 @@ local actions = {
 
 		return Set(state, playerId, newPlayerShelves)
 	end,
-    
-    claimShelfCollector = function(state: ShelvesState, playerId: string, payload: Types.ClaimShelfCollectorPayload)
-        local playerShelves = state[playerId]
-        if not playerShelves then
-            return state
-        end
 
-        local newPlayerShelves = table.clone(playerShelves)
-        local hasChanges = false
+	claimShelfCollector = function(state: ShelvesState, playerId: string, payload: Types.ClaimShelfCollectorPayload)
+		local playerShelves = state[playerId]
+		if not playerShelves then
+			return state
+		end
 
-        for shelfUid, shelf in playerShelves do
-            local newSlots = table.clone(shelf.Slots)
-            local shelfChanged = false
+		local newPlayerShelves = table.clone(playerShelves)
+		local hasChanges = false
 
-            for slotName, slotData in shelf.Slots do
-                if type(slotData) == "table" then
-                    -- Reset the timer for this specific slot
-                    newSlots[slotName] = Dictionary.merge(slotData, { lastClaimTime = payload.timestamp })
-                    shelfChanged = true
-                    hasChanges = true
-                end
-            end
+		for shelfUid, shelf in playerShelves do
+			local newSlots = table.clone(shelf.Slots)
+			local shelfChanged = false
 
-            if shelfChanged then
-                newPlayerShelves[shelfUid] = Set(shelf, "Slots", newSlots)
-            end
-        end
+			for slotName, slotData in shelf.Slots do
+				if type(slotData) == "table" then
+					-- Reset the timer for this specific slot
+					newSlots[slotName] = Dictionary.merge(slotData, { lastClaimTime = payload.timestamp })
+					shelfChanged = true
+					hasChanges = true
+				end
+			end
 
-        if hasChanges then
-            return Set(state, playerId, newPlayerShelves)
-        end
-        return state
-    end,
+			if shelfChanged then
+				newPlayerShelves[shelfUid] = Set(shelf, "Slots", newSlots)
+			end
+		end
+
+		if hasChanges then
+			return Set(state, playerId, newPlayerShelves)
+		end
+		return state
+	end,
 }
 
 return Reflex.createProducer(initialState, actions)

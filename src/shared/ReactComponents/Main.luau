@@ -27,7 +27,6 @@ local toggleMixerInteract = UIState.toggleMixerInteract
 
 local CashHud = require(script.Parent.CashHud)
 local MixerPanel = require(script.Parent.MixerPanel)
--- local IngredientShopPanel = require(script.Parent.IngredientShopPanel)
 local SettingsPanel = require(script.Parent.SettingsPanel)
 local CoinVFXContainer = require(script.Parent.CoinVFXContainer)
 local RecipePanel = require(script.Parent.RecipePanel)
@@ -41,7 +40,7 @@ local CafeBase = require(script.Parent.CafeBase)
 local CafeModel = require(script.Parent.CafeModel)
 local VStack = require(script.Parent.ui.VStack)
 
-local player = game.Players.LocalPlayer
+local player = game:GetService("Players").LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
 local admin = not player or playerId == "5470482596"
 
@@ -145,7 +144,8 @@ local function Main(props)
 				local cycle = ShopCycle.getCurrentState()
 				setTime(
 					-- `seed({cycle.seed}), timeLeft({cycle.timeLeft // 1}), timeToSpecial({cycle.timeToSpecial // 1})`
-					`Shop refreshes in: {cycle.timeLeft // 60}m {cycle.timeLeft // 1 % 60}s\nSpecial Event in: {cycle.timeToSpecial // 60}m {cycle.timeToSpecial // 1 % 60}s`
+					`Random Special Event in: {cycle.timeToSpecial // 60}m {cycle.timeToSpecial // 1 % 60}s`
+					-- `Shop refreshes in: {cycle.timeLeft // 60}m {cycle.timeLeft // 1 % 60}s\nSpecial Event in: {cycle.timeToSpecial // 60}m {cycle.timeToSpecial // 1 % 60}s`
 				)
 			end
 		end)
@@ -471,7 +471,6 @@ local function Main(props)
 		}),
 		admin = admin and adminOpen and e(require(script.Parent.ConsoleApp)) or nil,
 		e(require(script.Parent.DiscoveredDrink), { closeAllPanels = closeAllPanels }),
-		e(require(script.Parent.LevelUp)),
 		e(require(script.Parent.DailyPanel)),
 		e(require(script.Parent.SpecialEvent)),
 		e(require(script.Parent.DailyClaimPopup)),

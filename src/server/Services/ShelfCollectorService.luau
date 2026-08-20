@@ -9,51 +9,64 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local MAX_ACCUMULATION_SECONDS = 8 * 60 * 60 -- 8 hours
 
 local ShelfCollectorService = {}
+local function getCount(discoveredDrinks)
+	local count = 0
+	for variationId, drinksOfVariation in discoveredDrinks or {} do
+		for drinkId, _ in drinksOfVariation do
+			count += 1
+		end
+	end
+	return count
+end
 
 function ShelfCollectorService.Claim(player: Player)
-    local playerId = tostring(player.UserId)
-    local state = GlobalState:getState()
-    local shelves = state.Shelves[playerId]
-    
-    if not shelves then return end
+	local playerId = tostring(player.UserId)
+	local state = GlobalState:getState()
+	local shelves = state.Shelves[playerId]
+	local discoveredDrinks = state.DiscoveredDrinks[playerId]
+	local bonus = 1 + getCount(discoveredDrinks) * 0.05
 
-    local currentTime = workspace:GetServerTimeNow()
-    local totalAmountToClaim = 0
+	if not shelves then
+		return
+	end
 
-    for _, shelf in shelves do
-        for _, slotData in shelf.Slots do
-            if type(slotData) == "table" and slotData.drinkId and slotData.lastClaimTime then
-                local config = CoffeeModule.Config[slotData.drinkId]
-                local variation = VariationsConfig[slotData.variationId] or VariationsConfig["none"]
-                
-                if config and config.Rate then
-                    local sizeMultiplier = slotData.size or 1
-                    local rate = config.Rate * variation.Multiplier * sizeMultiplier
-                    
-                    local rawTimePassed = currentTime - slotData.lastClaimTime
-                    local timePassed = math.min(rawTimePassed, MAX_ACCUMULATION_SECONDS)
-                    
-                    -- Floor the specific slot's earnings before summing to prevent floating point drift
-                    totalAmountToClaim += math.floor(timePassed * rate)
-                end
-            end
-        end
-    end
-    
-    GlobalState.claimShelfCollector(playerId, {
-        amount = totalAmountToClaim,
-        timestamp = currentTime
-    })
+	local currentTime = workspace:GetServerTimeNow()
+	local totalAmountToClaim = 0
 
-    if totalAmountToClaim > 0 then
-        print(`{player.Name} claimed {totalAmountToClaim} cash from their shelves!`)
-    end
+	for _, shelf in shelves do
+		for _, slotData in shelf.Slots do
+			if type(slotData) == "table" and slotData.drinkId and slotData.lastClaimTime then
+				local config = CoffeeModule.Config[slotData.drinkId]
+				local variation = VariationsConfig[slotData.variationId] or VariationsConfig["none"]
+
+				if config and config.Rate then
+					local sizeMultiplier = slotData.size or 1
+					local rate = config.Rate * variation.Multiplier * sizeMultiplier
+
+					local rawTimePassed = currentTime - slotData.lastClaimTime
+					local timePassed = math.min(rawTimePassed, MAX_ACCUMULATION_SECONDS)
+
+					-- Floor the specific slot's earnings before summing to prevent floating point drift
+					totalAmountToClaim += math.floor(timePassed * rate * bonus)
+				end
+			end
+		end
+	end
+
+	GlobalState.claimShelfCollector(playerId, {
+		amount = totalAmountToClaim,
+		timestamp = currentTime,
+	})
+
+	if totalAmountToClaim > 0 then
+		print(`{player.Name} claimed {totalAmountToClaim} cash from their shelves!`)
+	end
 end
 
 function ShelfCollectorService.initialize()
-    Remotes.ClaimShelfCollector.OnServerEvent:Connect(function(player: Player)
-        ShelfCollectorService.Claim(player)
-    end)
+	Remotes.ClaimShelfCollector.OnServerEvent:Connect(function(player: Player)
+		ShelfCollectorService.Claim(player)
+	end)
 end
 
 return ShelfCollectorService

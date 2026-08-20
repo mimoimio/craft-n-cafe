@@ -90,9 +90,7 @@ function CustomersService.CustomerTakeItems(playerId: string, customerUid: strin
 	if totalDrinkAmount < 1 then
 		return false
 	end
-	local maxDrinksPerCustomer = math.max(1, playersStats.MaxDrinksPerCustomer or 3)
-
-	local drinkCount = rng:NextInteger(1, math.min(maxDrinksPerCustomer, totalDrinkAmount))
+	local maxDrinksPerCustomer = 3
 
 	for i = #availableDrinks, 2, -1 do
 		local j = rng:NextInteger(1, i)
@@ -103,9 +101,6 @@ function CustomersService.CustomerTakeItems(playerId: string, customerUid: strin
 	local drinkEntities = {}
 
 	local drinksTaken = 0
-
-	local moderate = totalDrinkAmount > 20
-	local lots = totalDrinkAmount > 40
 
 	for i, drink in availableDrinks do
 		local drinksLeft = maxDrinksPerCustomer - drinksTaken
@@ -222,7 +217,7 @@ function CustomersService.initialize()
 					continue
 				end
 
-				local maxCustomersAtOnce = 100 --playerStats.MaxCustomersAtOnce
+				local maxCustomersAtOnce = 100
 				local CafeCapacity = playerStats.CafeCapacity
 
 				for i, customer in playersCustomers do
@@ -246,9 +241,10 @@ function CustomersService.initialize()
 				then
 					Promise.defer(function(resolve, reject, onCancel)
 						local amount = math.random() * maxCustomersAtOnce // 1 + 1
+						-- local amount = 1
 						for i = 1, amount do
 							CustomersService.SpawnCustomer(playerId)
-							task.wait(math.random())
+							task.wait(math.random() * SPAWN_INTERVAL)
 						end
 						return resolve
 					end):catch(function(err)

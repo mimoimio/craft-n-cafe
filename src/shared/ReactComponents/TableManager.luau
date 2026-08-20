@@ -16,7 +16,7 @@ local TableNode = require(script.Parent.TableNode)
 local e = React.createElement
 local ANIM_DURATION = 1
 
-local player = game.Players.LocalPlayer
+local player = game:GetService("Players").LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
 
 local function animateModelToTable(model: Model, finalCFrame: CFrame, initialPosition: Vector3) -- :Promise

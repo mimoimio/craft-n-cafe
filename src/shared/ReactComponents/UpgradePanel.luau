@@ -3,6 +3,7 @@ local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local React = require(ReplicatedStorage.Packages.React)
+local Mionum = require(ReplicatedStorage.Packages.Mionum)
 local Promise = require(ReplicatedStorage.Packages.Promise)
 local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
 local CoffeeConfigArray = require(ReplicatedStorage.Shared.Configs.CoffeeConfig)
@@ -47,7 +48,7 @@ local variation = nil
 
 -- local IsEdit = RunService:IsStudio() and not RunService:IsRunMode()
 
-local player = game.Players.LocalPlayer
+local player = game:GetService("Players").LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
 local tag = playerId .. "Cafe"
 local function UpgradeWall(props)
@@ -252,7 +253,7 @@ local function UpgradeWall(props)
 									e(SmallText, {
 										TextSize = 48,
 										LayoutOrder = 1,
-										Text = `Upgrade ${((luck + 1) * 10) ^ 1.6 // 1}`,
+										Text = `Upgrade ${Mionum.new(((luck + 1) * 10) ^ 1.8 // 1):toString()}`,
 									}, {
 										uistroke,
 									}),
@@ -288,7 +289,7 @@ local function UpgradeWall(props)
 									e(SmallText, {
 										TextSize = 48,
 										LayoutOrder = 1,
-										Text = `Upgrade $100`,
+										Text = `Upgrade ${Mionum.new(10 ^ (cafeCapacity - 3 + 1)):toString()}`,
 									}, {
 										uistroke,
 									}),

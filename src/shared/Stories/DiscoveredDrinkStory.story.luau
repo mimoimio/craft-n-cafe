@@ -16,13 +16,10 @@ local data = {
 		Music = 0.5,
 		SecondsPlayed = 0,
 		Cash = 30,
-		Level = 1,
 		CafeOpen = false,
 		Luck = 1,
 		TutorialCompleted = false,
 		CafeCapacity = 5,
-		MaxDrinksPerCustomer = 3,
-		MaxCustomersAtOnce = 5,
 		RollCooldown = 2,
 	},
 	Tables = {

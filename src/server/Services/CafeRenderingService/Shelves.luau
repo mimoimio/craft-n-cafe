@@ -2,8 +2,10 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
+local Mionum = require(ReplicatedStorage.Packages.Mionum)
 local e = React.createElement
 local useState = React.useState
+local useRef = React.useRef
 local useEffect = React.useEffect
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 
@@ -16,6 +18,15 @@ local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConf
 local SmallText = require(ReplicatedStorage.Shared.ReactComponents.ui.SmallText)
 local VStack = require(ReplicatedStorage.Shared.ReactComponents.ui.VStack)
 
+local function getCount(discoveredDrinks)
+	local count = 0
+	for variationId, drinksOfVariation in discoveredDrinks or {} do
+		for drinkId, _ in drinksOfVariation do
+			count += 1
+		end
+	end
+	return count
+end
 -- 1. THE SLOT COMPONENT
 local function ShelfSlotComponent(
 	props: {
@@ -77,7 +88,7 @@ local function ShelfSlotComponent(
 	local rate = 0
 	if config and config.Rate then
 		local sizeMultiplier = props.SlotData.size or 1
-		rate = config.Rate * variation.Multiplier * sizeMultiplier
+		rate = config.Rate * variation.Multiplier * sizeMultiplier * (props.Bonus or 1)
 	end
 
 	if rate <= 0 then
@@ -113,7 +124,7 @@ local function ShelfSlotComponent(
 					LayoutOrder = 1,
 					Text = titleText,
 					TextSize = 32,
-					TextWrapped = false,
+					TextWrapped = true,
 					TextColor3 = Color3.new(1, 1, 1),
 					TextXAlignment = Enum.TextXAlignment.Center,
 					TextYAlignment = Enum.TextYAlignment.Center,
@@ -124,7 +135,7 @@ local function ShelfSlotComponent(
 				}),
 				RateLabel = e(SmallText, {
 					LayoutOrder = 2,
-					Text = `+${rate}/s`,
+					Text = `+${Mionum.new(rate or 0):toString()}/s`,
 					TextColor3 = Color3.fromRGB(115, 255, 135), -- Money green
 					TextSize = 32,
 					TextWrapped = false,
@@ -167,6 +178,7 @@ local function ShelfComponent(
 					PlayerId = props.PlayerId,
 					SlotInstance = slotInstance :: any, -- Coerced as it adheres to ShelfSlot in runtime
 					SlotData = slotData,
+					Bonus = props.Bonus,
 				})
 			end
 		end
@@ -181,6 +193,7 @@ local function Shelves(props: {
 	PlayerId: string,
 })
 	local shelvesState, setShelvesState = useState({})
+	local bonus = useRef(1)
 
 	-- Subscribe strictly to this player's Shelves slice
 	useEffect(function()
@@ -199,6 +212,21 @@ local function Shelves(props: {
 		return unsub
 	end, { props.PlayerId })
 
+	useEffect(function()
+		local unsub = GlobalState:subscribe(function(state)
+			return state.DiscoveredDrinks[props.PlayerId]
+		end, function(discoveredDrinks)
+			local count = getCount(discoveredDrinks)
+			bonus.current = 1 + count * 0.05
+		end)
+
+		local dd = GlobalState:getState().DiscoveredDrinks
+		if dd then
+			local count = getCount(dd[props.PlayerId])
+			bonus.current = 1 + count * 0.05
+		end
+		return unsub
+	end, {})
 	local children = {}
 	local shelvesFolder = props.CafeModel:FindFirstChild("Shelves")
 

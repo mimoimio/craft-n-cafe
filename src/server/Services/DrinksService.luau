@@ -157,10 +157,10 @@ function DrinksService.SkipMix(player: Player, mixer: string)
 	})
 end
 function DrinksService.RequestSkipMix(player: Player, mixer: string)
-	if player.UserId == 5470482596 then
-		DrinksService.SkipMix(player, mixer)
-		return
-	end
+	-- if player.UserId == 5470482596 then
+	-- 	DrinksService.SkipMix(player, mixer)
+	-- 	return
+	-- end
 
 	local playerId = tostring(player.UserId)
 	local state = GlobalState:getState()

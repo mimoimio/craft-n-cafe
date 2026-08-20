@@ -4,7 +4,6 @@ local ServerScriptService = game:GetService("ServerScriptService")
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
-local LevelConfig = require(ReplicatedStorage.Shared.Configs.LevelConfig)
 local MixerConfig = require(ReplicatedStorage.Shared.Configs.MixerConfig)
 local Types = require(ReplicatedStorage.Shared.Types)
 local ShopCycle = require(ReplicatedStorage.Shared.ShopCycle)
@@ -26,42 +25,7 @@ function ShopService.GenerateDeterministicShop(seed: number): Types.ShopEntity
 	return shopEntity
 end
 
-function ShopService.LevelUp(player: Player)
-	-- Your existing LevelUp logic remains completely unchanged here
-	local playerId = tostring(player.UserId)
-	local state = GlobalState:getState()
-	local playersStats = state.Stats[playerId]
-
-	if not playersStats then
-		return
-	end
-	local level = playersStats.Level + 1
-
-	if level > 9 then
-		print("maxxed")
-		return
-	end
-
-	local cost = LevelConfig[level].Cost
-	local unlockedTables = LevelConfig[level].Tables
-	local unlockedIngredients = LevelConfig[level].Ingredients
-	local unlockedMixers = LevelConfig[level].Mixers
-
-	if playersStats.Cash < cost then
-		print("not enough")
-		return
-	end
-
-	GlobalState.levelUp(playerId, {
-		level = level,
-		cost = cost,
-		unlockedTables = unlockedTables,
-		unlockedIngredients = unlockedIngredients,
-		-- unlockedMixers = unlockedMixers,
-	})
-end
 function ShopService.BuyMixer(player: Player, mixerName: string)
-	-- Your existing LevelUp logic remains completely unchanged here
 	local playerId = tostring(player.UserId)
 	local state = GlobalState:getState()
 	local playersStats = state.Stats[playerId]
@@ -71,7 +35,6 @@ function ShopService.BuyMixer(player: Player, mixerName: string)
 	end
 
 	local cost = MixerConfig[mixerName]
-
 	if playersStats.Cash < cost then
 		print("not enough")
 		return
@@ -95,7 +58,7 @@ function ShopService.UpgradeLuck(player: Player, increment: number?)
 
 	local cost = 0
 	for i = 1, increment do
-		cost += ((playersStats.Luck + increment) * 10) ^ 1.6 // 1
+		cost += ((playersStats.Luck + i) * 10) ^ 1.8 // 1
 	end
 
 	if playersStats.Cash < cost then
@@ -119,7 +82,11 @@ function ShopService.UpgradeCafeCapacity(player: Player, increment: number?)
 		return
 	end
 
-	local cost = increment * 100
+	local cost = 0
+	local cafeCapacity = playersStats.CafeCapacity
+	for i = 1, increment do
+		cost += 10 ^ (cafeCapacity - 3 + i)
+	end
 
 	if playersStats.Cash < cost then
 		print("not enough")
@@ -144,7 +111,6 @@ function ShopService.ShortenRollCooldown(player: Player)
 	GlobalState.shortenRoll(playerId)
 end
 function ShopService.initialize()
-	Remotes.LevelUp.OnServerEvent:Connect(ShopService.LevelUp)
 	Remotes.UpgradeLuck.OnServerEvent:Connect(ShopService.UpgradeLuck)
 	Remotes.UpgradeCafeCapacity.OnServerEvent:Connect(ShopService.UpgradeCafeCapacity)
 
@@ -160,7 +126,7 @@ function ShopService.initialize()
 			if currentSeed ~= newSeed then
 				if currentSeed ~= nil then
 					print(`Shop Cycle advanced! Generating new shop for seed: {newSeed}`)
-					local newShopBlueprint = ShopService.GenerateDeterministicShop(newSeed)
+					local newShopBlueprint = {} --ShopService.GenerateDeterministicShop(newSeed)
 					local state = GlobalState:getState()
 					local variation = VariationService.GetCurrentVariationEvent()
 

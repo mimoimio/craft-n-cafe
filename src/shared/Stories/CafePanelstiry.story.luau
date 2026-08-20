@@ -5,7 +5,6 @@ local ReactRoblox = require(game.ReplicatedStorage.Packages.ReactRoblox)
 local ConsoleApp = require(game.ReplicatedStorage.Shared.ReactComponents.ConsoleApp)
 -- local Main = require(game.ReplicatedStorage.Shared.ReactComponents.Main)
 local DrinksPanel = require(game.ReplicatedStorage.Shared.ReactComponents.DrinksPanel)
-local IngredientShopPanel = require(game.ReplicatedStorage.Shared.ReactComponents.IngredientShopPanel)
 local CafePanel = require(game.ReplicatedStorage.Shared.ReactComponents.CafePanel)
 local function App(props)
 	local drinks, setDrinks = useState({

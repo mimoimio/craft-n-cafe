@@ -133,7 +133,7 @@ local function applyVolume(sound: Sound, poolName: string)
 end
 
 function SoundController.Sound(name: string, options: SoundOptions?)
-	if not game.Players.LocalPlayer then -- not in story plugin, only when played
+	if not game:GetService("Players").LocalPlayer then -- not in story plugin, only when played
 		return
 	end
 	task.defer(function()
@@ -168,7 +168,7 @@ function SoundController.initialize()
 		initializeSoundPool("powerUp7", POOL_SIZE)
 	end)
 
-	local playerId = tostring(game.Players.LocalPlayer.UserId)
+	local playerId = tostring(game:GetService("Players").LocalPlayer.UserId)
 
 	-- 1. get player's SfxOn and Volume
 	-- 2. wait if not exist yet

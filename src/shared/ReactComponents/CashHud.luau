@@ -1,12 +1,19 @@
 --#region
 -- CashHud.luau
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local COINICON = "robux"
 local React = require(ReplicatedStorage.Packages.React)
+local Reflex = require(ReplicatedStorage.Packages.Reflex)
+local createSelector = Reflex.createSelector
 local Mionum = require(ReplicatedStorage.Packages.Mionum)
 local ReactFlow = require(ReplicatedStorage.Packages.ReactFlow)
+local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
+local Types = require(ReplicatedStorage.Shared.Types)
+local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
+local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConfig)
 
 local Primitives = ReplicatedStorage.Shared.ReactComponents.ui
 local SmallText = require(Primitives.SmallText)
@@ -17,6 +24,40 @@ local useSpring = ReactFlow.useSpring
 local useEffect = React.useEffect
 local useCallback = React.useCallback
 local useRef = React.useRef
+
+local function getCount(discoveredDrinks)
+	local count = 0
+	for variationId, drinksOfVariation in discoveredDrinks or {} do
+		for drinkId, _ in drinksOfVariation do
+			count += 1
+		end
+	end
+	return count
+end
+local function getRate(shelves: { [string]: Types.ShelfEntity }, discoveredDrinks: { [string]: { [string]: true } })
+	local rate = 0
+	local count = getCount(discoveredDrinks)
+	local bonus = 1 + count * 0.05
+	for i, shelf in shelves do
+		-- warn("shelves", shelf.Slots)
+		for i, slot in shelf.Slots or {} do
+			if type(slot) ~= "table" then
+				continue
+			end
+			local config = CoffeeModule.Config[slot.drinkId]
+			-- warn(config.Id)
+			if not config then
+				continue
+			end
+			local variation = VariationsConfig[slot.variationId]
+			local size = slot.size
+
+			rate += config.Rate * variation.Multiplier * size
+		end
+	end
+	-- warn(`rate({rate}), bonus({bonus})`)
+	return rate * bonus
+end
 
 -- ✨ New sleek, localized Toast Component specifically for the Cash HUD!
 local function CashToast(props: {
@@ -68,7 +109,8 @@ local function CashToast(props: {
 		}),
 	})
 end
-
+local player = Players.LocalPlayer
+local playerId = player and tostring(player.UserId) or ""
 local function CashHud(props: {
 	coins: number,
 	OnMount: () -> (),
@@ -76,6 +118,7 @@ local function CashHud(props: {
 	local coins = props.coins
 	local prevCoins = useRef(coins)
 
+	local rate, setRate = useState(0)
 	local toasts, setToasts = useState({})
 	local toastIdCounter = useRef(0)
 
@@ -151,6 +194,37 @@ local function CashHud(props: {
 		})
 	end
 
+	useEffect(function()
+		local unsub = GlobalState:subscribe(
+			createSelector({
+				function(state)
+					return state.Shelves
+				end,
+				function(state)
+					return state.DiscoveredDrinks
+				end,
+			}, function(shelves, discoveredDrinks)
+				-- warn(`shelves`, shelves, "discoveredDrinks", discoveredDrinks)
+				return { shelves, discoveredDrinks }
+			end),
+			function(shelvesanddd)
+				local shelves = shelvesanddd[1]
+				local discoveredDrinks = shelvesanddd[2]
+				-- warn(`shelves`, shelves, "discoveredDrinks", discoveredDrinks)
+				if discoveredDrinks and discoveredDrinks[playerId] and shelves and shelves[playerId] then
+					setRate(getRate(shelves[playerId], discoveredDrinks[playerId]))
+				end
+			end
+		)
+		local shelves = GlobalState:getState().Shelves
+		local discoveredDrinks = GlobalState:getState().DiscoveredDrinks
+		if shelves and shelves[playerId] and discoveredDrinks and discoveredDrinks[playerId] then
+			local rate = shelves and getRate(shelves[playerId], discoveredDrinks[playerId]) or 0
+			setRate(rate)
+		end
+		return unsub
+	end, {})
+
 	-- Main HUD Frame is now a vertical list to stack the SmallText and Toast Container
 	return e("Frame", {
 		AutomaticSize = Enum.AutomaticSize.XY,
@@ -185,11 +259,32 @@ local function CashHud(props: {
 				TextColor3 = Color3.new(1, 1, 1),
 				OnMount = props.OnMount,
 				Size = UDim2.new(0, 200, 0, 50),
-				AutomaticSize = Enum.AutomaticSize.XY,
+				AutomaticSize = Enum.AutomaticSize.None,
 				TextXAlignment = Enum.TextXAlignment.Center,
 				TextYAlignment = Enum.TextYAlignment.Center,
 				Rotation = hudRot,
 				LayoutOrder = 1, -- Force it to stay on top
+			}, {
+
+				e(SmallText, {
+					-- Text = (
+					-- 	([[<font family="rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json">%s</font>]]):format(
+					-- 		COINICON
+					-- 	) .. [[%s]]
+					-- ):format(coins or 0),
+					Text = `{Mionum.new(rate or 0):toString()}/s`,
+					RichText = true,
+					TextSize = 18,
+					TextColor3 = Color3.new(1, 1, 1),
+					Size = UDim2.new(0, 200, 0, 0),
+					AutomaticSize = Enum.AutomaticSize.XY,
+					TextXAlignment = Enum.TextXAlignment.Center,
+					TextYAlignment = Enum.TextYAlignment.Center,
+					Rotation = hudRot,
+					LayoutOrder = 1, -- Force it to stay on top
+					Position = UDim2.new(0.5, 0, 1, 0),
+					AnchorPoint = Vector2.new(0, 0),
+				}),
 			}),
 		}),
 
