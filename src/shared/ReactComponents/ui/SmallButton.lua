@@ -99,6 +99,7 @@ local function SmallButton(props)
 		buttonProps.Text = props.Text or ""
 		buttonProps.RichText = props.RichText
 		buttonProps.TextTransparency = props.TextTransparency
+		buttonProps.TextXAlignment = props.TextXAlignment
 		buttonProps.TextStrokeTransparency = props.TextStrokeTransparency or 1
 		buttonProps.TextWrapped = (props.TextWrapped == nil or props.TextWrapped == true) and true or false
 		buttonProps.TextSize = props.TextSize or 16

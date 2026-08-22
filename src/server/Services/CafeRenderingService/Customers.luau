@@ -76,12 +76,11 @@ local function Customer(props: {
 		local clone = original:Clone() :: CafeTypes.CustomerRig
 		local unsub = observeRigClone(clone)
 		local tag = "Customer" .. props.PlayerId
-		clone.Parent = workspace
+		local rootPart = clone:FindFirstChild("HumanoidRootPart")
+
 		clone:AddTag(tag)
 		clone.Name = props.Customer.id
-
-		-- FIX: Force the server to handle the physics so the NPC doesn't stutter!
-		local rootPart = clone:FindFirstChild("HumanoidRootPart")
+		clone.Parent = workspace
 		if rootPart and rootPart:CanSetNetworkOwnership() then
 			rootPart:SetNetworkOwner(nil)
 		end

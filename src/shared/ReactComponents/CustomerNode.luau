@@ -39,6 +39,7 @@ local function CustomerNode(props: {
 })
 	local prompt: ProximityPrompt, setPrompt = useState(nil)
 	local shown: boolean, setShown = useState(false)
+	local enabled: boolean, setEnabled = useState(false)
 	local currentInput = useInputDevice()
 	local rotation, setRotation = useSpring({ start = 0, target = 0, damper = 0.4, speed = 10 })
 	local scale, setScale = useSpring({ start = 1, target = 1, damper = 0.4, speed = 10 })
@@ -109,6 +110,17 @@ local function CustomerNode(props: {
 			end)
 		end
 	end, {})
+	useEffect(function()
+		if not prompt then
+			return
+		end
+		local conn = prompt:GetPropertyChangedSignal("Enabled"):Connect(function()
+			setEnabled(prompt.Enabled)
+		end)
+		return function()
+			conn:Disconnect()
+		end
+	end, { prompt })
 	local interactIcon = prompt
 			and BuildersIcon.GetPromptText(
 				currentInput == "Gamepad" and prompt.GamepadKeyCode or prompt.KeyboardKeyCode,
@@ -121,8 +133,9 @@ local function CustomerNode(props: {
 
 	local xs, sm, md, lg, xl = useBreakpoint()
 	local mobile = xs or sm
+
 	-- warn(`no. {props.numberInLine}\n(props.Instance ({props.Instance}) and prompt ({prompt}) and shown ({shown}))`)
-	return if (props.Instance and prompt and shown or not player)
+	return if (props.Instance and prompt and shown and enabled or not player)
 		then e(React.Fragment, nil, {
 			btn = e(SmallButton, {
 				Text = `{interactIcon} Tend Customer`,

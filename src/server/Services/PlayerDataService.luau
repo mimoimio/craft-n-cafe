@@ -53,6 +53,20 @@ local function generateEmptyShelves()
 	end
 	return shelves
 end
+local function generateTables()
+	local tables = {}
+	for shelfIndex = 1, 6 do
+		local slots = {}
+		for slotIndex = 1, 4 do
+			slots["Slot" .. tostring(slotIndex)] = "none"
+		end
+		tables["Table" .. tostring(shelfIndex)] = {
+			TableId = "woodentable",
+			Slots = slots,
+		}
+	end
+	return tables
+end
 local PROFILE_TEMPLATE: PlayerData = {
 	Stats = {
 		SfxVolume = 0.5,
@@ -71,12 +85,8 @@ local PROFILE_TEMPLATE: PlayerData = {
 		SkipTickets = 0,
 	},
 	Shelves = generateEmptyShelves(),
-	Tables = {
-		Table1 = {
-			TableId = "woodentable",
-			Slots = { Slot1 = "none", Slot2 = "none", Slot3 = "none", Slot4 = "none" },
-		},
-	},
+	-- six tables
+	Tables = generateTables(),
 	Drinks = {},
 	Mixers = {
 		Mixer1 = { drinkId = "none" },

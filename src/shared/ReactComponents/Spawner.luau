@@ -50,14 +50,85 @@ export type Spawner = Model & {
 	},
 }
 
--- [NEW] Isolated Component for Individual Ingredients
+-- ====================================================================
+-- GLOBAL MODEL POOL
+-- ====================================================================
+local GlobalModelPool = {
+	Templates = {},
+	Available = {},
+	RandomIds = {},
+	Initialized = false,
+}
+
+local function InitGlobalPool()
+	if GlobalModelPool.Initialized then
+		return
+	end
+	GlobalModelPool.Initialized = true
+
+	for _, config in CoffeeModule.IngredientConfigs do
+		local template = ReplicatedStorage.Shared.Models:FindFirstChild(config.Id)
+		if not template then
+			continue
+		end
+
+		local model = template:Clone()
+		local packageLink = model:FindFirstChildWhichIsA("PackageLink")
+		if packageLink then
+			packageLink:Destroy()
+		end
+
+		for _, desc in model:GetDescendants() do
+			if desc:IsA("BasePart") then
+				desc.CanCollide = false
+				desc.Anchored = true
+			end
+		end
+
+		local hi = Instance.new("Highlight", model)
+		hi.FillColor = Color3.new()
+		hi.FillTransparency = 0.2
+		hi.DepthMode = Enum.HighlightDepthMode.Occluded
+
+		GlobalModelPool.Templates[config.Id] = model
+		GlobalModelPool.Available[config.Id] = {}
+		table.insert(GlobalModelPool.RandomIds, config.Id)
+	end
+end
+
+local function GetFromPool(id: string): Model?
+	if not GlobalModelPool.Templates[id] then
+		return nil
+	end
+	local pool = GlobalModelPool.Available[id]
+	if #pool > 0 then
+		return table.remove(pool)
+	end
+	return GlobalModelPool.Templates[id]:Clone()
+end
+
+local function ReturnToPool(id: string, model: Model)
+	if not model then
+		return
+	end
+	if not GlobalModelPool.Available[id] then
+		model:Destroy()
+		return
+	end
+	model.Parent = nil
+	table.insert(GlobalModelPool.Available[id], model)
+end
+
+-- ====================================================================
+-- COMPONENTS
+-- ====================================================================
+
 function SpawnedIngredient(props: {
 	Instance: Instance,
 	IngredientId: string,
 	Index: number,
 	TotalCount: number,
 	Phase: "empty" | "spin" | "show",
-	ModelsCache: { Model }?,
 })
 	local size, setSize = useSpring({
 		start = 0,
@@ -66,10 +137,7 @@ function SpawnedIngredient(props: {
 		speed = 20,
 	})
 
-	-- Perfectly fan out items left to right
 	local offset = (props.Index - (props.TotalCount + 1) / 2) * 2
-
-	-- Flawlessly stagger the Y position based on even/odd indices to prevent UI overlay
 	local yOffset = 3 + (props.Index % 2 == 0 and 1.5 or 0)
 
 	useEffect(function()
@@ -77,9 +145,11 @@ function SpawnedIngredient(props: {
 			return
 		end
 
+		InitGlobalPool()
+
 		local isCancelled = false
 		local activeModel = nil
-		local spinPool = {} -- Keeps track of cloned models to reuse
+		local activeId = nil
 		local cframeValue = nil
 		local scaleValue = nil
 		local updateConn = nil
@@ -90,16 +160,16 @@ function SpawnedIngredient(props: {
 			isCancelled = true
 
 			if activeModel then
-				activeModel:Destroy()
-			end
-
-			-- Destroy all pooled models to free up memory when phase changes
-			for _, pooledModel in pairs(spinPool) do
-				if pooledModel then
-					pooledModel:Destroy()
+				-- Only return to the pool if this effect represents a spinning model
+				if props.Phase == "spin" and activeId then
+					ReturnToPool(activeId, activeModel)
+				else
+					-- Safely destroy the final revealed model
+					activeModel:Destroy()
 				end
+				activeModel = nil
+				activeId = nil
 			end
-			table.clear(spinPool)
 
 			if cframeValue then
 				cframeValue:Destroy()
@@ -138,26 +208,23 @@ function SpawnedIngredient(props: {
 			tween:Play()
 
 			spinThread = task.defer(function()
-				local cache = props.ModelsCache
-				while not isCancelled and cache and #cache > 0 do
-					local randomIndex = math.random(1, #cache)
-					local nextModel = spinPool[randomIndex]
+				local ids = GlobalModelPool.RandomIds
+				while not isCancelled and #ids > 0 do
+					local randomId = ids[math.random(1, #ids)]
+					local nextModel = GetFromPool(randomId)
 
-					-- Lazy clone: Only clone if we haven't rolled this specific model yet
-					if not nextModel then
-						nextModel = cache[randomIndex]:Clone()
-						spinPool[randomIndex] = nextModel
-					end
-
-					-- REPARENT logic: Hide the old one, show the new one. No destroying!
-					if activeModel and activeModel ~= nextModel then
-						activeModel.Parent = nil
+					if activeModel and activeId then
+						ReturnToPool(activeId, activeModel)
 					end
 
 					activeModel = nextModel
-					activeModel:PivotTo(cframeValue.Value)
-					activeModel.Parent = workspace
-					activeModel:ScaleTo(1)
+					activeId = randomId
+
+					if activeModel then
+						activeModel:PivotTo(cframeValue.Value)
+						activeModel.Parent = workspace
+						activeModel:ScaleTo(1)
+					end
 
 					task.wait(0.1)
 				end
@@ -173,11 +240,9 @@ function SpawnedIngredient(props: {
 				return cleanup
 			end
 
-			-- Dynamic Ascending Pitch! Each iteration scales up the playback speed slightly!
 			SoundController.Sound("skate-trick-1", {
 				PlaybackSpeed = 1 + (props.Index * 0.1),
 			})
-			-- warn("played", props.IngredientId)
 
 			setSize({
 				start = 0,
@@ -186,10 +251,18 @@ function SpawnedIngredient(props: {
 				speed = 30,
 			})
 
+			-- Strict raw clone for final presentation
 			activeModel = modelTemplate:Clone()
 			local packageLink = activeModel:FindFirstChildWhichIsA("PackageLink")
 			if packageLink then
 				packageLink:Destroy()
+			end
+
+			for _, desc in activeModel:GetDescendants() do
+				if desc:IsA("BasePart") then
+					desc.CanCollide = false
+					desc.Anchored = true
+				end
 			end
 
 			activeModel:PivotTo(targetCFrame)
@@ -269,13 +342,6 @@ local function Spawner(props)
 			setSpawnerInstance(workspace.Cafe1.Spawner)
 			setBuyPadInstance(workspace.Cafe1.BuyPad)
 			task.defer(function()
-				-- task.wait(1)
-
-				-- setSpawner({ IngredientIds = { "milk", "milk" }, TimePulled = workspace:GetServerTimeNow() })
-				-- task.wait(1)
-				-- setSpawner({ IngredientIds = { "milk", "milk" }, TimePulled = workspace:GetServerTimeNow() })
-				-- task.wait(1)
-				-- setSpawner({ IngredientIds = { "milk", "milk" }, TimePulled = workspace:GetServerTimeNow() })
 				task.wait(1)
 				setSpawner({ IngredientIds = { "milk", "milk" }, TimePulled = workspace:GetServerTimeNow() })
 			end)
@@ -428,7 +494,6 @@ function SpawnerNode(props: { Instance: Spawner? })
 		end)
 	end, { lastRolled, rollCooldown })
 
-	-- Derived automatically based on the hook and prompt config!
 	local interactIcon = prompt
 			and BuildersIcon.GetPromptText(
 				currentInput == "Gamepad" and prompt.GamepadKeyCode or prompt.KeyboardKeyCode,
@@ -461,8 +526,6 @@ end
 function BuyPadNode(props: { Instance: Instance?, IngredientIds: { string }?, TimePulled: number })
 	local currentInput = useInputDevice()
 
-	local randomModels = useRef({})
-
 	local prompt: ProximityPrompt, setPrompt = useState(nil)
 	local shown, setShown = useState(false)
 	local cash, setCash = useState(0)
@@ -471,12 +534,11 @@ function BuyPadNode(props: { Instance: Instance?, IngredientIds: { string }?, Ti
 	local revealedCount, setRevealedCount = useState(0)
 	local promptRef = useRef(nil)
 
-	-- [NEW] Track the last pull time to intercept 1-frame React tears
 	local lastTimePulled = useRef(props.TimePulled)
 
 	useEffect(function()
 		if not props.Instance then
-			return --
+			return
 		end
 
 		local promise = Promise.defer(function(resolve)
@@ -493,9 +555,6 @@ function BuyPadNode(props: { Instance: Instance?, IngredientIds: { string }?, Ti
 	useEffect(function()
 		promptRef.current = prompt
 	end, { prompt })
-	useEffect(function()
-		promptRef.current = prompt
-	end, {})
 
 	local totalCost = 0
 	for i, id in props.IngredientIds or {} do
@@ -545,46 +604,9 @@ function BuyPadNode(props: { Instance: Instance?, IngredientIds: { string }?, Ti
 		return unsub
 	end, {})
 
-	useEffect(function()
-		local models = {}
-		local cache = Instance.new("Folder", ReplicatedStorage)
-		cache.Name = "__cache"
-
-		for i, config in CoffeeModule.IngredientConfigs do
-			local template = ReplicatedStorage.Shared.Models:FindFirstChild(config.Id)
-			if not template then
-				continue
-			end
-
-			local model = template:Clone()
-			model.Parent = cache
-			-- local packageLink = model:FindFirstChild("PackageLink")
-			-- for i, desc in model:GetDescendants() do
-			-- 	if desc:IsA("BasePart") then
-			-- 		desc.CanCollide = false
-			-- 	end
-			-- end
-			-- if packageLink then
-			-- 	packageLink:Destroy()
-			-- end
-
-			table.insert(models, model)
-		end
-		randomModels.current = models
-		return function()
-			for i = #models, 1, -1 do
-				models[i]:Destroy()
-				models[i] = nil
-			end
-			cache:Destroy()
-			randomModels.current = {}
-		end
-	end, {})
-
 	local combinedIds = props.IngredientIds and table.concat(props.IngredientIds) or nil
 	local count = props.IngredientIds and #props.IngredientIds or 0
 
-	-- [NEW] Calculate Effective State for this exact render frame!
 	local isNewRoll = props.TimePulled ~= lastTimePulled.current
 	local activePhase = phase
 	local activeRevealedCount = revealedCount
@@ -593,13 +615,11 @@ function BuyPadNode(props: { Instance: Instance?, IngredientIds: { string }?, Ti
 		activePhase = "empty"
 		activeRevealedCount = 0
 	elseif isNewRoll then
-		-- Force the spin phase immediately if a new roll just came in!
 		activePhase = "spin"
 		activeRevealedCount = 0
 	end
 
 	useEffect(function()
-		-- Sync the ref now that we are processing the new effect
 		lastTimePulled.current = props.TimePulled
 
 		if count == 0 then
@@ -671,7 +691,6 @@ function BuyPadNode(props: { Instance: Instance?, IngredientIds: { string }?, Ti
 		local id = props.IngredientIds[i]
 		local itemPhase = "empty"
 
-		-- [NEW] Rely exclusively on the active intercept state
 		if activePhase == "spin" then
 			itemPhase = "spin"
 		elseif activePhase == "reveal" then
@@ -684,11 +703,9 @@ function BuyPadNode(props: { Instance: Instance?, IngredientIds: { string }?, Ti
 			Index = i,
 			TotalCount = count,
 			Phase = itemPhase,
-			ModelsCache = randomModels.current,
 		})
 	end
 
-	-- Derived automatically based on the hook and prompt config!
 	local interactIcon = prompt
 			and BuildersIcon.GetPromptText(
 				currentInput == "Gamepad" and prompt.GamepadKeyCode or prompt.KeyboardKeyCode,
@@ -723,11 +740,9 @@ function BuyPadNode(props: { Instance: Instance?, IngredientIds: { string }?, Ti
 							TextWrapped = false,
 							[React.Event.MouseButton1Down] = function()
 								prompt:InputHoldBegin()
-								-- Remotes.BuyIngredientFromSpawner:FireServer()
 							end,
 							[React.Event.MouseButton1Up] = function()
 								prompt:InputHoldEnd()
-								-- Remotes.BuyIngredientFromSpawner:FireServer()
 							end,
 							BackgroundTransparency = 1,
 							Image = "rbxassetid://127657596958436",
@@ -753,7 +768,6 @@ function BuyPadNode(props: { Instance: Instance?, IngredientIds: { string }?, Ti
 				}),
 			}, (player and player.PlayerGui) or props.Instance)
 		or nil
-
 	return e(React.Fragment, nil, ingredientElements)
 end
 
