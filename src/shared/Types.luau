@@ -45,7 +45,10 @@ export type ShelvesState = {
 
 export type CashierId = string | "Cashier1"
 
-export type CashierEntity = {}
+export type CashierEntity = {
+	id: string,
+	lastTend: number,
+}
 
 export type CashiersState = {
 	[PlayerId]: {
@@ -189,6 +192,8 @@ export type CustomerEntity = {
 	drinkEntities: { CustomerDrink }?,
 	customerAction: string,
 	actionStartTime: number,
+	scannedAmount: number?,
+	total: number?,
 }
 export type CustomersState = {
 	[PlayerId]: {
@@ -200,6 +205,13 @@ export type CustomersState = {
 export type AddIngredientPayload = {
 	ingredientId: string,
 	score: number,
+}
+export type HireCashierPayload = {
+	id: string,
+	cost: number,
+}
+export type FireCashierPayload = {
+	cashierUid: string,
 }
 export type MixDrinkPayload = {
 	drinkId: string,
@@ -315,6 +327,16 @@ export type SetGamePassesPayload = {
 export type GrantGamePassPayload = {
 	passId: string,
 }
+export type PaymentPayload = {
+	customerUid: string,
+	Cash: number,
+	timestamp: number,
+	cashierUid: string?,
+}
+export type QueueCustomerPayload = {
+	customerUid: string,
+	timestamp: number,
+}
 export type CombinedActions = {
 	startPlayerSession: (playerId: PlayerId, data: PlayerData, payload: StartPlayerSessionPayload) -> (),
 	endPlayerSession: (playerId: PlayerId) -> (),
@@ -324,6 +346,7 @@ export type CombinedActions = {
 	refreshShop: (playerId: PlayerId, payload: RefreshShopPayload) -> (),
 	pickUpDrinkFromMixer: (playerId: PlayerId, payload: PickUpPayload) -> (),
 	restockDrinks: (playerId: PlayerId, payload: RestockDrinksPayload) -> (),
+	queueCustomer: (playerId: PlayerId, payload: QueueCustomerPayload) -> (),
 	buyMixer: (playerId: PlayerId, payload: BuyMixerPayload) -> (),
 	upgradeLuck: (playerId: PlayerId, payload: UpgradeLuckPayload) -> (),
 	upgradeCafeCapacity: (playerId: PlayerId, payload: UpgradeCafeCapacityPayload) -> (),
@@ -350,14 +373,7 @@ export type CombinedActions = {
 	spawnCustomer: (playerId: PlayerId, payload: SpawnCustomerPayload) -> (),
 	customerTakeItems: (playerId: PlayerId, payload: CustomerItemPayload) -> (),
 	claimShelfCollector: (playerId: PlayerId, payload: ClaimShelfCollectorPayload) -> (),
-	playerReceivePayment: (
-		playerId: PlayerId,
-		payload: {
-			customerUid: string,
-			Cash: number,
-			timestamp: number,
-		}
-	) -> (),
+	playerReceivePayment: (playerId: PlayerId, payload: PaymentPayload) -> (),
 	customerLeaveEmptyHanded: (
 		playerId: PlayerId,
 		payload: {

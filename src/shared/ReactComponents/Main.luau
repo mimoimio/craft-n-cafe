@@ -57,10 +57,6 @@ local function Main(props)
 	local activeCoins, setActiveCoins = useState({})
 
 	local cash, setCash = useState(nil)
-
-	local closeAllPanels = React.useCallback(function()
-		toggle("none")
-	end, {})
 	local time, setTime = React.useBinding("")
 
 	useEffect(function()
@@ -154,13 +150,6 @@ local function Main(props)
 		end
 	end, {})
 
-	local timehud = e(require(script.Parent.ui.SmallText), {
-		Text = time,
-		AutomaticSize = Enum.AutomaticSize.XY,
-		Position = UDim2.new(1, 0, 0, 0),
-		AnchorPoint = Vector2.new(1, 0),
-	})
-
 	-- local upgradeCafeTutorial = cash > 400 and not UpgradeCafeCompleted
 	local cafeTeleportButton, setCafeTB = useBinding(nil)
 	local cafeDetailsButton, setCafeDB = useBinding(nil)
@@ -169,40 +158,17 @@ local function Main(props)
 		setCafeTB(rbx)
 	end
 
+	local Overlays = React.useMemo(function()
+		return e(Overlays)
+	end, {})
+
 	return e("Frame", {
 		Transparency = 1,
 		Size = UDim2.new(1, 0, 1, 0),
 	}, {
-		-- Background Manager mapping to the 3D world (Invisible)
-		MixerManager = e(MixerManager),
-		CustomerManager = e(CustomerManager),
-		Spawner = e(Spawner),
-		Tables = e(TableManager),
-		Mailbox = e(Mailbox),
-		CafeBase = e(CafeBase),
-		CafeModel = e(CafeModel),
 
 		-- Active Panel Overlay
-		ActiveOverlay = e("Frame", {
-			Size = UDim2.new(1, 0, 1, 0),
-			BackgroundTransparency = 1,
-		}, {
-			-- Shop = e(IngredientShopPanel, {
-			-- 	OnClose = closeAllPanels,
-			-- }),
-			Settings = e(SettingsPanel, {
-				OnClose = closeAllPanels,
-			}),
-			Mixer = e(MixerPanel, {
-				OnClose = closeAllPanels,
-			}),
-			Recipes = e(RecipePanel, {
-				OnClose = closeAllPanels,
-			}),
-			CafePanel = e(CafePanel, {
-				OnClose = closeAllPanels,
-			}),
-		}),
+		Overlays = Overlays,
 
 		-- HUD Elements
 		Cash = e(CashHud, {
@@ -211,8 +177,12 @@ local function Main(props)
 			end,
 			coins = finalCash,
 		}),
-		Bonus = e(require(script.Parent.BonusHud)),
-		timehud = timehud,
+		timehud = e(require(script.Parent.ui.SmallText), {
+			Text = time,
+			AutomaticSize = Enum.AutomaticSize.XY,
+			Position = UDim2.new(1, 0, 0, 0),
+			AnchorPoint = Vector2.new(1, 0),
+		}),
 
 		Top = e(HStack, {
 			Position = UDim2.new(0.5, 0, 0, 1),
@@ -284,38 +254,10 @@ local function Main(props)
 					TextYAlignment = Enum.TextYAlignment.Center,
 				}, {}),
 			}),
-			-- Restock = e(SmallButton, {
-			-- 	LayoutOrder = 2,
-			-- 	BackgroundTransparency = 1,
-			-- 	TextSize = 32,
-			-- 	ScaleType = Enum.ScaleType.Slice,
-			-- 	SliceCenter = Rect.new(8, 8, 92, 92),
-			-- 	Size = UDim2.new(0, 160, 0, 40),
-			-- 	Image = "rbxassetid://127657596958436",
-			-- 	Rounded = false,
-			-- 	[React.Event.Activated] = function()
-			-- 		Remotes.Restock:FireServer()
-			-- 	end,
-			-- 	ImageColor3 = Color3.new(0.960784, 0.949019, 0.352941),
-			-- 	OnMount = onMountCafeButton,
-			-- }, {
-			-- 	e(SmallText, {
-			-- 		Text = "Restock",
-			-- 		Size = UDim2.new(1, 0, 1, 0),
-			-- 		BackgroundTransparency = 1,
-			-- 		TextWrapped = true,
-			-- 		TextSize = 32,
-			-- 		AutomaticSize = Enum.AutomaticSize.None,
-			-- 		TextXAlignment = Enum.TextXAlignment.Center,
-			-- 		TextYAlignment = Enum.TextYAlignment.Center,
-			-- 	}, {}),
-			-- }),
 		}),
 		Left = e(VStack, {
 			VerticalFlex = Enum.UIFlexAlignment.None,
 			HorizontalFlex = Enum.UIFlexAlignment.None,
-			-- BackgroundColor3 = Color3.new(1, 0, 0),
-			-- BackgroundTransparency = 0,
 			Spacing = UDim.new(0, 8),
 			AutomaticSize = Enum.AutomaticSize.XY,
 			Size = UDim2.new(0, 0, 0, 0),
@@ -434,6 +376,51 @@ local function Main(props)
 					BorderStrokePosition = Enum.BorderStrokePosition.Inner,
 				}),
 			}),
+			cashiersbtn = e(SmallButton, {
+				LayoutOrder = 4,
+				-- Image = "rbxassetid://112161362547076",
+				Text = "",
+				ButtonClass = "ImageButton",
+				BackgroundTransparency = 0,
+				TextSize = 12,
+				Size = UDim2.new(0, 50, 0, 50),
+				BackgroundColor3 = Color3.new(0.5, 0.5, 0.5),
+				[React.Event.Activated] = function()
+					toggle("cashiers")
+				end,
+				AutomaticSize = Enum.AutomaticSize.None,
+				Padding = { All = UDim.new() },
+			}, {
+				e("Frame", {
+					Size = UDim2.new(0, 50, 0, 46),
+					BackgroundColor3 = Color3.new(0.8, 0.8, 0.8),
+				}, {
+					UIStroke = e("UIStroke", {
+						Thickness = 2,
+						BorderStrokePosition = Enum.BorderStrokePosition.Inner,
+						Color = Color3.new(0.6, 0.6, 0.6),
+					}),
+					UICorner = e("UICorner", {
+						CornerRadius = UDim.new(0, 8),
+					}),
+
+					e(SmallText, {
+						Text = "Cashiers",
+						Size = UDim2.new(0, 50, 0, 46),
+						BackgroundTransparency = 1,
+						TextWrapped = true,
+						AutomaticSize = Enum.AutomaticSize.None,
+						TextXAlignment = Enum.TextXAlignment.Center,
+						TextYAlignment = Enum.TextYAlignment.Center,
+						TextSize = 12,
+					}, {}),
+				}),
+				UIStroke = e("UIStroke", {
+					Thickness = 2,
+					Color = Color3.new(0.5, 0.5, 0.5),
+					BorderStrokePosition = Enum.BorderStrokePosition.Inner,
+				}),
+			}),
 		}),
 		CoinVFXContainer = e(CoinVFXContainer, {
 			activeCoins = activeCoins,
@@ -470,16 +457,45 @@ local function Main(props)
 			MinTextSize = 8,
 		}),
 		admin = admin and adminOpen and e(require(script.Parent.ConsoleApp)) or nil,
-		e(require(script.Parent.DiscoveredDrink), { closeAllPanels = closeAllPanels }),
-		e(require(script.Parent.DailyPanel)),
-		e(require(script.Parent.SpecialEvent)),
-		e(require(script.Parent.DailyClaimPopup)),
-		e(require(script.Parent.ShopPrompt)),
-		e(require(script.Parent.UpgradePanel)),
-		e(require(script.Parent.Skeleton)),
 		Tutorial = tutorialDone == false and e(require(script.Parent.Tutorial)) or nil,
 		rejection = tutorialDone == false and e(require(script.Parent.RejectionLetter)) or nil,
 	})
+end
+
+function Overlays()
+	local closeAllPanels = React.useCallback(function()
+		toggle("none")
+	end, {})
+	return e("Frame", {
+			Size = UDim2.new(1, 0, 1, 0),
+			BackgroundTransparency = 1,
+		}, {
+			-- Shop = e(IngredientShopPanel, {
+			-- 	OnClose = closeAllPanels,
+			-- }),
+			e(SettingsPanel, {OnClose = closeAllPanels}),
+			e(require(script.Parent.CashiersPanel), {OnClose = closeAllPanels}),
+			e(MixerPanel, {OnClose = closeAllPanels}),
+			e(RecipePanel, {OnClose = closeAllPanels}),
+			e(CafePanel, {OnClose = closeAllPanels}),
+			e(require(script.Parent.BonusHud)),
+
+			e(require(script.Parent.DiscoveredDrink), { closeAllPanels = closeAllPanels }),
+			e(require(script.Parent.DailyPanel)),
+			e(require(script.Parent.SpecialEvent)),
+			e(require(script.Parent.DailyClaimPopup)),
+			e(require(script.Parent.ShopPrompt)),
+			e(require(script.Parent.UpgradePanel)),
+			e(require(script.Parent.Skeleton)),
+			MixerManager = e(MixerManager),
+			CustomerManager = e(CustomerManager),
+			CashierManager = e(require(script.Parent.CashierManager)),
+			Spawner = e(Spawner),
+			Tables = e(TableManager),
+			Mailbox = e(Mailbox),
+			CafeBase = e(CafeBase),
+			CafeModel = e(CafeModel),
+		})
 end
 
 return Main

@@ -60,7 +60,6 @@ local function CloseButton(props: {
 					speed = 40,
 					damper = 1,
 				})
-				SoundController.Sound("Clink")
 			end,
 			[React.Event.MouseLeave] = function()
 				setPos({
@@ -85,7 +84,7 @@ local function CloseButton(props: {
 					speed = 40,
 					damper = 0.9,
 				})
-				SoundController.Sound("Clink")
+
 				if props.OnClick then
 					props.OnClick()
 				end

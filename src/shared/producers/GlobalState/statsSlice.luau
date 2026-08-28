@@ -29,6 +29,7 @@ local initialState: StatsState = {}
 -- /// REDUCERS ///
 local actions = {
 	startPlayerSession = function(state: StatsState, playerId: string, data: PlayerData)
+		-- warn("stats", state)
 		return Set(state, playerId, data.Stats)
 	end,
 	endPlayerSession = function(state: StatsState, playerId: string, data: PlayerData)

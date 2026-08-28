@@ -42,11 +42,19 @@ local function ConsoleApp()
 				local results = {}
 				for k, v in value do
 					if type(v) == "table" then
+						-- table.insert(
+						-- 	results,
+						-- 	string.format("%s%s (%s): {", indent, k == "customerAction" and k or "", "")
+						-- )
 						table.insert(results, string.format("%s%s (%s): {", indent, tostring(k), type(k)))
 						table.insert(results, formatValue(v, depth + 1))
 						table.insert(results, indent .. "}")
-					else
-						table.insert(results, string.format("%s%s (%s): %s(%s),", indent, tostring(k), type(k), tostring(v), type(v)))
+					elseif k == "customerAction" then
+						table.insert(
+							results,
+							string.format(`%s%s : "%s"`, indent, k == "customerAction" and k or "", tostring(v))
+							-- string.format("%s%s (%s): %s(%s),", indent, tostring(k), type(k), tostring(v), type(v))
+						)
 					end
 				end
 				return table.concat(results, "\n")
@@ -57,6 +65,18 @@ local function ConsoleApp()
 
 		local lines = {}
 		for key, slice in currentGlobalState do
+			if
+				key == "Shelves"
+				or key == "Tables"
+				or key == "Drinks"
+				or key == "DiscoveredDrinks"
+				or key == "Mixers"
+				or key == "Ingredients"
+				or key == "Cashiers"
+				or key == "Stats"
+			then
+				continue
+			end
 			table.insert(lines, string.format("%s (%s):", key, type(key)))
 			if type(slice) == "table" then
 				for k, v in slice do
@@ -74,7 +94,7 @@ local function ConsoleApp()
 		return
 	end, { currentGlobalState })
 	return e(VStack, {
-		Size = UDim2.new(0, 400, 0, 400),
+		Size = UDim2.new(0, 400, 1, 0),
 		Position = UDim2.new(1, 0, 0, 0),
 		AnchorPoint = Vector2.new(1, 0),
 		BackgroundTransparency = 0.8,

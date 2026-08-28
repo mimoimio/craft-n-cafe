@@ -66,7 +66,7 @@ local function MixerNode(props: {
 	local prompt: ProximityPrompt?, setPrompt = useState(nil)
 	local shown: boolean, setShown = useState(false)
 	local progress, setProgress = React.useBinding(0)
-	local finishRangRef = React.useRef(false)
+	local finishRangRef = React.useRef(nil)
 	local time, setTime = React.useBinding(math.huge)
 	local config = CoffeeModule.Config[props.MixerData.drinkId]
 	local duration = (config and config.Duration) or nil
@@ -77,14 +77,16 @@ local function MixerNode(props: {
 		local running = true
 		local t = task.spawn(function()
 			while running do
-				task.wait()
+				task.wait(0.3)
 				local now = workspace:GetServerTimeNow()
 				if startTime and duration then
 					local timePassed = now - startTime
 					local p = math.clamp(timePassed / duration, 0, 1)
 					setProgress(p)
 					if p >= 1 then
-						if finishRangRef.current ~= true then
+						-- if finishRangRef.current ~= true then
+						-- == false cuz if nil that means it's just loaded, dont sound
+						if finishRangRef.current == false then
 							SoundController.Sound("Success")
 						end
 						finishRangRef.current = true
@@ -265,9 +267,10 @@ local function MixerNode(props: {
 		e("BillboardGui", {
 			Adornee = props.Instance,
 			Size = UDim2.new(6, 0, 6, 0),
-			StudsOffset = Vector3.new(0, progressBar and 2 or 0, 0),
+			StudsOffset = Vector3.new(0, progressBar and 4 or 3, 0),
+			-- (a::BillboardGui).StudsOffset = Vector3.new(0, progressBar and 0 or 0, 5),
 			ResetOnSpawn = false,
-			AlwaysOnTop = true,
+			AlwaysOnTop = false,
 			MaxDistance = 300,
 			ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 			Active = true,
@@ -306,6 +309,7 @@ local function MixerNode(props: {
 				Position = UDim2.new(0.5, 0, 0.5, 0),
 				BackgroundTransparency = 1,
 				Image = "rbxassetid://127657596958436",
+				ImageTransparency = 0.4,
 				Rounded = false,
 				ScaleType = Enum.ScaleType.Slice,
 				HoverScale = true,

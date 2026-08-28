@@ -138,7 +138,7 @@ local function MixerProgressBar(
 		local timeLeft = props.Duration - timePassed
 
 		if p >= 1 then
-			return `(Done!)`
+			return ``
 		else
 			return `{timeLeft // 60}m {timeLeft % 60 // 1}s`
 		end
@@ -183,38 +183,38 @@ local function MixerProgressBar(
 	}, {
 		UICorner = e("UICorner", { CornerRadius = UDim.new(0, 6) }),
 
-		VariationLabel = currentVarData.VariationId ~= "none" and e(SmallText, {
-			TextXAlignment = Enum.TextXAlignment.Center,
-			BackgroundTransparency = 1,
-			Text = currentVarData.DisplayName,
-			TextColor3 = currentVarData.ColorPrimary or Color3.new(1, 1, 1),
-			Size = UDim2.new(2, 0, 1 / 6, 0),
-			TextSize = 18,
-			TextTruncate = Enum.TextTruncate.SplitWord,
-			LayoutOrder = 2,
-			Active = false,
-			ZIndex = 20,
-		}, {
-			UIStroke = e("UIStroke", {
-				Thickness = 4,
-				Color = Color3.new(0.070588, 0.070588, 0.168627),
-			}, {
-				UIGradient = ColorGradient and e("UIGradient", {
-					Color = ColorGradient,
-					Rotation = 78,
-				}),
-			}),
-			UIGradient = ColorGradient and e("UIGradient", {
-				Color = ColorGradient,
-				Rotation = 69,
-			}),
-			UIPadding = e("UIPadding", {
-				PaddingTop = UDim.new(0, 4),
-				PaddingBottom = UDim.new(0, 4),
-				PaddingLeft = UDim.new(0, 4),
-				PaddingRight = UDim.new(0, 4),
-			}),
-		}),
+		-- VariationLabel = currentVarData.VariationId ~= "none" and e(SmallText, {
+		-- 	TextXAlignment = Enum.TextXAlignment.Center,
+		-- 	BackgroundTransparency = 1,
+		-- 	Text = currentVarData.DisplayName,
+		-- 	TextColor3 = currentVarData.ColorPrimary or Color3.new(1, 1, 1),
+		-- 	Size = UDim2.new(2, 0, 1 / 6, 0),
+		-- 	TextSize = 18,
+		-- 	TextTruncate = Enum.TextTruncate.SplitWord,
+		-- 	LayoutOrder = 2,
+		-- 	Active = false,
+		-- 	ZIndex = 20,
+		-- }, {
+		-- 	UIStroke = e("UIStroke", {
+		-- 		Thickness = 4,
+		-- 		Color = Color3.new(0.070588, 0.070588, 0.168627),
+		-- 	}, {
+		-- 		UIGradient = ColorGradient and e("UIGradient", {
+		-- 			Color = ColorGradient,
+		-- 			Rotation = 78,
+		-- 		}),
+		-- 	}),
+		-- 	UIGradient = ColorGradient and e("UIGradient", {
+		-- 		Color = ColorGradient,
+		-- 		Rotation = 69,
+		-- 	}),
+		-- 	UIPadding = e("UIPadding", {
+		-- 		PaddingTop = UDim.new(0, 4),
+		-- 		PaddingBottom = UDim.new(0, 4),
+		-- 		PaddingLeft = UDim.new(0, 4),
+		-- 		PaddingRight = UDim.new(0, 4),
+		-- 	}),
+		-- }),
 		FillBackground = e(VStack, {
 			HorizontalFlex = Enum.UIFlexAlignment.None,
 			Size = UDim2.new(1, 0, 2 / 3, 0),
@@ -333,24 +333,24 @@ local function MixerProgressBar(
 			}),
 		}),
 
-		DisplayName = e(SmallText, {
-			TextXAlignment = Enum.TextXAlignment.Center,
-			Text = `{props.DrinkName} ({displayedSize}x)`, -- Displays staggered size
-			TextColor3 = Color3.new(1, 1, 1),
-			Size = UDim2.new(2, 0, 1 / 6, 0),
-			TextSize = 18,
-			Active = false,
-			TextTruncate = Enum.TextTruncate.SplitWord,
-			LayoutOrder = 3,
-			Rotation = rotation, -- The Bounce!
-		}, {
-			UIPadding = e("UIPadding", {
-				PaddingTop = UDim.new(0, 4),
-				PaddingBottom = UDim.new(0, 4),
-				PaddingLeft = UDim.new(0, 4),
-				PaddingRight = UDim.new(0, 4),
-			}),
-		}),
+		-- DisplayName = e(SmallText, {
+		-- 	TextXAlignment = Enum.TextXAlignment.Center,
+		-- 	Text = `{props.DrinkName} ({displayedSize}x)`, -- Displays staggered size
+		-- 	TextColor3 = Color3.new(1, 1, 1),
+		-- 	Size = UDim2.new(2, 0, 1 / 6, 0),
+		-- 	TextSize = 18,
+		-- 	Active = false,
+		-- 	TextTruncate = Enum.TextTruncate.SplitWord,
+		-- 	LayoutOrder = 3,
+		-- 	Rotation = rotation, -- The Bounce!
+		-- }, {
+		-- 	UIPadding = e("UIPadding", {
+		-- 		PaddingTop = UDim.new(0, 4),
+		-- 		PaddingBottom = UDim.new(0, 4),
+		-- 		PaddingLeft = UDim.new(0, 4),
+		-- 		PaddingRight = UDim.new(0, 4),
+		-- 	}),
+		-- }),
 		TimeLeft = e(SmallText, {
 			TextXAlignment = Enum.TextXAlignment.Center,
 			Size = UDim2.new(2, 0, 0, 0),

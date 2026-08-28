@@ -99,4 +99,6 @@ return {
 	ToggleParticle = CreateRemote("ToggleParticle"),
 	SetSfxVolume = CreateRemote("SetSfxVolume"),
 	SetMusicVolume = CreateRemote("SetMusicVolume"),
+	HireCashier = CreateRemote("HireCashier"),
+	FireCashier = CreateRemote("FireCashier"),
 }

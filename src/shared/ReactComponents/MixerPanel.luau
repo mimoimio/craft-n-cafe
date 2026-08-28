@@ -72,7 +72,7 @@ local function MixerPanel(props: {
 	local eventId: string?, setEventId = useState(nil)
 
 	local xs, sm, md, lg, xl = useBreakpoint()
-	local mobile = xs or sm
+	local mobile = xs or sm or md
 
 	-- Reference to the selected ingredients UI to act as the target position
 	local targetRef = React.useRef(nil)

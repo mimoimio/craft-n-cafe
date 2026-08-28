@@ -36,6 +36,5 @@ return {
 		matchapowder = 10,
 		lemon = 10,
 		carbonator = 10,
-		cookies = 10,
 	},
 }

@@ -10,7 +10,7 @@ local React = require(game.ReplicatedStorage.Packages.React)
 local e = React.createElement
 local ReactRoblox = require(game.ReplicatedStorage.Packages.ReactRoblox)
 local App = require(game.ReplicatedStorage.Shared.ReactComponents.App)
--- StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
+StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
 
 type DispatchedAction = {
 	arguments: {},

@@ -22,6 +22,7 @@ local initialState: CustomersState = {}
 local actions = {
 	startPlayerSession = function(state: CustomersState, playerId: string, data: PlayerData)
 		return Set(state, playerId, data.Customers)
+		-- return Set(state, playerId, {})
 	end,
 	endPlayerSession = function(state: CustomersState, playerId: string, data: PlayerData)
 		return RemoveKey(state, playerId)
@@ -59,6 +60,30 @@ local actions = {
 			Update(playersCustomers, index, function(customer: Types.CustomerEntity)
 				local new = table.clone(customer)
 				new.drinkEntities = payload.drinkEntities
+				new.customerAction = "walking"
+				new.actionStartTime = payload.timestamp
+				return new
+			end)
+		)
+	end,
+	queueCustomer = function(state: CustomersState, playerId: string, payload: Types.QueueCustomerPayload)
+		local playersCustomers = state[playerId] or {}
+		local index
+		for i, customer in playersCustomers do
+			if customer.id == payload.customerUid then
+				index = i
+				break
+			end
+		end
+		if not index then
+			return state
+		end
+
+		return Set(
+			state,
+			playerId,
+			Update(playersCustomers, index, function(customer: Types.CustomerEntity)
+				local new = table.clone(customer)
 				new.customerAction = "queuing"
 				new.actionStartTime = payload.timestamp
 				return new

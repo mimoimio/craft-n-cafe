@@ -205,7 +205,7 @@ local function Mixers(props: {
 			})
 		end
 	else
-		print(`mixersFolder({mixersFolder}), mixersState({mixersState})`)
+		-- print(`mixersFolder({mixersFolder}), mixersState({mixersState})`)
 	end
 
 	return e(React.Fragment, nil, children)

@@ -17,6 +17,7 @@ local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConfig)
 local DailyConfig = require(ReplicatedStorage.Shared.Configs.DailyConfig)
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
+local useBreakpoint = require(ReplicatedStorage.Shared.Hooks.useBreakpoint)
 local player = game:GetService("Players").LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
 -- CoffeeModule.Config is the keyed lookup (by Id)
@@ -43,7 +44,8 @@ local SUBTEXT = Color3.fromRGB(160, 160, 180)
 local function Rewards(props)
 	local children = {}
 	local n = #DailyConfig
-
+	local xs, sm, md, lg, xl = useBreakpoint()
+	local mobile = xs or sm or md
 	local currentDay = props.currentDay or 1
 	local canClaim = props.canClaim
 	if canClaim == nil then
@@ -81,17 +83,25 @@ local function Rewards(props)
 			table.insert(
 				rewards,
 				e("ImageLabel", {
-					Size = UDim2.new(0, 40, 0, 40),
-					Image = itemConfig and itemConfig.Image or "",
-					-- BackgroundTransparency = 1,
-					BackgroundTransparency = 0.8,
+					Size = UDim2.new(0, mobile and 36 or 40, 0, mobile and 36 or 40),
+					-- Image = itemConfig and itemConfig.Image or "",
+					BackgroundTransparency = 1,
+					-- BackgroundTransparency = 0.8,
 				}, {
-					UICorner = e("UICorner", { CornerRadius = UDim.new(0, 12) }),
-					e(SmallText, {
-						Text = `{amount}x`,
-						Size = UDim2.new(1, 0, 1, 0),
-						TextSize = 18,
-						TextTruncate = Enum.TextTruncate.AtEnd,
+					e("ImageLabel", {
+						AnchorPoint = Vector2.new(0.5, 0.5),
+						Position = UDim2.new(0.5, 0, 0.5, 0),
+						Size = UDim2.new(0, mobile and 36 or 40, 0, mobile and 36 or 40),
+						Image = itemConfig and itemConfig.Image or "",
+						BackgroundTransparency = 1,
+					}, {
+						-- UICorner = e("UICorner", { CornerRadius = UDim.new(0, 12) }),
+						-- e(SmallText, {
+						-- 	Text = `{amount}x`,
+						-- 	Size = UDim2.new(1, 0, 1, 0),
+						-- 	TextSize = mobile and 12 or 18,
+						-- 	TextTruncate = Enum.TextTruncate.AtEnd,
+						-- }),
 					}),
 				})
 			)
@@ -114,15 +124,19 @@ local function Rewards(props)
 				}),
 				e(SmallText, {
 					Text = `Day {i}`,
-					TextSize = 24,
+					TextSize = mobile and 12 or 24,
 					TextTruncate = Enum.TextTruncate.AtEnd,
 				}),
-				e(HStack, {
+				e(Grid, {
 					VerticalFlex = Enum.UIFlexAlignment.None,
 					HorizontalFlex = Enum.UIFlexAlignment.None,
 					VeticalAlignment = Enum.VerticalAlignment.Top,
 					HorizontalAlignment = Enum.HorizontalAlignment.Center,
+					CellSize = UDim2.new(0, 10, 0, 30),
 					Wraps = true,
+					MinSize = Vector2.new(),
+					FillDirectionMaxCells = 3,
+					Padding = { Top = UDim.new(0, 12) },
 				}, rewards),
 			}),
 		})
@@ -133,10 +147,9 @@ local function Rewards(props)
 		}, {
 			e(SmallButton, {
 				Size = UDim2.new(1, 0, 1, 0),
-				Image = "rbxassetid://103478691850846",
+				Image = "rbxassetid://139964930837848",
 				ImageColor3 = cardColor,
-				SliceCenter = Rect.new(8, 8, 90, 102),
-				ScaleType = Enum.ScaleType.Slice,
+				ScaleType = Enum.ScaleType.Stretch,
 				Rounded = false,
 				BackgroundTransparency = 1,
 				AutomaticSize = Enum.AutomaticSize.None,
@@ -145,10 +158,10 @@ local function Rewards(props)
 				Position = UDim2.new(0.5, 0, 0.5, 0),
 			}, { rewardsCom }),
 
-			c = e("UIAspectRatioConstraint", {
-				AspectRatio = 1,
-				AspectType = Enum.AspectType.ScaleWithParentSize,
-			}),
+			-- c = e("UIAspectRatioConstraint", {
+			-- 	AspectRatio = 1,
+			-- 	AspectType = Enum.AspectType.ScaleWithParentSize,
+			-- }),
 		})
 		if i == #DailyConfig then
 			seventh = currentDayReward
@@ -158,8 +171,12 @@ local function Rewards(props)
 	end
 	return e(HStack, {
 		HorizontalFlex = Enum.UIFlexAlignment.Fill,
-		Padding = { All = UDim.new(0, 8) },
+		Padding = {
+			-- All = UDim.new(0, 8),
+			Top = UDim.new(0, 12),
+		},
 		ClipsDescendants = true,
+		BackgroundTransparency = 1,
 		VerticalAlignment = Enum.VerticalAlignment.Center,
 	}, {
 		-- e("ScrollingFrame", {
@@ -175,19 +192,20 @@ local function Rewards(props)
 			Size = UDim2.new(0.6, 0, 1, 0),
 			ClipsDescendants = false,
 			BackgroundTransparency = 1,
+			-- BackgroundTransparency = 0,
 		}, {
 			e(Grid, {
 				HorizontalFlex = Enum.UIFlexAlignment.None,
 				Padding = { Bottom = UDim.new(0, 0) },
 				-- BackgroundTransparency = 0,
 				VerticalAlignment = Enum.VerticalAlignment.Center,
-				Spacing = UDim.new(0, 8),
-				CellSize = UDim2.new(0, 100, 0, 100),
+				CellPadding = UDim2.new(0, mobile and 2 or 6, 0, mobile and 2 or 6),
+				CellSize = UDim2.new(0, mobile and 70 or 100, 0, mobile and 100 or 130),
 				FillDirectionMaxCells = 3,
 			}, children),
 		}),
 		e("Frame", {
-			Size = UDim2.new(0.4, 0, 1, 0),
+			Size = UDim2.new(0.4, 0, 1, -12),
 			ClipsDescendants = false,
 			BackgroundTransparency = 1,
 		}, {
@@ -209,6 +227,8 @@ local function DailyPanel(props: {
 	local discoveredDrinks, setDiscoveredDrinks = useState(not player and { none = { espresso = true } } or nil)
 	local drinksOfVariation: { [string]: true } = discoveredDrinks and discoveredDrinks[variationId] or {}
 	local dailyInfo, setDailyInfo = useState(nil)
+	local xs, sm, md, lg, xl = useBreakpoint()
+	local mobile = xs or sm or md
 
 	useEffect(function()
 		local unsub = GlobalState:subscribe(function(state: any)
@@ -315,6 +335,7 @@ local function DailyPanel(props: {
 			return -n + 0.2
 		end),
 	}, {
+
 		e("ImageLabel", {
 			Size = UDim2.new(1, -20, 1, -0),
 			ZIndex = 20,
@@ -322,18 +343,18 @@ local function DailyPanel(props: {
 			BackgroundTransparency = 1,
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.new(0.5, 0, 0.5, 0),
-			Image = "rbxassetid://103478691850846",
-			ImageColor3 = Color3.new(0.768627, 0.549019, 0.549019),
-			ScaleType = Enum.ScaleType.Slice,
-			SliceCenter = Rect.new(8, 8, 92, 92),
-			BorderSizePixel = 0,
+			Image = "rbxassetid://129501359972452",
+			-- ImageColor3 = Color3.new(0.768627, 0.549019, 0.549019),
+			-- ScaleType = Enum.ScaleType.Stretch,
+			-- SliceCenter = Rect.new(8, 8, 92, 92),
+			-- BorderSizePixel = 0,
 			ClipsDescendants = false,
 		}, {
 			UIAspectRatioConstraint = e("UIAspectRatioConstraint", {
-				AspectRatio = 2,
+				AspectRatio = 4 / 3,
 			}),
 			UISizeConstraint = e("UISizeConstraint", {
-				MaxSize = Vector2.new(workspace.CurrentCamera.ViewportSize.X * 0.95, 380),
+				MaxSize = mobile and Vector2.new(400, 420) or Vector2.new(600, 800),
 			}),
 
 			Container = e("Frame", {
@@ -351,6 +372,13 @@ local function DailyPanel(props: {
 					PaddingBottom = UDim.new(0, 12),
 					PaddingLeft = UDim.new(),
 					PaddingRight = UDim.new(),
+				}),
+				Title = e(SmallText, {
+					Text = "DAILY GIFTS",
+					Position = UDim2.new(0.5, 0, 0, 0),
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					Font = Enum.Font.Ubuntu,
+					TextSize = mobile and 24 or 48,
 				}),
 				CloseBtn = e("TextButton", {
 					Size = UDim2.new(0, 32, 0, 32),

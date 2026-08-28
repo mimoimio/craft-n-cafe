@@ -10,7 +10,7 @@ local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 local Types = require(ReplicatedStorage.Shared.Types)
 local ShopCycle = require(ReplicatedStorage.Shared.ShopCycle)
-
+local LuckModule = require(ReplicatedStorage.Shared.LuckModule)
 local SpawnerService = {}
 
 local function warnInsufficientCash(player: Player)
@@ -30,12 +30,15 @@ function SpawnerService.RollIngredient(player: Player)
 		warn(`RollIngredient Failed: player({playerId}) state not found`)
 		return
 	end
-	local luckLevel = tonumber(playersStats.Luck) or 1
-	local luck = 1 + (luckLevel * 2 / 100)
 
-	local earlyLuck = 1.2 -- no latee
-	local midLuck = 1.8 -- most balanced.
-	local lateLuck = 5 -- no early
+	local luckLevel = tonumber(playersStats.Luck) or 1
+
+	-- Unified Conversion Here
+	local luck = LuckModule.GetMultiplier(luckLevel)
+
+	local earlyLuck = 1.2
+	local midLuck = 1.8
+	local lateLuck = 5
 
 	local lastRolled = playersSpawner.TimePulled or 0
 	if not lastRolled then
@@ -48,7 +51,6 @@ function SpawnerService.RollIngredient(player: Player)
 		print("not yet")
 		return
 	end
-
 	if not playersStats.TutorialCompleted then
 		local playerIngredients = state.Ingredients[playerId] or {}
 		local espresso = playerIngredients.espresso
@@ -71,39 +73,33 @@ function SpawnerService.RollIngredient(player: Player)
 	end
 
 	local ingredientIds = {}
+	local maxIngredients = #CoffeeModule.IngredientConfigs
+	local maxDrinks = #CoffeeModule.Array
 
 	if luck >= lateLuck then
-		local z = ((math.random() * math.random()) ^ (1 / midLuck))
-		local num = (z * #CoffeeModule.IngredientConfigs) // 1 + 1
+		local num = LuckModule.RollIndex(midLuck, maxIngredients)
 		local config = CoffeeModule.IngredientConfigs[num]
-		table.insert(ingredientIds, config.Id)
+		if config then
+			table.insert(ingredientIds, config.Id)
+		end
 	end
+
 	if luck >= midLuck then
-		local z = ((math.random() * math.random()) ^ (1 / earlyLuck))
-		local num = (z * #CoffeeModule.IngredientConfigs) // 1 + 1
+		local num = LuckModule.RollIndex(earlyLuck, maxIngredients)
 		local config = CoffeeModule.IngredientConfigs[num]
-		table.insert(ingredientIds, config.Id)
+		if config then
+			table.insert(ingredientIds, config.Id)
+		end
 	end
-	-- lastly, the unfiltered
-	local z = ((math.random() * math.random()) ^ (1 / luck))
-	-- local num = (z * #CoffeeModule.IngredientConfigs) // 1 + 1
-	-- accidentally used the number of ingredients instead of drinks.
-	-- ingredients are smaller. like 10 or so. drinks are 80+.
-	-- That means all these times the only time on bigger ingredients are from the above one, form early and mid
 
-	-- get from a drink.
-	local num = (z * #CoffeeModule.Array) // 1 + 1
+	local num = LuckModule.RollIndex(luck, maxDrinks)
 	local config = CoffeeModule.Array[num]
-	ingredientIds = ArrayMerge(ingredientIds, config.Ingredients)
+	if config and config.Ingredients then
+		ingredientIds = ArrayMerge(ingredientIds, config.Ingredients)
+	end
 
-	-- 	local z = ((math.random() * math.random()) ^ (1 / earlyLuck))
-	-- 	local num = (z * #CoffeeModule.IngredientConfigs) // 1 + 1
-	-- 	local config = CoffeeModule.IngredientConfigs[num]
-	-- 	table.insert(ingredientIds, config.Id)
-	-- warn(`{z}){config.Id}`)
 	GlobalState.rollIngredient(playerId, {
 		ingredientIds = ingredientIds,
-		-- cost = cost,
 		timePulled = workspace:GetServerTimeNow(),
 	})
 end

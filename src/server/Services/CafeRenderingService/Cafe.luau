@@ -126,7 +126,11 @@ local function Cafe(props: {
 			PlayerId = props.PlayerId,
 			CafeModel = clonedCafe,
 		})
-		children.Spawner = e(require(script.Parent.Spawners), {
+		children.Spawners = e(require(script.Parent.Spawners), {
+			PlayerId = props.PlayerId,
+			CafeModel = clonedCafe,
+		})
+		children.Cashiers = e(require(script.Parent.Cashiers), {
 			PlayerId = props.PlayerId,
 			CafeModel = clonedCafe,
 		})

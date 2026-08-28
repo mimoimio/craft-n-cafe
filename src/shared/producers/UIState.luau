@@ -115,12 +115,12 @@ local producer = Reflex.createProducer(initialState, {
 			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true)
 			GamepadService:DisableGamepadCursor()
 		else
-			print("setted")
 			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
 		end
 		return Set(state, "panel", newPanel)
 	end,
 	toggleMixerInteract = function(state: UIState, mixerName: string)
+			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
 		return Merge(state, {
 			panel = "mixer",
 			activeMixerId = mixerName,

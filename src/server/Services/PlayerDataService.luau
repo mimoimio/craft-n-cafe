@@ -80,7 +80,7 @@ local PROFILE_TEMPLATE: PlayerData = {
 		Luck = 1,
 		TutorialCompleted = false,
 		CafeCapacity = 5,
-		RollCooldown = 2,
+		RollCooldown = 3,
 		Life = 1,
 		SkipTickets = 0,
 	},
@@ -94,6 +94,7 @@ local PROFILE_TEMPLATE: PlayerData = {
 	Ingredients = {
 		-- milk = 100,
 	},
+	Cashiers = {},
 	Customers = {},
 	Shop = { shops = {} }, -- CRITICAL: Added so Reflex updates sync to the Profile!
 	DiscoveredDrinks = {},

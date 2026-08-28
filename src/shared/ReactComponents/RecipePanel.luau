@@ -52,7 +52,7 @@ local function RecipeGridItem(props: {
 	local locked = not props.discovered
 
 	local xs, sm, md, lg, xl = useBreakpoint()
-	local mobile = xs or sm
+	local mobile = xs or sm or md
 
 	local bg = if props.isSelected
 		then (if locked then ITEM_BG_LOCKED_SELECTED else ITEM_SELECTED_BG)
@@ -140,7 +140,7 @@ end
 
 local function IngredientChip(props: { name: string, layoutOrder: number })
 	local xs, sm, md, lg, xl = useBreakpoint()
-	local mobile = xs or sm
+	local mobile = xs or sm or md
 	return e("Frame", {
 		Size = UDim2.new(0, 0, 0, mobile and 18 or 26),
 		AutomaticSize = Enum.AutomaticSize.X,
@@ -174,7 +174,7 @@ local function RecipeDetail(props: {
 })
 	local config = props.config or {}
 	local xs, sm, md, lg, xl = useBreakpoint()
-	local mobile = xs or sm
+	local mobile = xs or sm or md
 
 	-- 1. Build the 3x3 Grid Elements matching MixerPanel's IngredientList
 	local selectedIngredientElements = {}
@@ -444,7 +444,7 @@ local function RecipePanel(props: {
 	local discoveredDrinks, setDiscoveredDrinks = useState(not player and { none = { espresso = true } } or nil)
 	local drinksOfVariation: { [string]: true } = discoveredDrinks and discoveredDrinks[variationId] or {}
 	local xs, sm, md, lg, xl = useBreakpoint()
-	local mobile = xs or sm
+	local mobile = xs or sm or md
 
 	useEffect(function()
 		local unsub = GlobalState:subscribe(function(state: GlobalState.GlobalState)

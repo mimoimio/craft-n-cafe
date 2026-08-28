@@ -12,7 +12,7 @@ local VariationService = require(ServerScriptService.Server.Services.VariationSe
 
 type DrinkEntity = Types.DrinkEntity
 
-local SPAWN_INTERVAL = 10
+local SPAWN_INTERVAL = 8
 local rng = Random.new()
 
 type CustomerDrink = {
@@ -40,7 +40,7 @@ function CustomersService.SpawnCustomer(playerId: string)
 		return
 	end
 
-	local cafeCapacity = math.max(1, playerStats.CafeCapacity or 1)
+	local cafeCapacity = math.max(1, playerStats.CafeCapacity and 100 or 1)
 	if type(playersCustomers) == "table" and #playersCustomers >= cafeCapacity then
 		return
 	end
@@ -149,7 +149,7 @@ function CustomersService.CustomerTakeItems(playerId: string, customerUid: strin
 	return true
 end
 
-function CustomersService.TendCustomer(player: Player, uid: string)
+function CustomersService.TendCustomer(player: Player, uid: string, cashierUid: string)
 	local playerId = tostring(player.UserId)
 	local state = GlobalState:getState()
 	local playersCustomers = state.Customers[playerId]
@@ -157,6 +157,7 @@ function CustomersService.TendCustomer(player: Player, uid: string)
 	local playersDiscoveredDrinks = state.DiscoveredDrinks[playerId]
 
 	if not (playersCustomers and playersDrinks) then
+		warn("not playersCustomers or drinks")
 		return
 	end
 
@@ -169,6 +170,11 @@ function CustomersService.TendCustomer(player: Player, uid: string)
 	end
 
 	if not (found and found.drinkEntities) then
+		warn("not drinkEntities", found.customerAction)
+		return
+	end
+	if not (found and found.customerAction == "queuing") then
+		warn("customer not queuing")
 		return
 	end
 
@@ -195,6 +201,7 @@ function CustomersService.TendCustomer(player: Player, uid: string)
 		customerUid = uid,
 		Cash = total,
 		timestamp = workspace:GetServerTimeNow(),
+		cashierUid = cashierUid,
 	})
 end
 
@@ -244,7 +251,8 @@ function CustomersService.initialize()
 						-- local amount = 1
 						for i = 1, amount do
 							CustomersService.SpawnCustomer(playerId)
-							task.wait(math.random() * SPAWN_INTERVAL)
+							-- task.wait(math.random() * SPAWN_INTERVAL)
+							task.wait(math.random())
 						end
 						return resolve
 					end):catch(function(err)

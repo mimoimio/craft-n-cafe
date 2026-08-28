@@ -234,6 +234,8 @@ for index, config in ipairs(CoffeeConfigArray) do
 
 	local moreExtraTime = math.max(0, (index - 15)) -- cuz too quick
 	config.Duration = math.max(5, config.Duration + moreExtraTime)
+	-- TEST TO NO DURATION
+	-- config.Duration = 5
 
 	local stock = 5 + index
 

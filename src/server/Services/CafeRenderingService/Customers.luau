@@ -1,4 +1,4 @@
--- CafeRenderingService/Customers.luau
+-- CafeRenderingService/Customers.luau -- server
 
 local PathfindingService = game:GetService("PathfindingService")
 local Players = game:GetService("Players")
@@ -99,7 +99,7 @@ local function Customer(props: {
 		local targetCF = entranceCF + Vector3.new(0, 4, 0)
 
 		-- If a chunk loads while they are already mid-action, spawn them in their current domain
-		if action == "queuing" then
+		if action == "queuing" or action == "walking" then
 			-- Queue spans outward from the front of the cashier (using LookVector)
 			-- Assuming Cashier.Part's Front faces the line
 			local lineOffset = cashierCF.LookVector * 3
@@ -120,6 +120,7 @@ local function Customer(props: {
 
 		local conn = clone.TriggerPrompt.Triggered:Connect(function(player: Player)
 			if tostring(player.UserId) ~= props.PlayerId then
+				warn("not userId")
 				return
 			end
 			CustomersService.TendCustomer(player, props.Customer.id)
@@ -168,9 +169,8 @@ local function Customer(props: {
 		local holdingAnimationThread: thread?
 		if action == "entering" then
 			prompt.Enabled = false
-			local randomOffset = (math.random() - 0.5) * 10
 			targetPos = tableCF.Position
-		elseif action == "queuing" then
+		elseif action == "walking" or action == "queuing" then
 			prompt.Enabled = (props.numberInLine == 1)
 			local lineOffset = cashierCF.LookVector * (4 * (props.numberInLine or 1))
 			targetPos = cashierCF.Position + lineOffset
@@ -178,7 +178,7 @@ local function Customer(props: {
 			prompt.Enabled = false
 			targetPos = entranceCF.Position
 		end
-		if action == "queuing" or action == "paid" then
+		if action == "queuing" or action == "paid" or action == "walking" then
 			local animation = ReplicatedStorage.Shared.Animations:FindFirstChild("HoldCup")
 			-- local animation = ReplicatedStorage.Shared.Animations:FindFirstChild("_idle2")
 			-- if not animation then
@@ -220,6 +220,7 @@ local function Customer(props: {
 					path:ComputeAsync(rootPart.Position, targetPos)
 				end)
 
+				local broke, moveToFinished
 				if success and path.Status == Enum.PathStatus.Success then
 					local waypoints = path:GetWaypoints()
 
@@ -234,10 +235,38 @@ local function Customer(props: {
 						-- Wait for the humanoid to reach the waypoint before continuing
 						local moveSuccess = humanoid.MoveToFinished:Wait()
 						if not moveSuccess then
+							if action == "walking" then
+								warn("failed to move, queuing customer")
+							end
 							-- If they get stuck for longer than 8 seconds, break the loop
+							broke = true
 							break
 						end
+						if _ == #waypoints then
+							moveToFinished = true
+							-- put this here so it doesnt queueCustomer when they havent arrived to cashier yet
+						end
 					end
+					-- humanoid:MoveTo(targetPos)
+					-- local moveSuccess = humanoid.MoveToFinished:Wait()
+					-- if not moveSuccess then
+					-- 	if action == "walking" then
+					-- 		warn("failed to move, queuing customer")
+					-- 	end
+					-- 	-- If they get stuck for longer than 8 seconds, break the loop
+					-- 	broke = true
+					-- else
+					-- 	moveToFinished = true
+					-- end
+				end
+				if broke then
+					rig:PivotTo(CFrame.new(targetPos))
+				end
+				if action == "walking" and moveToFinished then
+					GlobalState.queueCustomer(props.PlayerId, {
+						customerUid = props.Customer.id,
+						timestamp = workspace:GetServerTimeNow(),
+					})
 				end
 			end)
 		end
@@ -296,7 +325,7 @@ local function Customer(props: {
 				end
 			end
 		end
-	end, { rig, paid or props.Customer.customerAction == "queuing" })
+	end, { rig, paid or props.Customer.customerAction == "queuing" or props.Customer.customerAction == "walking" })
 
 	useEffect(function()
 		if not (rig and rig.Parent and rig:FindFirstChild("Head") and paid) then
@@ -365,7 +394,9 @@ local function Customers(props: {
 				BaseModel = props.BaseModel,
 			}
 
-			if customer.drinkEntities then
+			if customer.customerAction == "walking" then
+			end
+			if customer.customerAction == "queuing" then
 				customerProps.numberInLine = numberInLine
 				numberInLine += 1
 			end

@@ -1,3 +1,4 @@
+-- CustomerManager.luau -- client
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -6,6 +7,7 @@ local useEffect = React.useEffect
 local useRef = React.useRef
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
+local Types = require(ReplicatedStorage.Shared.Types)
 local SoundController = require(ReplicatedStorage.Shared.Controllers.SoundController) -- Added SoundController
 
 local CustomerNode = require(script.Parent.CustomerNode)
@@ -15,7 +17,7 @@ local player = game:GetService("Players").LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
 
 local function CustomerManager(props)
-	local customersState, setCustomersState = React.useState(nil)
+	local customersState: { Types.CustomerEntity }, setCustomersState = React.useState(nil)
 	local customerInstances, setCustomerInstances = React.useState(nil)
 
 	-- 1. Subscribe strictly to the Customers state slice
@@ -41,7 +43,6 @@ local function CustomerManager(props)
 		local function syncInstances()
 			local currentInstances = {}
 			for _, inst in ipairs(CollectionService:GetTagged(tag)) do
-				-- Discern specific table via its Name property (e.g. Table1, Table2)
 				currentInstances[inst.Name] = inst
 			end
 			setCustomerInstances(currentInstances)
@@ -93,16 +94,24 @@ local function CustomerManager(props)
 
 	local children = {}
 
+	local numberInLine = 0
 	if customersState and customerInstances then
 		for i, customerData in pairs(customersState) do
-			if i == 1 then
-				UIState.setFirstCustomer(customerInstances[customerData.id])
+			if customerData.customerAction == "queuing" or customerData.customerAction == "walking" then
+				numberInLine += 1
+				if numberInLine == 1 then
+					UIState.setFirstCustomer(customerInstances[customerData.id])
+				end
+			end
+
+			if customerData.customerAction == "walking" then
+				continue
 			end
 			children[customerData.id] = e(CustomerNode, {
 				CustomerUid = customerData.id,
 				CustomerData = customerData,
 				Instance = customerInstances[customerData.id],
-				numberInLine = i,
+				numberInLine = numberInLine,
 			})
 		end
 	end

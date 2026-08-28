@@ -6,6 +6,7 @@ local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 local MixerConfig = require(ReplicatedStorage.Shared.Configs.MixerConfig)
 local Types = require(ReplicatedStorage.Shared.Types)
+local UpgradesModule = require(ReplicatedStorage.Shared.UpgradesModule)
 local ShopCycle = require(ReplicatedStorage.Shared.ShopCycle)
 
 local ShopService = {}
@@ -45,57 +46,79 @@ function ShopService.BuyMixer(player: Player, mixerName: string)
 		mixerId = mixerName,
 	})
 end
-function ShopService.UpgradeLuck(player: Player, increment: number?)
+function ShopService.UpgradeLuck(player: Player, increment: any)
 	local playerId = tostring(player.UserId)
 	local state = GlobalState:getState()
 	local playersStats = state.Stats[playerId]
-
-	increment = increment or 1
 
 	if not playersStats then
 		return
 	end
 
+	local currentLevel = playersStats.Luck or 1
+	local currentCash = playersStats.Cash or 0
+
+	local finalIncrement = 1
 	local cost = 0
-	for i = 1, increment do
-		cost += ((playersStats.Luck + i) * 10) ^ 1.8 // 1
+
+	-- Handle Max calculation or discrete increments
+	if increment == "Max" then
+		finalIncrement, cost = UpgradesModule.GetMaxAffordableLuck(currentLevel, currentCash)
+		if finalIncrement <= 0 then
+			print("not enough cash for max")
+			return
+		end
+	else
+		finalIncrement = type(increment) == "number" and increment or 1
+		cost = UpgradesModule.GetLuckCost(currentLevel, finalIncrement)
 	end
 
-	if playersStats.Cash < cost then
+	if currentCash < cost then
 		print("not enough")
 		return
 	end
 
 	GlobalState.upgradeLuck(playerId, {
 		cost = cost,
-		increment = increment,
+		increment = finalIncrement,
 	})
 end
-function ShopService.UpgradeCafeCapacity(player: Player, increment: number?)
+
+function ShopService.UpgradeCafeCapacity(player: Player, increment: any)
 	local playerId = tostring(player.UserId)
 	local state = GlobalState:getState()
 	local playersStats = state.Stats[playerId]
-
-	increment = increment or 1
 
 	if not playersStats then
 		return
 	end
 
+	local currentCapacity = playersStats.CafeCapacity or 1
+	local currentCash = playersStats.Cash or 0
+
+	local finalIncrement = 1
 	local cost = 0
-	local cafeCapacity = playersStats.CafeCapacity
-	for i = 1, increment do
-		cost += 10 ^ (cafeCapacity - 3 + i)
+
+	-- Handle Max calculation or discrete increments
+	if increment == "Max" then
+		finalIncrement, cost = UpgradesModule.GetMaxAffordableCapacity(currentCapacity, currentCash)
+		if finalIncrement <= 0 then
+			print("not enough cash for max")
+			return
+		end
+	else
+		finalIncrement = type(increment) == "number" and increment or 1
+		cost = UpgradesModule.GetCapacityCost(currentCapacity, finalIncrement)
 	end
 
-	if playersStats.Cash < cost then
+	if currentCash < cost then
 		print("not enough")
 		return
 	end
 
 	GlobalState.upgradeCafeCapacity(playerId, {
 		cost = cost,
-		increment = increment,
+		increment = finalIncrement,
 	})
 end
 

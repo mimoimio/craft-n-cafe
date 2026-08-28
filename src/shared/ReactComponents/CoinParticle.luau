@@ -7,8 +7,8 @@ local ICON = "<b>robux</b>"
 -- local ICON = "<b>two-folders</b>"
 local TRAILICON = "<b>circle</b>"
 
-local trailCount = 10
-local trailSpacing = 0.5 -- Tighter spacing since the end velocity is much higher now
+local trailCount = 3
+local trailSpacing = 1 -- Tighter spacing since the end velocity is much higher now
 
 local function getCubicBezierPoint(p0: Vector2, p1: Vector2, p2: Vector2, p3: Vector2, t: number): Vector2
 	local l1 = p0:Lerp(p1, t)

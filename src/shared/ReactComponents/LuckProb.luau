@@ -5,57 +5,35 @@ local RunService = game:GetService("RunService")
 local React = require(ReplicatedStorage.Packages.React)
 local Promise = require(ReplicatedStorage.Packages.Promise)
 local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
-local CoffeeConfigArray = require(ReplicatedStorage.Shared.Configs.CoffeeConfig)
+local Mionum = require(ReplicatedStorage.Packages.Mionum)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 local HStack = require(ReplicatedStorage.Shared.ReactComponents.ui.HStack)
 local VStack = require(ReplicatedStorage.Shared.ReactComponents.ui.VStack)
 local SmallButton = require(ReplicatedStorage.Shared.ReactComponents.ui.SmallButton)
 local SmallText = require(ReplicatedStorage.Shared.ReactComponents.ui.SmallText)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
-local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConfig)
-local CafeTypes = require(ReplicatedStorage.Shared.CafeTypes)
-local Remotes = require(ReplicatedStorage.Shared.Remotes)
--- CoffeeModule.Config is the keyed lookup (by Id)
-local CoffeeConfig = CoffeeModule.Config
+local LuckModule = require(ReplicatedStorage.Shared.LuckModule)
+local UpgradesModule = require(ReplicatedStorage.Shared.UpgradesModule)
 
 local e = React.createElement
 local useState = React.useState
 local useEffect = React.useEffect
-local useRef = React.useRef
-
-local RECIPES = CoffeeModule.Array
 
 local BG = Color3.fromRGB(25, 25, 30)
 local PANEL_BG = Color3.fromRGB(37, 37, 88)
-local ITEM_BG = Color3.fromRGB(255, 201, 150)
-local ITEM_SELECTED_BG = Color3.fromRGB(255, 252, 208)
-local ITEM_BG_LOCKED = Color3.fromRGB(148, 56, 33)
-local ITEM_BG_LOCKED_SELECTED = Color3.fromRGB(122, 87, 40)
 local ACCENT = Color3.fromRGB(255, 200, 80)
-local TEXT = Color3.fromRGB(230, 230, 230)
-local SUBTEXT = Color3.fromRGB(160, 160, 180)
-
-local variationOrder = {
-	"none",
-	"double",
-	"gold",
-	"diamond",
-	"starlight",
-}
-
-local variation = nil
-
--- local IsEdit = RunService:IsStudio() and not RunService:IsRunMode()
 
 local player = game:GetService("Players").LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
 local tag = playerId .. "Cafe"
+local rolls = 1000
+
 local function LuckProb(props)
-	local luck: number?, setLuck = useState(not player and 1.3 or nil)
+	-- Track the Level instead of the raw multiplier
+	local luckLevel: number, setLuckLevel = useState(not player and 1 or 1)
 	local cafeCapacity: number?, setcafeCapacity = useState(not player and 1 or nil)
 	local cafeModel, setCafeModel = useState(nil)
-	-- 2. Sync Table instances from CollectionService generically
-	-- 2. Subscribe to the generic CollectionService tag
+
 	useEffect(function()
 		if not player then
 			setCafeModel(workspace)
@@ -70,10 +48,8 @@ local function LuckProb(props)
 			setCafeModel(currentInstances)
 		end
 
-		-- Initial sync
 		syncSpawner()
 
-		-- Listen for chunks streaming in/out
 		local connAdd2 = CollectionService:GetInstanceAddedSignal(tag):Connect(syncSpawner)
 		local connRem2 = CollectionService:GetInstanceRemovedSignal(tag):Connect(syncSpawner)
 
@@ -85,19 +61,20 @@ local function LuckProb(props)
 
 	useEffect(function()
 		local unsub = GlobalState:subscribe(function(state: GlobalState.GlobalState)
-			local luck = state.Stats[playerId] and state.Stats[playerId].Luck or nil
-			if luck then
-				setLuck(luck)
+			local level = state.Stats[playerId] and state.Stats[playerId].Luck or nil
+			if level then
+				setLuckLevel(level)
 			end
 		end)
 
 		local state = GlobalState:getState()
-		local luck = state.Stats[playerId] and state.Stats[playerId].Luck or nil
-		if luck then
-			setLuck(luck)
+		local level = state.Stats[playerId] and state.Stats[playerId].Luck or nil
+		if level then
+			setLuckLevel(level)
 		end
 		return unsub
 	end, {})
+
 	useEffect(function()
 		local unsub = GlobalState:subscribe(function(state: GlobalState.GlobalState)
 			local capacity = state.Stats[playerId] and state.Stats[playerId].CafeCapacity or nil
@@ -114,9 +91,9 @@ local function LuckProb(props)
 		return unsub
 	end, {})
 
-	local adornee, setAdornee = useState(nil)
+	local adornee, setAdornee = useState(not player and workspace.UpgradeWall.Part or nil)
 	useEffect(function()
-		if not cafeModel then
+		if not cafeModel or not player then
 			return
 		end
 		local promise = Promise.defer(function(resolve, reject)
@@ -133,62 +110,73 @@ local function LuckProb(props)
 		end
 	end, { cafeModel })
 
-	local uistroke = e("UIStroke", {
-		Thickness = 1,
-	})
-	local bars = {}
-	-- local luck = 5
-	-- local luck = 2
-	-- local luck = 1
+	local uistroke = e("UIStroke", { Thickness = 1 })
+
+	-- Interactive Luck Level Animation (Runs only in Storyboard/Studio)
 	useEffect(function()
+		if player then
+			return
+		end
 		local t = task.defer(function()
 			while true do
-				setLuck(2 ^ (workspace:GetServerTimeNow() % 4))
-				task.wait(0.3)
-				-- task.wait()
+				-- Cycles luck level from 1 to ~300 over 6 seconds
+				local time = workspace:GetServerTimeNow()
+				local simulatedLevel = 1 + math.floor((time % 10) * 50)
+				setLuckLevel(simulatedLevel)
+				task.wait(0.1)
 			end
 		end)
 		return function()
 			task.cancel(t)
 		end
 	end, {})
-	local fn = function(z)
-		return -luck ^ 2 * z ^ (luck - 1) * math.log(z)
-	end
-	local fs = {}
-	local max = 0
+
+	-- 1. Calculate the actual Luck Multiplier (L) from the Level using the unified module
+	local luckMultiplier = LuckModule.GetMultiplier(luckLevel)
+
+	-- Calculate the cumulative cost to reach this level from level 1
+	local totalCost = UpgradesModule.GetLuckCost(1, math.max(0, luckLevel - 1))
+	local formattedCost = Mionum.new(totalCost):toString()
+
+	-- 2. Calculate Expected PDF (Green Bars)
+	local bars = {}
+	local maxPdf = 0
+	-- local RANGE = #CoffeeModule.IngredientConfigs
 	local RANGE = #CoffeeModule.Array
+	local fs = {}
 	for i = 1, RANGE do
-		-- local y = math.min(fn((i - 1 / 2) / (RANGE - 1)), 10)
-		local y = math.min(fn((i - 1 / 2) / RANGE), 10) -- kept the original, cuz if not, the final config wont get it
+		local z = (i - 0.5) / RANGE
+		local y = math.min(LuckModule.CalculatePDF(z, luckMultiplier), 10)
 		fs[i] = y
-		max = math.max(max, y)
-		-- warn(`{i}) {CoffeeModule.Array[i].DisplayName}`)
+		maxPdf = math.max(maxPdf, y)
 	end
 	local counts = {}
 	local layoutOrders = {}
+
 	for i, y in fs do
 		bars[i] = e(SmallButton, {
 			ButtonClass = "ImageButton",
 			AutomaticSize = Enum.AutomaticSize.XY,
-			Size = UDim2.new(0, 0, y / max, 0),
+			Size = UDim2.new(0, 0, maxPdf > 0 and (y / maxPdf) or 0, 0),
 			LayoutOrder = i,
 			BackgroundColor3 = Color3.new(0, 1, 0),
-		}, {
-			uistroke,
-		})
+		}, { uistroke })
+
 		local s = CoffeeModule.Array[i].Id
 		counts[s] = 0
 		layoutOrders[s] = i
 	end
-	max = 0
-	for i = 1, 10000 do
-		local z = ((math.random() * math.random()) ^ (1 / luck))
-		local num = (z * #CoffeeModule.Array) // 1 + 1
 
+	-- 3. Simulate 10,000 Rolls for empirical results (Spawned bars)
+	local maxCount = 0
+	for i = 1, rolls do
+		local num = LuckModule.RollIndex(luckMultiplier, RANGE)
 		local config = CoffeeModule.Array[num]
-		counts[config.Id] = (counts[config.Id] or 0) + 1
-		max = math.max(counts[config.Id] or 0, max)
+
+		if config then
+			counts[config.Id] = (counts[config.Id] or 0) + 1
+			maxCount = math.max(counts[config.Id] or 0, maxCount)
+		end
 	end
 
 	local spawned = {}
@@ -196,14 +184,13 @@ local function LuckProb(props)
 		spawned[layoutOrders[id] .. ")" .. id] = e(SmallButton, {
 			ButtonClass = "ImageButton",
 			AutomaticSize = Enum.AutomaticSize.XY,
-			Size = UDim2.new(0, 0, count / max, 0),
+			Size = UDim2.new(0, 0, maxCount > 0 and (count / maxCount) or 0, 0),
 			LayoutOrder = layoutOrders[id],
 			BackgroundColor3 = Color3.new(0, 1, 0),
 			[React.Event.Activated] = warn,
-		}, {
-			uistroke,
-		})
+		}, { uistroke })
 	end
+
 	return adornee
 		and ReactRoblox.createPortal({
 			e("SurfaceGui", {
@@ -215,19 +202,15 @@ local function LuckProb(props)
 				e("ImageLabel", {
 					Size = UDim2.new(1, -0, 1, -0),
 					ZIndex = 20,
-
 					BackgroundColor3 = PANEL_BG,
 					BackgroundTransparency = 1,
 					Image = "rbxassetid://127657596958436",
-					ImageColor3 = variation and variation.VariationId ~= "none" and variation.ColorPrimary
-						or Color3.new(0.768627, 0.549019, 0.549019),
 					ScaleType = Enum.ScaleType.Slice,
 					SliceCenter = Rect.new(8, 8, 92, 92),
 					BorderSizePixel = 0,
 				}, {
 					Container = e("Frame", {
 						Size = UDim2.new(1, 0, 1, 0),
-						-- Size = UDim2.new(0, 720, 0, 440),
 						AnchorPoint = Vector2.new(0.5, 0.5),
 						Position = UDim2.new(0.5, 0, 0.5, 0),
 						BackgroundColor3 = BG,
@@ -243,7 +226,6 @@ local function LuckProb(props)
 							ZIndex = 2,
 						}, {
 							UICorner = e("UICorner", { CornerRadius = UDim.new(0, 12) }),
-							-- Bottom fill to hide bottom corner rounding
 							BottomFill = e("Frame", {
 								Size = UDim2.new(1, 0, 0, 12),
 								Position = UDim2.new(0, 0, 1, -12),
@@ -255,16 +237,19 @@ local function LuckProb(props)
 								Size = UDim2.new(1, -56, 1, 0),
 								Position = UDim2.new(0, 16, 0, 0),
 								BackgroundTransparency = 1,
-								Text = `Luck: {luck * 100 // 1 / 100}`,
-
-								TextColor3 = ACCENT,
+								Text = string.format(
+									"Level %d (L: %.2f) | Cost: %s",
+									luckLevel,
+									luckMultiplier,
+									formattedCost
+								),
+								TextColor3 = Color3.new(),
 								TextSize = 48,
+
 								Font = Enum.Font.FredokaOne,
 								TextXAlignment = Enum.TextXAlignment.Left,
 							}),
 						}),
-
-						-- Body
 						Body = e(VStack, {
 							Size = UDim2.new(1, 0, 1, -48),
 							Position = UDim2.new(0, 0, 0, 48),
@@ -273,31 +258,23 @@ local function LuckProb(props)
 							Spacing = UDim.new(0, 12),
 							Padding = { All = UDim.new(0, 12) },
 						}, {
-							e(HStack, {
+							ExpectedBars = e(HStack, {
 								Padding = { All = UDim.new(0, 12) },
 								Size = UDim2.new(1, 0, 1, 0),
-								AutomaticSize = Enum.AutomaticSize.None,
-								Position = UDim2.new(0, 0, 0, 48),
 								HorizontalFlex = Enum.UIFlexAlignment.Fill,
-								Spacing = UDim.new(0, 0),
 								VerticalAlignment = Enum.VerticalAlignment.Bottom,
-								VerticalFlex = Enum.UIFlexAlignment.None,
 								BackgroundTransparency = 1,
 								LayoutOrder = 1,
 							}, bars),
-							e(SmallText, {
+							Label = e(SmallText, {
 								LayoutOrder = 2,
-								Text = "2,000 rolls:",
+								Text = `{Mionum.new(rolls):toString()} rolls:`,
 							}),
-							e(HStack, {
+							SpawnedBars = e(HStack, {
 								Padding = { All = UDim.new(0, 12) },
 								Size = UDim2.new(1, 0, 1, 0),
-								AutomaticSize = Enum.AutomaticSize.None,
-								Position = UDim2.new(0, 0, 0, 48),
 								HorizontalFlex = Enum.UIFlexAlignment.Fill,
-								Spacing = UDim.new(0, 0),
 								VerticalAlignment = Enum.VerticalAlignment.Bottom,
-								VerticalFlex = Enum.UIFlexAlignment.None,
 								BackgroundTransparency = 1,
 								LayoutOrder = 3,
 							}, spawned),
