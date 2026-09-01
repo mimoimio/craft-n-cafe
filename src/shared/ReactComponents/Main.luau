@@ -39,6 +39,7 @@ local Mailbox = require(script.Parent.Mailbox)
 local CafeBase = require(script.Parent.CafeBase)
 local CafeModel = require(script.Parent.CafeModel)
 local VStack = require(script.Parent.ui.VStack)
+local BillboardPromptButton = require(ReplicatedStorage.Shared.ReactComponents.ui.BillboardPromptButton)
 
 local player = game:GetService("Players").LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
@@ -466,36 +467,49 @@ function Overlays()
 	local closeAllPanels = React.useCallback(function()
 		toggle("none")
 	end, {})
-	return e("Frame", {
-			Size = UDim2.new(1, 0, 1, 0),
-			BackgroundTransparency = 1,
-		}, {
-			-- Shop = e(IngredientShopPanel, {
-			-- 	OnClose = closeAllPanels,
-			-- }),
-			e(SettingsPanel, {OnClose = closeAllPanels}),
-			e(require(script.Parent.CashiersPanel), {OnClose = closeAllPanels}),
-			e(MixerPanel, {OnClose = closeAllPanels}),
-			e(RecipePanel, {OnClose = closeAllPanels}),
-			e(CafePanel, {OnClose = closeAllPanels}),
-			e(require(script.Parent.BonusHud)),
 
-			e(require(script.Parent.DiscoveredDrink), { closeAllPanels = closeAllPanels }),
-			e(require(script.Parent.DailyPanel)),
-			e(require(script.Parent.SpecialEvent)),
-			e(require(script.Parent.DailyClaimPopup)),
-			e(require(script.Parent.ShopPrompt)),
-			e(require(script.Parent.UpgradePanel)),
-			e(require(script.Parent.Skeleton)),
-			MixerManager = e(MixerManager),
-			CustomerManager = e(CustomerManager),
-			CashierManager = e(require(script.Parent.CashierManager)),
-			Spawner = e(Spawner),
-			Tables = e(TableManager),
-			Mailbox = e(Mailbox),
-			CafeBase = e(CafeBase),
-			CafeModel = e(CafeModel),
-		})
+	return e("Frame", {
+		Size = UDim2.new(1, 0, 1, 0),
+		BackgroundTransparency = 1,
+	}, {
+		-- Shop = e(IngredientShopPanel, {
+		-- 	OnClose = closeAllPanels,
+		-- }),
+		e(SettingsPanel, { OnClose = closeAllPanels }),
+		e(require(script.Parent.CashiersPanel), { OnClose = closeAllPanels }),
+		e(MixerPanel, { OnClose = closeAllPanels }),
+		e(RecipePanel, { OnClose = closeAllPanels }),
+		e(CafePanel, { OnClose = closeAllPanels }),
+		e(require(script.Parent.BonusHud)),
+
+		e(require(script.Parent.DiscoveredDrink), { closeAllPanels = closeAllPanels }),
+		e(require(script.Parent.DailyPanel)),
+		e(require(script.Parent.SpecialEvent)),
+		e(require(script.Parent.DailyClaimPopup)),
+		e(require(script.Parent.ShopPrompt)),
+		e(require(script.Parent.UpgradePanel)),
+		e(require(script.Parent.Skeleton)),
+		MixerManager = e(MixerManager),
+		CustomerManager = e(CustomerManager),
+		CashierManager = e(require(script.Parent.CashierManager)),
+		Spawner = player and e(Spawner) or nil,
+		Tables = e(TableManager),
+		Mailbox = e(Mailbox),
+		CafeBase = e(CafeBase),
+		CafeModel = e(CafeModel),
+
+		-- e(BillboardPromptButton, {
+		-- 	Size = UDim2.new(0, 50, 0, 50),
+		-- 	ProximityPrompt = workspace.PromptButton.ProximityPrompt,
+		-- 	Adornee = workspace.PromptButton,
+		-- }, {
+		-- 	e(SmallText, {
+		-- 		AnchorPoint = Vector2.new(0.5, 0.5),
+		-- 		Position = UDim2.new(0.5, 0, 0.5, 0),
+		-- 		Text = "Son",
+		-- 	}),
+		-- }),
+	})
 end
 
 return Main

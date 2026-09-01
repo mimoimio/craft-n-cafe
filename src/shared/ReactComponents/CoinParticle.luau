@@ -78,7 +78,7 @@ local function CoinParticle(props)
 	React.useEffect(function()
 		setTGoal(ReactOtter.spring(1, {
 			dampingRatio = 0.9,
-			frequency = 1.2 - 0.5 * math.random(),
+			frequency = 1.5 - 0.5 * math.random(),
 		}))
 	end, {})
 
@@ -86,54 +86,17 @@ local function CoinParticle(props)
 
 	for i = 1, trailCount do
 		local taperScale = 1 - (i / (trailCount + 1))
-		local size = (8 + randSizeOffset) * taperScale
+		local size = (18 + randSizeOffset) * taperScale
 
-		-- uiElements["Trail" .. i] = React.createElement("ImageLabel", {
-		-- 	Size = UDim2.fromOffset(size, size),
-		-- 	AnchorPoint = Vector2.new(0.5, 0.5),
-		-- 	Image = "rbxassetid://13249588501",
-		-- 	BackgroundTransparency = 1,
-		-- 	ImageColor3 = props.Color3,
-		-- 	ZIndex = 90 - i,
-		-- 	ImageTransparency = 0.2 + (0.8 * (i / trailCount)),
-
-		-- 	Position = tBinding:map(function(t)
-		-- 		-- 1. Match the trail's easing perfectly to the main coin
-		-- 		local easedT = t ^ exp
-
-		-- 		-- 2. THE SLURP FACTOR
-		-- 		-- math.max(0, 1 - t) approaches 0 as the animation finishes.
-		-- 		-- We multiply our spacing by this factor so the trail physically catches up!
-		-- 		local collapseMultiplier = math.max(0, 1 - t)
-
-		-- 		local delayedT = math.max(0, easedT - (i * trailSpacing * collapseMultiplier))
-		-- 		local pos = getCubicBezierPoint(startPos, controlPoints.p1, controlPoints.p2, targetPos, delayedT)
-		-- 		return UDim2.fromOffset(pos.X, pos.Y)
-		-- 	end),
-		-- }, {
-		uiElements["Trail" .. i] = React.createElement("TextLabel", {
-			RichText = true,
+		uiElements["Trail" .. i] = React.createElement("ImageLabel", {
+			Image = "rbxassetid://17368060122",
 			Size = UDim2.fromOffset(size, size),
 			AnchorPoint = Vector2.new(0.5, 0.5),
-			Text = ([[<font family="rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json">%s</font>]]):format(
-				TRAILICON
-			),
-			TextSize = 18 * (((trailCount - i) / trailCount) * 0.5 + 0.25),
-			TextColor3 = props.Color3 and (props.Color3):Lerp(Color3.new(1, 0.941176, 0.129411), 0.1)
-				or Color3.new(0.9, 0.9, 0.9),
 			BackgroundTransparency = 1,
-			TextTransparency = i / trailCount,
 			ZIndex = -1 - i,
-
 			Position = tBinding:map(function(t)
-				-- 1. Match the trail's easing perfectly to the main coin
 				local easedT = t ^ exp
-
-				-- 2. THE SLURP FACTOR
-				-- math.max(0, 1 - t) approaches 0 as the animation finishes.
-				-- We multiply our spacing by this factor so the trail physically catches up!
 				local collapseMultiplier = math.max(0, 1 - t)
-
 				local delayedT = math.max(0, easedT - (i * trailSpacing * collapseMultiplier))
 				local pos = getCubicBezierPoint(startPos, controlPoints.p1, controlPoints.p2, targetPos, delayedT)
 				return UDim2.fromOffset(pos.X, pos.Y)
@@ -144,30 +107,12 @@ local function CoinParticle(props)
 			}),
 		})
 	end
-	local mainCoinSize = 30 + randSizeOffset
+	-- local mainCoinSize = 30 + randSizeOffset
 
-	-- uiElements.MainCoin = React.createElement("ImageLabel", {
-	-- 	Size = UDim2.fromOffset(mainCoinSize, mainCoinSize),
-	-- 	AnchorPoint = Vector2.new(0.5, 0.5),
-	-- 	Image = "rbxassetid://13249588501",
-	-- 	ImageColor3 = props.Color3,
-	-- 	BackgroundTransparency = 1,
-	-- 	ZIndex = 100,
-	-- 	Position = tBinding:map(function(t)
-	-- 		local easedT = t ^ exp
-	-- 		local pos = getCubicBezierPoint(startPos, controlPoints.p1, controlPoints.p2, targetPos, easedT)
-	-- 		return UDim2.fromOffset(pos.X, pos.Y)
-	-- 	end),
-	uiElements.MainCoin = React.createElement("TextLabel", {
-		RichText = true,
-		Size = UDim2.fromOffset(10 + randSizeOffset, 10 + randSizeOffset),
+	uiElements.MainCoin = React.createElement("ImageLabel", {
+		Image = "rbxassetid://17368060122",
+		Size = UDim2.fromOffset(20 + randSizeOffset, 20 + randSizeOffset),
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Text = ([[<font family="rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json">%s</font>]]):format(
-			ICON
-		),
-		TextStrokeTransparency = props.TextStrokeTransparency or 0,
-		TextSize = 20,
-		TextColor3 = props.Color3,
 		BackgroundTransparency = 1,
 		ZIndex = 100,
 		Position = tBinding:map(function(t)

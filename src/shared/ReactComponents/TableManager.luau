@@ -101,12 +101,15 @@ end
 local function DrinksAnimation(props)
 	-- this thing sometimes do animations on already placed drinks idk why
 	local tag = player and (playerId .. "DrinkModel") or ""
-	local drinksRef: { current: { [Model]: true } } = useRef({})
+	local drinksRef: { current: { [Model]: true } } = useRef(nil)
 	useEffect(function()
 		if not player then
 			return
 		end
 		local conn = CollectionService:GetInstanceAddedSignal(tag):Connect(function()
+			if not drinksRef.current then
+				return
+			end
 			-- get models
 			local models = CollectionService:GetTagged(tag)
 
@@ -131,6 +134,9 @@ local function DrinksAnimation(props)
 		end)
 
 		local conn2 = CollectionService:GetInstanceRemovedSignal(tag):Connect(function()
+			if not drinksRef.current then
+				return
+			end
 			local models = CollectionService:GetTagged(tag)
 			for ref, _: Model in drinksRef.current do
 				if not (ref and ref.Parent) then
@@ -145,6 +151,25 @@ local function DrinksAnimation(props)
 				end
 			end
 		end)
+
+		drinksRef.current = {}
+		local models = CollectionService:GetTagged(tag)
+		for i, model in models do
+			local found = drinksRef.current[model]
+			if found then
+				continue
+			end
+			drinksRef.current[model] = true
+
+			local finalCFrame = model:GetPivot()
+			local initialPosition = player and player.Character and player.Character:GetPivot().Position or Vector3.zero
+			local promis = animateModelToTable(model, finalCFrame, initialPosition)
+			-- will doing it like this cause memory leak? it's all uncanceled.
+			promis:catch(function(err)
+				warn(`Error in animation:`, err)
+			end)
+		end
+
 		return function()
 			conn:Disconnect()
 			conn2:Disconnect()

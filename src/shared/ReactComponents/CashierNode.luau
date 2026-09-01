@@ -23,15 +23,17 @@ local function CashierNode(props: {
 
 	-- Handle Cooldown Progress
 	useEffect(function()
-		if not props.CashierData.lastTend then return end
-		
+		if not props.CashierData.lastTend then
+			return
+		end
+
 		local conn = RunService.RenderStepped:Connect(function()
 			local now = workspace:GetServerTimeNow()
 			local elapsed = now - props.CashierData.lastTend
-			
+
 			local currentProgress = math.clamp(elapsed / COOLDOWN_DURATION, 0, 1)
 			setProgress(currentProgress)
-			
+
 			-- Only show the wheel if it's currently on cooldown
 			if currentProgress < 1 and not isVisible then
 				setIsVisible(true)
@@ -60,7 +62,7 @@ local function CashierNode(props: {
 			Adornee = props.Instance,
 			Size = UDim2.fromOffset(60, 60),
 			StudsOffset = Vector3.new(0, 3, 0), -- Position above the cashier's head
-			AlwaysOnTop = true,
+			-- AlwaysOnTop = true,
 			ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		}, {
 			ProgressContainer = e("Frame", {

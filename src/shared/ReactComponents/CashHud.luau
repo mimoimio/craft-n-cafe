@@ -243,7 +243,8 @@ local function CashHud(props: {
 
 		text = e("ImageLabel", {
 			-- AutomaticSize = Enum.AutomaticSize.XY,
-			Image = "rbxassetid://79117466159931",
+			Image = "rbxassetid://17368060122",
+			ScaleType = Enum.ScaleType.Fit,
 			Size = UDim2.new(0, 200, 0, 50),
 			BackgroundTransparency = 1,
 		}, {

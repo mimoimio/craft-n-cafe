@@ -1,5 +1,6 @@
 local serviceModules = script.Services:GetChildren()
 local services = {}
+-- return;
 -- local viewModules = script.Views:GetChildren()
 -- print([[services initialization]])
 for i, d in serviceModules do

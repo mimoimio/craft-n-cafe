@@ -250,7 +250,7 @@ local function MixerProgressBar(
 						ZIndex = 10,
 						Position = UDim2.fromScale(0.5, 0.5), -- Anchored dead center so scaling/rotating is flawless
 						AnchorPoint = Vector2.new(0.5, 0.5),
-						Rotation = rotation, -- The Bounce!
+						Rotation = rotation,
 					}),
 					ImageLeft = e("Frame", {
 						Size = UDim2.new(0.5, 0, 1, 0),

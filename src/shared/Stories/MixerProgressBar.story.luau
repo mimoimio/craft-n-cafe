@@ -17,9 +17,9 @@ local App = function()
 			task.wait(2)
 			setMixer({
 				startTime = workspace:GetServerTimeNow(),
-				drinkId = "fullcreammilk",
+				drinkId = "water",
 				variationId = "hexed",
-				size = 5,
+				size = 1,
 			})
 		end)
 		return

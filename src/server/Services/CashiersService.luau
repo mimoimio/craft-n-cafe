@@ -59,7 +59,7 @@ function CashiersService.initialize()
 				end
 				local playersCashiers = state.Cashiers[playerId]
 				if not playersCashiers then
-					warn(`not playersCashiers`)
+					-- warn(`not playersCashiers`)
 					continue
 				end
 				for _, cashier in ipairs(playersCashiers) do

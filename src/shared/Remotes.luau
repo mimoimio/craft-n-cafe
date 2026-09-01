@@ -101,4 +101,5 @@ return {
 	SetMusicVolume = CreateRemote("SetMusicVolume"),
 	HireCashier = CreateRemote("HireCashier"),
 	FireCashier = CreateRemote("FireCashier"),
+	Place = CreateRemote("Place"),
 }

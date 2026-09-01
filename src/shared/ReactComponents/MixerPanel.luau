@@ -67,7 +67,7 @@ local function MixerPanel(props: {
 	local currentIngredients, setCurrentIngredients = useState({})
 	local pendingIngredients, setPendingIngredients = useState({})
 	local activeTrails, setActiveTrails = useState({})
-	local panelOpen, setPanelOpen = useState((not player) and true or false)
+	local panelOpen, setPanelOpen = useState(false)
 	local activeMixerId, setMixerId = useState(nil)
 	local eventId: string?, setEventId = useState(nil)
 
@@ -264,7 +264,6 @@ local function MixerPanel(props: {
 			OverlayTextWrapped = true,
 			ButtonClass = "ImageButton",
 			Image = "rbxassetid://127657596958436",
-			-- Image = config.Image,
 			OverlayTextTransparency = transparency,
 			BackgroundTransparency = transparency,
 			LayoutOrder = layoutOrders[id],

@@ -41,7 +41,7 @@ function CustomersService.SpawnCustomer(playerId: string)
 	end
 
 	local cafeCapacity = math.max(1, playerStats.CafeCapacity and 100 or 1)
-	if type(playersCustomers) == "table" and #playersCustomers >= cafeCapacity then
+	if type(playersCustomers) == "table" and #playersCustomers >= cafeCapacity or not playerStats.CafeOpen then
 		return
 	end
 

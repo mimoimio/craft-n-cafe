@@ -1,6 +1,8 @@
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local Remotes = require(ReplicatedStorage.Shared.Remotes)
 export type Stud = number
 export type Degree = number
 
@@ -16,7 +18,7 @@ local rotationStep: Degree = 90
 local maxHeight: Stud = 90
 
 -- Numbers/ Floats
-local lerpLevel = 0.7
+local lerpLevel = 0.1
 
 -- Others
 local gridTexture = "rbxassetid://2600521419"
@@ -74,7 +76,9 @@ local function handleCollisions()
 		local collisionPoints = primary:GetTouchingParts()
 
 		for i, cp in collisionPoints do
-			if not cp:IsDescendantOf(object) then
+			local isCharacter = character and cp:IsDescendantOf(character) or false
+			local isObject = cp:IsDescendantOf(object)
+			if not (isObject or isCharacter) then
 				collided = true
 				break
 			end
@@ -82,6 +86,23 @@ local function handleCollisions()
 
 		collisionPoint:Disconnect()
 	end
+end
+
+local function bounds(cf, offsetX, offsetZ)
+	local LOWER_X_BOUND
+	local LOWER_Z_BOUND
+	local UPPER_X_BOUND
+	local UPPER_Z_BOUND
+
+	LOWER_X_BOUND = plot.Position.X - (plot.Size.X * 0.5) + offsetX
+	UPPER_X_BOUND = plot.Position.X + (plot.Size.X * 0.5) - offsetX
+	LOWER_Z_BOUND = plot.Position.Z - (plot.Size.Z * 0.5) + offsetZ
+	UPPER_Z_BOUND = plot.Position.Z + (plot.Size.Z * 0.5) - offsetZ
+
+	local newX = math.clamp(cf.X, LOWER_X_BOUND, UPPER_X_BOUND)
+	local newZ = math.clamp(cf.Z, LOWER_Z_BOUND, UPPER_Z_BOUND)
+
+	return CFrame.new(newX, posY, newZ)
 end
 
 -- Calculates the initial y position above an object
@@ -117,7 +138,7 @@ local function calculateItemPosition()
 		x, z = mouse.Hit.X - offsetX, mouse.Hit.Z - offsetZ
 	end
 
-	if stackable then
+	if stackable and mouse.Target and mouse.Target:IsDescendantOf(plot) then
 		posY = calculateYPosition(mouse.Target.Position.Y, mouse.Target.Size.Y, primary.Size.Y)
 	else
 		posY = calculateYPosition(plot.Position.Y, plot.Size.Y, primary.Size.Y)
@@ -132,7 +153,7 @@ local function calculateItemPosition()
 		finalCFrame = CFrame.new(mouse.Hit.X, posY, mouse.Hit.Z)
 	end
 
-	finalCFrame = CFrame.new(finalCFrame.X, posY, finalCFrame.Z)
+	finalCFrame = bounds(CFrame.new(finalCFrame.X, posY, finalCFrame.Z), offsetX, offsetZ)
 
 	return finalCFrame * CFrame.Angles(0, math.rad(rotation), 0)
 end
@@ -153,7 +174,8 @@ local function translateObj()
 		changeHitboxColor()
 		object:PivotTo(
 			-- object:GetPivot():Lerp(CFrame.new(posX, posY, posZ) * CFrame.Angles(0, math.rad(rotation), 0), speed)
-			object:GetPivot():Lerp(calculateItemPosition(), speed)
+			-- object:GetPivot():Lerp(calculateItemPosition(), speed)
+			object.PrimaryPart.CFrame:Lerp(calculateItemPosition(), speed)
 		)
 	end
 end
@@ -215,6 +237,13 @@ function placement:activate(id, pobjs, plt, stk)
 	plot = plt
 	stackable = stk
 	rotation = 0
+	rotationVal = true
+
+	for i, part in object:GetDescendants() do
+		if part:IsA("BasePart") then
+			part.CanCollide = false
+		end
+	end
 
 	if not approvePlacement() then
 		warn("Placement could not activate")
@@ -240,10 +269,21 @@ function placement:activate(id, pobjs, plt, stk)
 	speed = preSpeed
 end
 
+function getInstantCFrame()
+	return calculateItemPosition()
+end
+
+function placement:place()
+	if not collided and object then
+		Remotes.Place:FireServer(object.Name, placedObjects, getInstantCFrame(), plot)
+	end
+end
+
 function placement.initialize()
 	RunService:BindToRenderStep("Input", Enum.RenderPriority.Input.Value, translateObj)
 	local p = placement.new(2, game.ReplicatedStorage.Shared.Models, Enum.KeyCode.R, Enum.KeyCode.X)
 	p:activate("crate", workspace:WaitForChild("PlaceFolder"), workspace:WaitForChild("Baseplate"), false)
+	mouse.Button1Down:Connect(placement.place)
 end
 
 return placement
