@@ -18,7 +18,7 @@ local rotationStep: Degree = 90
 local maxHeight: Stud = 90
 
 -- Numbers/ Floats
-local lerpLevel = 0.1
+local lerpLevel = 0.8
 
 -- Others
 local gridTexture = "rbxassetid://2600521419"
@@ -37,7 +37,8 @@ local object: PVInstance?
 local placedObjects
 local plot: Part
 local stackable
-local primary
+local primary: Part
+local bbgui: BillboardGui
 
 local posX
 local posY
@@ -72,8 +73,7 @@ end
 local function handleCollisions()
 	if object then
 		collided = false
-		local collisionPoint = primary.Touched:Connect(function(otherPart) end)
-		local collisionPoints = primary:GetTouchingParts()
+		local collisionPoints = workspace:GetPartsInPart(primary)
 
 		for i, cp in collisionPoints do
 			local isCharacter = character and cp:IsDescendantOf(character) or false
@@ -83,8 +83,6 @@ local function handleCollisions()
 				break
 			end
 		end
-
-		collisionPoint:Disconnect()
 	end
 end
 
@@ -172,10 +170,13 @@ local function translateObj()
 	if object and object.Parent and object.Parent == placedObjects then
 		handleCollisions()
 		changeHitboxColor()
+		local pos = calculateItemPosition()
+		local X, Y, Z = pos.X, pos.Y, pos.Z
+		bbgui.TextLabel.Text = `({X / GRID_SIZE}, {Z / GRID_SIZE})`
 		object:PivotTo(
 			-- object:GetPivot():Lerp(CFrame.new(posX, posY, posZ) * CFrame.Angles(0, math.rad(rotation), 0), speed)
 			-- object:GetPivot():Lerp(calculateItemPosition(), speed)
-			object.PrimaryPart.CFrame:Lerp(calculateItemPosition(), speed)
+			object.PrimaryPart.CFrame:Lerp(pos, speed)
 		)
 	end
 end
@@ -224,6 +225,21 @@ function placement.new(g, objs, r, t)
 	return data
 end
 
+local function createLabel(obj)
+	local bbgui = Instance.new("BillboardGui", obj)
+	bbgui.Size = UDim2.new(0, 200, 0, 50)
+	bbgui.AlwaysOnTop = true
+
+	local label = Instance.new("TextLabel", bbgui)
+	label.Size = UDim2.new(1, 0, 1, 0)
+	label.Text = "0,0,0"
+	label.BackgroundTransparency = 1
+	label.TextSize = 24
+	label.Font = "FredokaOne"
+
+	return bbgui
+end
+
 --[[```
 id:     name
 pobjs:  placed objects
@@ -238,6 +254,8 @@ function placement:activate(id, pobjs, plt, stk)
 	stackable = stk
 	rotation = 0
 	rotationVal = true
+
+	bbgui = createLabel(object)
 
 	for i, part in object:GetDescendants() do
 		if part:IsA("BasePart") then

@@ -14,8 +14,7 @@ local ShopService = {}
 local function handleCollisions(object, char: Model?)
 	if object then
 		local collided = false
-		-- local collisionPoint = object.PrimaryPart.Touched:Connect(function(otherPart) end)
-		local collisionPoints = object.PrimaryPart:GetTouchingParts()
+		local collisionPoints = workspace:GetPartsInPart(object.PrimaryPart)
 
 		for i, cp in collisionPoints do
 			local isCharacter = char and cp:IsDescendantOf(char) or false
@@ -26,8 +25,6 @@ local function handleCollisions(object, char: Model?)
 				break
 			end
 		end
-
-		-- collisionPoint:Disconnect()
 		return collided
 	end
 end
@@ -40,6 +37,7 @@ function ShopService.initialize()
 		local char = player.Character
 		if handleCollisions(item, char) then
 			item:Destroy()
+			return
 		end
 
 		if plot then
