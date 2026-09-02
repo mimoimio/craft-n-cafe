@@ -2,67 +2,14 @@
 --v1
 export type PlayerData = {
 	Stats: StatsEntity,
-	Tables: { [string]: TableEntity },
-	Drinks: { DrinkEntity },
-	Mixers: { [string]: MixerEntity },
 	Ingredients: { [string]: number },
 	Customers: { CustomerEntity },
-	Shelves: { [string]: ShelfEntity },
-	DiscoveredDrinks: {
-		[VariationId]: {
-			[DrinkId]: true,
-		},
-	},
-	Shop: {},
 	Daily: {},
-	Spawner: {
-		TimePulled: number,
-		IngredientId: string,
-	},
+	Workers: { WorkerEntity },
 }
 export type PlayerId = string
 export type VariationId = string
 export type DrinkId = string
-
--- Shelves
-export type DisplayDrink = {
-	drinkId: string,
-	variationId: string,
-	size: number,
-	lastClaimTime: number, -- NEW: Each slot tracks its own time!
-}
-export type ShelfEntity = {
-	ShelfId: string,
-	Slots: {
-		[string]: DisplayDrink | "none",
-	},
-}
-export type ShelvesState = {
-	[PlayerId]: {
-		[string]: ShelfEntity,
-	},
-}
-
-export type CashierId = string | "Cashier1"
-
-export type CashierEntity = {
-	id: string,
-	lastTend: number,
-}
-
-export type CashiersState = {
-	[PlayerId]: {
-		[CashierId]: CashierEntity,
-	},
-}
-
--- Spawner
-export type SpawnerState = {
-	[string]: {
-		TimePulled: number?,
-		IngredientIds: { string }?,
-	},
-}
 
 -- Stats
 export type StatsEntity = {
@@ -86,59 +33,8 @@ export type StatsEntity = {
 	PendingSkipMixer: string?,
 	SkipTickets: number,
 	OwnedGamePasses: { [string]: boolean },
-
-	-- unimplemented
-	SecondsPlayed: number,
-}
-
--- Tables
-export type TableEntity = {
-	TableId: string,
-	Slots: {
-		Slot1: string,
-		Slot2: string,
-		Slot3: string,
-		Slot4: string,
-	},
-}
-
--- Drinks
-export type DrinkEntity = {
-	id: string,
-	size: number,
-	stock: number,
-	drinkId: string,
-	variationId: string?,
-}
-export type DrinksState = { [string]: { DrinkEntity } }
-
--- Unlocked Ingredients
-export type UnlockedIngredientsState = {
-	[PlayerId]: { string },
-}
-
--- Shop
-export type ShopCycle = {
-	seed: number,
-	today: day,
-	position: number,
-	isSpecial: boolean,
-	timeLeft: number,
-	timeToSpecial: number,
 }
 export type Seed = string
-export type ShopEntity = {
-	[string]: number,
-}
-export type ShopState = {
-	[PlayerId]: {
-		variationEvent: string?,
-		currentSeed: number,
-		shops: {
-			[Seed]: ShopEntity,
-		},
-	},
-}
 
 -- DailyState
 export type DailyState = {
@@ -153,30 +49,10 @@ export type DailyEntity = {
 	today: day?,
 }
 
--- DiscoveredDrinksState
-export type DiscoveredDrinksState = {
-	[PlayerId]: {
-		[VariationId]: { [string]: true },
-	},
-}
-
 -- Ingredients
 export type IngredientsState = {
 	[PlayerId]: {
 		[string]: number,
-	},
-}
-
--- Mixers
-export type MixerEntity = {
-	drinkId: string,
-	startTime: number?,
-	variationId: string?,
-	size: number?,
-}
-export type MixersState = {
-	[PlayerId]: {
-		[string]: MixerEntity,
 	},
 }
 
@@ -228,19 +104,6 @@ export type LevelUpPayload = {
 	unlockedIngredients: { string },
 	unlockedMixers: { string },
 }
-export type BuyIngredientBulkPayload = {
-	ingredients: { [string]: number },
-	price: number,
-}
-export type PickUpPayload = {
-	id: string,
-	drinkId: string,
-	variationId: string,
-	stock: number,
-	size: number,
-	mixer: string,
-	timestamp: number,
-}
 export type CustomerItemPayload = {
 	customerUid: string,
 	drinksDeducted: {
@@ -255,27 +118,7 @@ export type SpawnCustomerPayload = {
 	customerId: string,
 	timestamp: number,
 }
-export type PlaceDrinkPayload = {
-	tableUid: string,
-	slot: string,
-	drinkUid: string,
-}
-export type StartPlayerSessionPayload = {
-	variationEvent: string?,
-	newestShop: ShopEntity,
-	newestSeed: number,
-}
-export type RefreshShopPayload = {
-	variationEvent: string?,
-	newestShop: ShopEntity,
-	newestSeed: number,
-}
-export type BuyIngredientPayload = {
-	ingredientId: string,
-	amount: number,
-	cost: number,
-	seed: number,
-}
+export type StartPlayerSessionPayload = {}
 export type DailyClaimPayload = {
 	lastClaimedDaily: day,
 	nextDay: number,
@@ -283,82 +126,16 @@ export type DailyClaimPayload = {
 		[string]: number,
 	},
 }
-export type RestockDrinksPayload = {
-	stockToAdd: { [string]: number },
-	drinksToRemove: { [string]: boolean },
-}
-export type RollIngredientPayload = {
-	ingredientIds: { string },
-	timePulled: number,
-}
-export type BuyIngredientFromSpawnerPayload = {
-	ingredientIds: { string },
-	cost: number,
-	timePulled: number,
-}
-export type BuyMixerPayload = {
-	mixerId: string,
-	cost: number,
-}
-export type UpgradeLuckPayload = {
-	increment: number,
-	cost: number,
-}
-export type UpgradeCafeCapacityPayload = {
-	increment: number,
-	cost: number,
-}
-export type UpgradeMaxCustomerAtOnce = {
-	increment: number,
-	cost: number,
-}
-export type ClaimShelfCollectorPayload = {
-	timestamp: number,
-}
-export type SetPendingSkipMixerPayload = {
-	mixer: string?,
-}
-export type AddSkipTicketsPayload = {
-	amount: number,
-}
 export type SetGamePassesPayload = {
 	passes: { [string]: boolean },
 }
 export type GrantGamePassPayload = {
 	passId: string,
 }
-export type PaymentPayload = {
-	customerUid: string,
-	Cash: number,
-	timestamp: number,
-	cashierUid: string?,
-}
-export type QueueCustomerPayload = {
-	customerUid: string,
-	timestamp: number,
-}
 export type CombinedActions = {
 	startPlayerSession: (playerId: PlayerId, data: PlayerData, payload: StartPlayerSessionPayload) -> (),
 	endPlayerSession: (playerId: PlayerId) -> (),
 	mixDrink: (playerId: PlayerId, payload: MixDrinkPayload) -> (),
-	buyIngredient: (playerId: PlayerId, payload: BuyIngredientPayload) -> (),
-	buyIngredientBulk: (playerId: PlayerId, payload: BuyIngredientBulkPayload) -> (),
-	refreshShop: (playerId: PlayerId, payload: RefreshShopPayload) -> (),
-	pickUpDrinkFromMixer: (playerId: PlayerId, payload: PickUpPayload) -> (),
-	restockDrinks: (playerId: PlayerId, payload: RestockDrinksPayload) -> (),
-	queueCustomer: (playerId: PlayerId, payload: QueueCustomerPayload) -> (),
-	buyMixer: (playerId: PlayerId, payload: BuyMixerPayload) -> (),
-	upgradeLuck: (playerId: PlayerId, payload: UpgradeLuckPayload) -> (),
-	upgradeCafeCapacity: (playerId: PlayerId, payload: UpgradeCafeCapacityPayload) -> (),
-	placeDrinkToTableSlot: (
-		playerId: PlayerId,
-		payload: {
-			drinkUid: string?,
-			table: string,
-			slot: string,
-		}
-	) -> (),
-
 	levelUp: (playerId: PlayerId, payload: {
 		Level: number,
 	}) -> (),
@@ -371,20 +148,8 @@ export type CombinedActions = {
 	setMusicVolume: (playerId: PlayerId, volume: number) -> (),
 
 	spawnCustomer: (playerId: PlayerId, payload: SpawnCustomerPayload) -> (),
-	customerTakeItems: (playerId: PlayerId, payload: CustomerItemPayload) -> (),
-	claimShelfCollector: (playerId: PlayerId, payload: ClaimShelfCollectorPayload) -> (),
-	playerReceivePayment: (playerId: PlayerId, payload: PaymentPayload) -> (),
-	customerLeaveEmptyHanded: (
-		playerId: PlayerId,
-		payload: {
-			customerUid: string,
-			timestamp: number,
-		}
-	) -> (),
-
-	buyIngredientFromSpawner: (playerId: PlayerId, payload: BuyIngredientFromSpawnerPayload) -> (),
-	rollIngredient: (playerId: PlayerId, payload: RollIngredientPayload) -> (),
 	removeCustomer: (playerId: PlayerId, uid: string) -> (),
+
 	claimDailyReward: (playerId: PlayerId, DailyClaimPayload) -> (),
 	completeTutorial: (playerId: PlayerId) -> (),
 }
@@ -419,15 +184,6 @@ export type IngredientConfig = {
 	Cost: number,
 	ItemTip: string,
 	Image: string?,
-}
-export type VariationConfig = {
-	VariationId: "none" | "copper" | "silver" | "gold" | "diamond" | "starlight" | "hexed",
-	DisplayName: string,
-	Multiplier: number,
-	ColorPrimary: Color3,
-	ColorSecondary: Color3?,
-	Weight: number,
-	Image: number?,
 }
 
 return {}

@@ -15,42 +15,27 @@ local shopSlice = require(script.shopSlice)
 local shelvesSlice = require(script.shelvesSlice)
 local dailySlice = require(script.dailySlice)
 local spawnerSlice = require(script.spawnerSlice)
-local cashiersSlice = require(script.cashiersSlice)
+local workersSlice = require(script.workersSlice)
 
 export type CombinedActions = Types.CombinedActions
 
 export type GlobalState = {
 	Stats: statsSlice.StatsState,
-	Tables: tablesSlice.TablesState,
-	Drinks: drinksSlice.DrinksState,
 	Ingredients: ingredientsSlice.IngredientsState,
-	Mixers: mixersSlice.MixersState,
 	Customers: customersSlice.CustomersState,
-	DiscoveredDrinks: discoveredDrinksSlice.DiscoveredDrinksState,
-	Shop: shopSlice.ShopState,
-	Shelves: shelvesSlice.ShelvesState,
 	Daily: dailySlice.DailyState,
-	Spawner: spawnerSlice.SpawnerState,
-	Cashiers: cashiersSlice.CashiersState,
+	Workers: workersSlice.WorkersState,
 }
 
 export type Stats = statsSlice.StatsState
-
 export type PlayerData = Types.PlayerData
 
 local producer = Reflex.combineProducers({
 	Stats = statsSlice,
-	Tables = tablesSlice,
-	Drinks = drinksSlice,
 	Ingredients = ingredientsSlice,
-	Mixers = mixersSlice,
 	Customers = customersSlice,
-	DiscoveredDrinks = discoveredDrinksSlice,
-	Shop = shopSlice,
-	Shelves = shelvesSlice,
 	Daily = dailySlice,
-	Spawner = spawnerSlice,
-	Cashiers = cashiersSlice,
+	Workers = workersSlice,
 }) :: Reflex.Producer<GlobalState, CombinedActions>
 
 return producer
