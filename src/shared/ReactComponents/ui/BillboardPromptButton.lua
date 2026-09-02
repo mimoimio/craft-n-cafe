@@ -334,9 +334,6 @@ local function ScreenPromptButton(props: {
 						[React.Event.MouseButton1Up] = function()
 							proximityPrompt:InputHoldEnd()
 						end,
-						[React.Event.MouseLeave] = function()
-							proximityPrompt:InputHoldEnd()
-						end,
 						Image = "rbxassetid://127657596958436",
 						ImageRectOffset = props.ImageRectOffset,
 						ImageTransparency = buttonTransparency:map(function(n)

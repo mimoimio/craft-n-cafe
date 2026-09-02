@@ -498,17 +498,17 @@ function Overlays()
 		CafeBase = e(CafeBase),
 		CafeModel = e(CafeModel),
 
-		-- e(BillboardPromptButton, {
-		-- 	Size = UDim2.new(0, 50, 0, 50),
-		-- 	ProximityPrompt = workspace.PromptButton.ProximityPrompt,
-		-- 	Adornee = workspace.PromptButton,
-		-- }, {
-		-- 	e(SmallText, {
-		-- 		AnchorPoint = Vector2.new(0.5, 0.5),
-		-- 		Position = UDim2.new(0.5, 0, 0.5, 0),
-		-- 		Text = "Son",
-		-- 	}),
-		-- }),
+		e(BillboardPromptButton, {
+			Size = UDim2.new(0, 50, 0, 50),
+			ProximityPrompt = workspace.PromptButton.ProximityPrompt,
+			Adornee = workspace.PromptButton,
+		}, {
+			e(SmallText, {
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.new(0.5, 0, 0.5, 0),
+				Text = "Son",
+			}),
+		}),
 	})
 end
 
