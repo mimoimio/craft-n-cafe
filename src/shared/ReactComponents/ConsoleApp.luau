@@ -6,6 +6,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local SoundController = require(ReplicatedStorage.Shared.Controllers.SoundController)
 local React = require(ReplicatedStorage.Packages.React)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
+local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 
 local Primitives = ReplicatedStorage.Shared.ReactComponents.ui
 local VStack = require(Primitives.VStack)
@@ -26,8 +27,8 @@ local function ConsoleApp()
 		local unsub = GlobalState:subscribe(function(newState)
 			setState(newState)
 		end)
-
-		setState(GlobalState:getState())
+		local state = GlobalState:getState()
+		setState(state)
 
 		return unsub
 	end, {})
@@ -49,11 +50,12 @@ local function ConsoleApp()
 						table.insert(results, string.format("%s%s (%s): {", indent, tostring(k), type(k)))
 						table.insert(results, formatValue(v, depth + 1))
 						table.insert(results, indent .. "}")
-					elseif k == "customerAction" then
+					else
 						table.insert(
 							results,
-							string.format(`%s%s : "%s"`, indent, k == "customerAction" and k or "", tostring(v))
-							-- string.format("%s%s (%s): %s(%s),", indent, tostring(k), type(k), tostring(v), type(v))
+							-- string.format(`%s%s : "%s"`, indent, k == "customerAction" and k or "", tostring(v))
+							string.format("%s%-20s : %s,", indent, tostring(k), tostring(v))
+							-- string.format("%s%24s (%s): %s(%s),", indent, tostring(k), type(k), tostring(v), type(v))
 						)
 					end
 				end
@@ -66,14 +68,15 @@ local function ConsoleApp()
 		local lines = {}
 		for key, slice in currentGlobalState do
 			if
-				key == "Shelves"
-				or key == "Tables"
-				or key == "Drinks"
-				or key == "DiscoveredDrinks"
-				or key == "Mixers"
-				or key == "Ingredients"
-				or key == "Cashiers"
-				or key == "Stats"
+				false
+				-- key == "Customers"
+				-- or key == "Tables"
+				-- or key == "Drinks"
+				-- or key == "DiscoveredDrinks"
+				-- or key == "Mixers"
+				-- or key == "Ingredients"
+				-- or key == "Cashiers"
+				-- or key == "Stats"
 			then
 				continue
 			end
@@ -93,19 +96,29 @@ local function ConsoleApp()
 		setText(table.concat(lines, "\n"))
 		return
 	end, { currentGlobalState })
+
+	local visible, setVisible = useState(nil)
+	useEffect(function()
+		local unsub = UIState:subscribe(function(state: UIState.UIState)
+			local isOpen = state.panel == "recipe"
+			return isOpen
+		end, function(isOpen)
+			setVisible(isOpen)
+		end)
+		local panel = UIState:getState().panel
+		if panel then
+			setVisible(panel == "recipe")
+		end
+		return unsub
+	end, {})
 	return e(VStack, {
 		Size = UDim2.new(0, 400, 1, 0),
 		Position = UDim2.new(1, 0, 0, 0),
 		AnchorPoint = Vector2.new(1, 0),
 		BackgroundTransparency = 0.8,
 		Active = false,
+		Visible = visible,
 	}, {
-		e(SmallButton, {
-			Text = "+500 Cash",
-			[React.Event.Activated] = function()
-				Remotes.Add500:FireServer()
-			end,
-		}),
 		ScrollingFrame = e("ScrollingFrame", {
 			Size = UDim2.new(1, 0, 1, 0),
 			AutomaticCanvasSize = Enum.AutomaticSize.XY,
@@ -113,8 +126,10 @@ local function ConsoleApp()
 			Active = false,
 		}, {
 			textdisplay = e(SmallText, {
+				Font = Enum.Font.RobotoMono,
 				Text = text,
 				Active = false,
+				Thickness = 0,
 			}),
 		}),
 	})

@@ -11,6 +11,7 @@ local Reflex = require(ReplicatedStorage.Packages.Reflex)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local Types = require(ReplicatedStorage.Shared.Types)
 local CafeTypes = require(ReplicatedStorage.Shared.CafeTypes)
+local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 local CustomersService = require(ServerScriptService.Server.Services.CustomersService)
 local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConfig)
 local DrinkModelUtil = require(ReplicatedStorage.Shared.Utils.DrinkModelUtil)
@@ -18,6 +19,7 @@ local DrinkModelUtil = require(ReplicatedStorage.Shared.Utils.DrinkModelUtil)
 local e = React.createElement
 local useEffect = React.useEffect
 local useState = React.useState
+local useRef = React.useRef
 
 local disappointed = {
 	"Where are the drinks?",
@@ -70,7 +72,13 @@ local function Customer(props: {
 	local rig: CafeTypes.CustomerRig, setRig = useState(nil)
 	local prompt: ProximityPrompt, setPrompt = useState(nil)
 
-	-- 1. Mounting Effect: Clone the rig and Pivot to the deterministic start state
+	local actionRef = useRef(nil)
+
+	useEffect(function()
+		actionRef.current = props.Customer.customerAction
+	end, { props.Customer })
+
+	-- 1. Mounting: Clone the rig and Pivot to the deterministic start state
 	useEffect(function()
 		-- warn(`props.CafeModel {props.CafeModel}`)
 		local clone = original:Clone() :: CafeTypes.CustomerRig
@@ -91,39 +99,35 @@ local function Customer(props: {
 		setPrompt(clone.TriggerPrompt)
 
 		local entranceCF = props.BaseModel.Entrance:GetPivot()
-		local cashierCF = props.CafeModel.Cashier:GetPivot()
+		local spotCF = props.CafeModel.Spots:FindFirstChild(props.Customer.spot):GetPivot()
 		local action = props.Customer.customerAction
 
-		-- ... [The rest of your mounting effect remains exactly the same]
-		-- Default start is the entrance
 		local targetCF = entranceCF + Vector3.new(0, 4, 0)
 
-		-- If a chunk loads while they are already mid-action, spawn them in their current domain
-		if action == "queuing" or action == "walking" then
-			-- Queue spans outward from the front of the cashier (using LookVector)
-			-- Assuming Cashier.Part's Front faces the line
-			local lineOffset = cashierCF.LookVector * 3
-				+ (cashierCF * CFrame.Angles(0, math.pi / -2, 0)).LookVector * (3 * (props.numberInLine or 1 - 1))
-			targetCF = cashierCF + lineOffset
-			-- Make them face the cashier
-			targetCF = CFrame.lookAt(targetCF.Position, cashierCF.Position)
+		if action == "queuing" then
+			targetCF = spotCF
 		elseif action == "paid" or action == "emptyHanded" then
-			-- Start them right at the cashier so they can begin their walk out
-			targetCF = cashierCF + (cashierCF.LookVector * 4)
+			targetCF = spotCF + (spotCF.LookVector * 4)
 		end
 
 		clone:PivotTo(targetCF)
 
 		clone.TriggerPrompt.RequiresLineOfSight = false
 		clone.TriggerPrompt.ActionText = "Tend Customer"
-		clone.TriggerPrompt.Style = Enum.ProximityPromptStyle.Custom
+		clone.TriggerPrompt.Style = Enum.ProximityPromptStyle.Default
+		-- clone.TriggerPrompt.Style = Enum.ProximityPromptStyle.Custom
 
 		local conn = clone.TriggerPrompt.Triggered:Connect(function(player: Player)
 			if tostring(player.UserId) ~= props.PlayerId then
-				warn("not userId")
+				warn("not player")
 				return
 			end
-			CustomersService.TendCustomer(player, props.Customer.id)
+
+			if actionRef.current == "waiting" then
+				CustomersService.ServeCustomer(player, props.Customer.id)
+			elseif actionRef.current == "queuing" then
+				CustomersService.TendCustomer(player, props.Customer.id)
+			end
 		end)
 
 		return function()
@@ -141,9 +145,7 @@ local function Customer(props: {
 		end
 	end, { props.Customer.id, props.BaseModel, props.CafeModel })
 
-	-- Customers.luau
-
-	-- 2. State Transition Effect: Handle walking targets using PathfindingService
+	-- 2. State Transition: Handle walking targets using PathfindingService
 	useEffect(function()
 		if not (rig and prompt) then
 			return
@@ -153,32 +155,26 @@ local function Customer(props: {
 		local rootPart = rig:FindFirstChild("HumanoidRootPart")
 		local action = props.Customer.customerAction
 
-		local standSpots = props.BaseModel.Cafe:FindFirstChild("StandSpots")
-		local spots = standSpots:GetChildren()
-		local random = Random.new():NextInteger(1, #spots)
-		local randomSpot = spots[random]
-		local tableCF = randomSpot:GetPivot()
-
 		local entranceCF = props.BaseModel.Entrance:GetPivot()
-		local cashierCF = props.CafeModel.Cashier.Part:GetPivot()
+		local spotCF = props.CafeModel.Spots:FindFirstChild(props.Customer.spot):GetPivot()
 
 		local targetPos = nil
 
 		-- Determine the ultimate target position based on the action state
 		local holdingAnimation: AnimationTrack?
 		local holdingAnimationThread: thread?
-		if action == "entering" then
+		if action == "walking" or action == "entering" then
 			prompt.Enabled = false
-			targetPos = tableCF.Position
-		elseif action == "walking" or action == "queuing" then
-			prompt.Enabled = (props.numberInLine == 1)
-			local lineOffset = cashierCF.LookVector * (4 * (props.numberInLine or 1))
-			targetPos = cashierCF.Position + lineOffset
+			targetPos = spotCF.Position
+		elseif action == "queuing" or action == "waiting" then
+			prompt.Enabled = true
+			targetPos = spotCF.Position
 		elseif action == "paid" or action == "emptyHanded" then
 			prompt.Enabled = false
 			targetPos = entranceCF.Position
 		end
-		if action == "queuing" or action == "paid" or action == "walking" then
+		if action == "paid" then
+			-- or action == "walking" or action == "queuing"
 			local animation = ReplicatedStorage.Shared.Animations:FindFirstChild("HoldCup")
 			-- local animation = ReplicatedStorage.Shared.Animations:FindFirstChild("_idle2")
 			-- if not animation then
@@ -220,7 +216,7 @@ local function Customer(props: {
 					path:ComputeAsync(rootPart.Position, targetPos)
 				end)
 
-				local broke, moveToFinished
+				local broke, moveToFinished, failedpath
 				if success and path.Status == Enum.PathStatus.Success then
 					local waypoints = path:GetWaypoints()
 
@@ -233,7 +229,9 @@ local function Customer(props: {
 						humanoid:MoveTo(waypoint.Position)
 
 						-- Wait for the humanoid to reach the waypoint before continuing
+						local start = tick()
 						local moveSuccess = humanoid.MoveToFinished:Wait()
+						local elapsed = tick()
 						if not moveSuccess then
 							if action == "walking" then
 								warn("failed to move, queuing customer")
@@ -258,11 +256,14 @@ local function Customer(props: {
 					-- else
 					-- 	moveToFinished = true
 					-- end
+				else
+					warn("failed path")
+					failedpath = true
 				end
 				if broke then
 					rig:PivotTo(CFrame.new(targetPos))
 				end
-				if action == "walking" and moveToFinished then
+				if action == "walking" and (failedpath or moveToFinished) then
 					GlobalState.queueCustomer(props.PlayerId, {
 						customerUid = props.Customer.id,
 						timestamp = workspace:GetServerTimeNow(),
@@ -282,51 +283,43 @@ local function Customer(props: {
 			end
 		end
 	end, { rig, prompt, props.Customer.customerAction, props.numberInLine, props.BaseModel, props.CafeModel })
+
+	-- 3. drink models
 	local paid = props.Customer.customerAction and props.Customer.customerAction == "paid"
 	useEffect(function()
-		local drinkEntities = props.Customer.drinkEntities
-		if not (rig and rig.Parent and drinkEntities and #drinkEntities > 0 and rig:FindFirstChild("Head")) then
+		local order = props.Customer.order
+		if not (rig and rig.Parent and order and rig:FindFirstChild("Head") and paid) then
 			return
 		end
 
-		local instances = {}
+		local drinkModel, modelBasePart = DrinkModelUtil.BuildDrinkModel(order, "none", {
+			Anchored = false,
+			CanCollide = false,
+		})
 
-		for i, drink in drinkEntities do
-			local drinkModel, modelBasePart = DrinkModelUtil.BuildDrinkModel(drink.drinkId, drink.variationId, {
-				Anchored = false,
-				CanCollide = false,
-				Size = drink.size,
-			})
+		drinkModel:PivotTo(rig.Head:GetPivot() + Vector3.new(0, 2, 0))
+		drinkModel.Parent = workspace -- Parent to workspace BEFORE setting NetworkOwner!
 
-			drinkModel:PivotTo(rig.Head:GetPivot() + Vector3.new(0, 2 * i, 0))
-			drinkModel.Parent = workspace -- Parent to workspace BEFORE setting NetworkOwner!
-
-			for _, part in drinkModel:GetDescendants() do
-				if part:IsA("BasePart") then
-					-- Crucial for preventing NPC stuttering
-					part:SetNetworkOwner(nil)
-				end
+		for _, part in drinkModel:GetDescendants() do
+			if part:IsA("BasePart") then
+				-- Crucial for preventing NPC stuttering
+				part:SetNetworkOwner(nil)
 			end
+		end
 
-			if modelBasePart then
-				local weld = Instance.new("WeldConstraint")
-				weld.Part0 = modelBasePart
-				weld.Part1 = rig.Head
-				weld.Parent = modelBasePart
-			end
-
-			table.insert(instances, drinkModel)
+		if modelBasePart then
+			local weld = Instance.new("WeldConstraint")
+			weld.Part0 = modelBasePart
+			weld.Part1 = rig.Head
+			weld.Parent = modelBasePart
 		end
 
 		return function()
-			for _, instance in instances do
-				if instance and instance.Parent then
-					instance:Destroy()
-				end
-			end
+			drinkModel:Destroy()
 		end
 	end, { rig, paid or props.Customer.customerAction == "queuing" or props.Customer.customerAction == "walking" })
 
+	-- 4. Chat
 	useEffect(function()
 		if not (rig and rig.Parent and rig:FindFirstChild("Head") and paid) then
 			return
@@ -339,10 +332,18 @@ local function Customer(props: {
 		if not (rig and rig.Parent and rig:FindFirstChild("Head") and emptyHanded) then
 			return
 		end
-		-- game:GetService("Chat"):Chat(rig.Head, disappointed[Random.new():NextInteger(1, #disappointed)])
 		game:GetService("Chat"):Chat(rig.Head, "Nevermind...")
 		return
 	end, { rig, emptyHanded })
+	local order = props.Customer.order
+	useEffect(function()
+		if not (rig and rig.Parent and rig:FindFirstChild("Head") and order) then
+			return
+		end
+		local config = CoffeeModule.Config[order]
+		game:GetService("Chat"):Chat(rig.Head, `I'd like a {config and config.DisplayName or "👀"} please`)
+		return
+	end, { rig, order })
 
 	return e(React.Fragment)
 end
@@ -385,7 +386,6 @@ local function Customers(props: {
 
 	local children = {}
 	if player and customers then
-		local numberInLine = 1
 		for _, customer in customers do
 			local customerProps = {
 				PlayerId = props.PlayerId,
@@ -393,14 +393,6 @@ local function Customers(props: {
 				CafeModel = props.CafeModel,
 				BaseModel = props.BaseModel,
 			}
-
-			if customer.customerAction == "walking" then
-			end
-			if customer.customerAction == "queuing" then
-				customerProps.numberInLine = numberInLine
-				numberInLine += 1
-			end
-
 			children[customer.id] = e(Customer, customerProps)
 		end
 	end

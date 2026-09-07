@@ -11,19 +11,11 @@ local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local CafeTypes = require(game.ReplicatedStorage.Shared.CafeTypes) -- = require(script.Parent.CafeTypes)
 
-local Tables = require(script.Parent.Tables)
 local Stations = require(script.Parent.Stations)
-local Mixers = require(script.Parent.Mixers)
 local Customers = require(script.Parent.Customers)
 
 local function getCafeTemplate(Level: number): Model
-	local ref: ObjectValue = ReplicatedStorage.Shared.InstanceReferences:WaitForChild("CafeTemplateModelsRef")
-	local cafetemplateModels: Model = ref and ref.Value
-	local template = cafetemplateModels:FindFirstChild("Cafe" .. tostring(Level))
-	if not template then
-		warn(`{ref},{cafetemplateModels},{template}`)
-	end
-	return template
+	return workspace.Cafe1
 end
 
 local function Cafe(props: {
@@ -63,12 +55,12 @@ local function Cafe(props: {
 			clone.Name = "Cafe"
 			-- Parent it to the BaseModel so your type definitions hold true in the Explorer!
 			clone.Parent = props.BaseModel
-			for i, spot: Part in clone.StandSpots:GetChildren() do
-				if not spot:IsA("BasePart") then
-					continue
-				end
-				spot.Transparency = 1
-			end
+			-- for i, spot: Part in clone.StandSpots:GetChildren() do
+			-- 	if not spot:IsA("BasePart") then
+			-- 		continue
+			-- 	end
+			-- 	spot.Transparency = 1
+			-- end
 			for i, desc: Part in clone:GetDescendants() do
 				if not desc:IsA("BasePart") or desc == clone.Part then
 					continue
@@ -94,45 +86,15 @@ local function Cafe(props: {
 	local children = {}
 	-- 3. ONLY render children if the dynamic object exists!
 	if clonedCafe then
-		-- Pass the clone directly down so children don't have to drill props.BaseModel.Cafe
-		children.tables = e(Tables, {
-			PlayerId = props.PlayerId,
-			Stats = stats,
-			CafeModel = clonedCafe,
-		})
 		children.stations = e(Stations, {
 			PlayerId = props.PlayerId,
 			Stats = stats,
 			CafeModel = clonedCafe,
 		})
-		-- Fixed a bug here where Mixers was overwriting children.stations
-		children.mixers = e(Mixers, {
-			PlayerId = props.PlayerId,
-			Stats = stats,
-			CafeModel = clonedCafe,
-		})
-		-- NEW: Add the static Shelves renderer!
-		children.shelves = e(require(script.Parent.Shelves), {
-			PlayerId = props.PlayerId,
-			CafeModel = clonedCafe,
-		})
-
 		children.Customers = e(Customers, {
 			PlayerId = props.PlayerId,
 			CafeModel = clonedCafe,
 			BaseModel = props.BaseModel,
-		})
-		children.RecipeWall = e(require(ReplicatedStorage.Shared.ReactComponents.RecipeWall), {
-			PlayerId = props.PlayerId,
-			CafeModel = clonedCafe,
-		})
-		children.Spawners = e(require(script.Parent.Spawners), {
-			PlayerId = props.PlayerId,
-			CafeModel = clonedCafe,
-		})
-		children.Cashiers = e(require(script.Parent.Cashiers), {
-			PlayerId = props.PlayerId,
-			CafeModel = clonedCafe,
 		})
 	end
 	return e(React.Fragment, nil, children)

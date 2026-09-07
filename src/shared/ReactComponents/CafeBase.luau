@@ -1,3 +1,4 @@
+-- ReplicatedStorage/Shared/ReactComponents/CafeBase.luau
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -18,6 +19,10 @@ local playerId = player and player.UserId or ""
 local CafeBase = function(props: {})
 	local cafeBase, setCafeBase = useState(nil)
 	useEffect(function()
+		if not player then
+			setCafeBase(workspace.CafeBase)
+		end
+
 		local promise = Promise.defer(function(resolve, reject)
 			local basesModel = workspace:WaitForChild("Bases")
 			local bases = basesModel:GetChildren()

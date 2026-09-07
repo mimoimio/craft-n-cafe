@@ -102,4 +102,7 @@ return {
 	HireCashier = CreateRemote("HireCashier"),
 	FireCashier = CreateRemote("FireCashier"),
 	Place = CreateRemote("Place"),
+	ServeCustomer = CreateRemote("ServeCustomer"),
+	GetCup = CreateRemote("GetCup"),
+	AddIngredient = CreateRemote("AddIngredient"),
 }

@@ -35,35 +35,10 @@ local actions = {
 			Insert(playersCustomers, #playersCustomers + 1, {
 				id = payload.customerUid,
 				customerId = payload.customerId,
-				customerAction = "entering",
+				customerAction = "walking",
+				spot = payload.spot,
 				actionStartTime = payload.timestamp,
 			})
-		)
-	end,
-	customerTakeItems = function(state: CustomersState, playerId: string, payload: Types.CustomerItemPayload)
-		local playersCustomers = state[playerId] or {}
-
-		local index
-		for i, customer in playersCustomers do
-			if customer.id == payload.customerUid then
-				index = i
-				break
-			end
-		end
-		if not index then
-			return state
-		end
-
-		return Set(
-			state,
-			playerId,
-			Update(playersCustomers, index, function(customer: Types.CustomerEntity)
-				local new = table.clone(customer)
-				new.drinkEntities = payload.drinkEntities
-				new.customerAction = "walking"
-				new.actionStartTime = payload.timestamp
-				return new
-			end)
 		)
 	end,
 	queueCustomer = function(state: CustomersState, playerId: string, payload: Types.QueueCustomerPayload)
@@ -90,7 +65,39 @@ local actions = {
 			end)
 		)
 	end,
-	playerReceivePayment = function(
+	takeCustomerOrder = function(state: CustomersState, playerId: string, payload: Types.TakeCustomerOrderPayload)
+		local playersCustomers = state[playerId]
+		if not playersCustomers then
+			warn("not players customers")
+			return state
+		end
+		local index
+		for i, customer in playersCustomers do
+			if customer.id == payload.customerUid then
+				index = i
+				break
+			end
+		end
+		if not index then
+			warn("not index")
+			return state
+		end
+		return Set(
+			state,
+			playerId,
+			Update(playersCustomers, index, function(customer: Types.CustomerEntity)
+				local new = table.clone(customer)
+				new.drinkEntities = nil
+				new.customerAction = "waiting"
+				new.servedBy = payload.workerUid or "player"
+				new.actionStartTime = payload.timestamp
+				new.order = payload.order
+				warn(new)
+				return new
+			end)
+		)
+	end,
+	serveCustomer = function(
 		state: CustomersState,
 		playerId: string,
 		payload: { customerUid: string, Cash: number, timestamp: number }
@@ -115,16 +122,13 @@ local actions = {
 				local new = table.clone(customer)
 				new.drinkEntities = nil
 				new.customerAction = "paid"
+				new.servedBy = nil
 				new.actionStartTime = payload.timestamp
 				return new
 			end)
 		)
 	end,
-	customerLeaveEmptyHanded = function(
-		state: CustomersState,
-		playerId: string,
-		payload: { customerUid: string, timestamp: number }
-	)
+	wrongOrder = function(state: CustomersState, playerId: string, payload: { customerUid: string, timestamp: number })
 		local playersCustomers = state[playerId] or {}
 
 		local index
@@ -138,17 +142,15 @@ local actions = {
 			return state
 		end
 
-		return Set(
-			state,
-			playerId,
-			Update(playersCustomers, index, function(customer: Types.CustomerEntity)
-				local new = table.clone(customer)
-				new.drinkEntities = nil
-				new.customerAction = "emptyHanded"
-				new.actionStartTime = payload.timestamp
-				return new
-			end)
-		)
+		local newCustomers = Update(playersCustomers, index, function(customer: Types.CustomerEntity)
+			local new = table.clone(customer)
+			new.customerAction = "emptyHanded"
+			new.actionStartTime = payload.timestamp
+			return new
+		end)
+		warn(`{newCustomers} & {playersCustomers} = {newCustomers == playersCustomers}`)
+
+		return Set(state, playerId, newCustomers)
 	end,
 	removeCustomer = function(state: CustomersState, playerId: string, uid: string)
 		local playersCustomers = state[playerId] or {}

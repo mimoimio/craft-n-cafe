@@ -1,44 +1,26 @@
 -- Shared/CafeTypes.luau
 
 export type CafeBase = Model & {
-	Cafe: Cafe?,
-	Part: Part, -- the primary part to pivot the cafe at
-	Entrance: Part, -- the platform npc spawns in
+	Cafe: Cafe?, -- the main cafe building, rendered in Services/CafeRenderingService
+	Part: Part, -- part acting as the base
+	Entrance: Part, -- PrimaryPart. Also the part npc spawns on.
 	Mailbox: Model & {
 		Mailbox: Part & {
 			TriggerPrompt: ProximityPrompt,
 		},
 	},
-	GetAttribute: (attribute: string & "OwnerId") -> string,
+	GetAttribute: (self: CafeBase, attribute: string & "OwnerId") -> string,
 }
 export type IngredientId = string
 export type Cafe = Model & {
-	Tables: Model & {
-		Table1: Table,
-		-- Table2 on Level 2, ... Table18 on Level 8
-	},
 	Stations: Model & { [IngredientId]: Station },
 	Mixers: Model & { [string]: Mixer },
 	Cashier: Model & {
 		Part: Part,
 	},
-	Shelves: {
-		Shelf1: Shelf,
-		Shelf2: Shelf,
-		Shelf3: Shelf,
-		Shelf4: Shelf,
-		Shelf5: Shelf,
-		Shelf6: Shelf,
-	},
-	ShelfCollector: Model & {
-		Part: Part & {
-			TriggerPrompt: ProximityPrompt,
-		},
-	},
 	FeedbackPrompt: Part & {
 		ProximityPrompt: ProximityPrompt,
 	},
-	Entrance: Part,
 	StandSpots: Model & { Part },
 }
 

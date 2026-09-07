@@ -267,25 +267,25 @@ local function CashHud(props: {
 				LayoutOrder = 1, -- Force it to stay on top
 			}, {
 
-				e(SmallText, {
-					-- Text = (
-					-- 	([[<font family="rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json">%s</font>]]):format(
-					-- 		COINICON
-					-- 	) .. [[%s]]
-					-- ):format(coins or 0),
-					Text = `{Mionum.new(rate or 0):toString()}/s`,
-					RichText = true,
-					TextSize = 18,
-					TextColor3 = Color3.new(1, 1, 1),
-					Size = UDim2.new(0, 200, 0, 0),
-					AutomaticSize = Enum.AutomaticSize.XY,
-					TextXAlignment = Enum.TextXAlignment.Center,
-					TextYAlignment = Enum.TextYAlignment.Center,
-					Rotation = hudRot,
-					LayoutOrder = 1, -- Force it to stay on top
-					Position = UDim2.new(0.5, 0, 1, 0),
-					AnchorPoint = Vector2.new(0, 0),
-				}),
+				-- e(SmallText, {
+				-- 	-- Text = (
+				-- 	-- 	([[<font family="rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json">%s</font>]]):format(
+				-- 	-- 		COINICON
+				-- 	-- 	) .. [[%s]]
+				-- 	-- ):format(coins or 0),
+				-- 	Text = `{Mionum.new(rate or 0):toString()}/s`,
+				-- 	RichText = true,
+				-- 	TextSize = 18,
+				-- 	TextColor3 = Color3.new(1, 1, 1),
+				-- 	Size = UDim2.new(0, 200, 0, 0),
+				-- 	AutomaticSize = Enum.AutomaticSize.XY,
+				-- 	TextXAlignment = Enum.TextXAlignment.Center,
+				-- 	TextYAlignment = Enum.TextYAlignment.Center,
+				-- 	Rotation = hudRot,
+				-- 	LayoutOrder = 1, -- Force it to stay on top
+				-- 	Position = UDim2.new(0.5, 0, 1, 0),
+				-- 	AnchorPoint = Vector2.new(0, 0),
+				-- }),
 			}),
 		}),
 

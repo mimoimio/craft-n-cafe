@@ -1,6 +1,7 @@
 # Project place file
 /dragoncity-like.rbxlx
 /Packages
+/src/server/archived_services
 # Roblox Studio lock files
 /*.rbxlx.lock
 /*.rbxl.lock

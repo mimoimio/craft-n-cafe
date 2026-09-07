@@ -10,7 +10,6 @@ local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local CafeTypes = require(game.ReplicatedStorage.Shared.CafeTypes) -- = require(script.CafeTypes)
 local Cafe = require(script.Cafe)
-local Drinks = require(script.Drinks)
 local Character = require(script.Character)
 
 local CafeRenderingService = {}
@@ -28,6 +27,7 @@ local function BasesManager()
 
 	useEffect(function()
 		local unsub = GlobalState:observe(selectPlayerStatsById, getPlayerId, function(stats, playerId)
+			warn(`stats ({stats}), playerId({playerId})`)
 			-- Mount/Update logic
 			setBases(function(prev)
 				local new = table.clone(prev)
@@ -80,9 +80,6 @@ local function BasesManager()
 			BaseModel = base,
 			PlayerId = playerId,
 		})
-		children[playerId .. "Drinks"] = e(Drinks, {
-			PlayerId = playerId,
-		})
 		children[playerId .. "Character"] = e(Character, {
 			PlayerId = playerId,
 			BaseModel = base,
@@ -91,6 +88,7 @@ local function BasesManager()
 
 	children.recipeHint = e(require(ReplicatedStorage.Shared.ReactComponents.RecipeHint))
 
+	warn("rendered")
 	return e(React.Fragment, nil, children) -- Ensure children are rendered in a Fragment
 end
 

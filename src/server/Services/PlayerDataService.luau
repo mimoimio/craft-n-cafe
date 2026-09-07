@@ -73,35 +73,21 @@ local PROFILE_TEMPLATE: PlayerData = {
 		SfxOn = true,
 		MusicVolume = 0.5,
 		MusicOn = true,
-		SecondsPlayed = 0,
 		Cash = 30,
 		Level = 1,
-		CafeOpen = false,
-		Luck = 1,
+		CafeOpen = true,
 		TutorialCompleted = false,
-		CafeCapacity = 5,
-		RollCooldown = 3,
-		Life = 1,
-		SkipTickets = 0,
+		CafeCapacity = 3,
+		-- Luck = 1,
+		-- SecondsPlayed = 0,
+		-- RollCooldown = 3,
+		-- Life = 1,
+		-- SkipTickets = 0,
 	},
-	Shelves = generateEmptyShelves(),
-	-- six tables
-	Tables = generateTables(),
-	Drinks = {},
-	Mixers = {
-		Mixer1 = { drinkId = "none" },
-	},
-	Ingredients = {
-		-- milk = 100,
-	},
-	Cashiers = {},
+	Cups = {},
+	Ingredients = {},
 	Customers = {},
-	Shop = { shops = {} }, -- CRITICAL: Added so Reflex updates sync to the Profile!
-	DiscoveredDrinks = {},
-	Daily = {
-		day = 1,
-	},
-	Spawner = {},
+	Workers = {},
 }
 
 -- Recursively clones a table so we don't accidentally pass memory references
@@ -348,24 +334,8 @@ Remotes.start.OnServerEvent:Connect(function(player)
 		warn(`player({playerId}) already started`)
 		return
 	end
-	-- local playersShop = state.Shop
-
-	-- Require ShopService to access the deterministic generator
-	local ShopService = require(game.ServerScriptService.Server.Services.ShopService)
-	local shopCycleState = ShopCycle.getCurrentState()
-
-	local currentSeed = shopCycleState.seed
-	local seedString = tostring(currentSeed)
-	local generatedShop = {} --ShopService.GenerateDeterministicShop(currentSeed)
-
-	local VariationService = require(game.ServerScriptService.Server.Services.VariationService)
-	local variation = VariationService.GetCurrentVariationEvent() or nil
-	GlobalState.startPlayerSession(playerId, profile.Data, {
-		variationEvent = variation and variation.VariationId or nil,
-		newestShop = generatedShop,
-		newestSeed = currentSeed,
-	})
 	player:RequestStreamAroundAsync(Vector3.new())
+	GlobalState.startPlayerSession(playerId, profile.Data)
 
 	local unsubscribe = GlobalState:subscribe(function(state, prevData)
 		local newData = {}
@@ -378,8 +348,6 @@ Remotes.start.OnServerEvent:Connect(function(player)
 		end
 		profile.Data = Sift.Dictionary.merge(profile.Data, newData)
 	end)
-
-	player.CharacterAdded:Connect(function(character) end)
 
 	profile.OnSessionEnd:Connect(function()
 		unsubscribe()

@@ -29,7 +29,6 @@ local initialState: StatsState = {}
 -- /// REDUCERS ///
 local actions = {
 	startPlayerSession = function(state: StatsState, playerId: string, data: PlayerData)
-		-- warn("stats", state)
 		return Set(state, playerId, data.Stats)
 	end,
 	endPlayerSession = function(state: StatsState, playerId: string, data: PlayerData)
@@ -248,6 +247,14 @@ local actions = {
 		})
 
 		return Set(state, playerId, Set(playersStats, "OwnedGamePasses", updatedPasses))
+	end,
+	serveCustomer = function(state: StatsState, playerId: string, payload: Types.ServeCustomerPayload)
+		-- empties the cup
+		local playersStats = state[playerId]
+		if not playersStats then
+			return state
+		end
+		return Set(state, playerId, Set(playersStats, "Cash", playersStats.Cash + payload.cash))
 	end,
 }
 

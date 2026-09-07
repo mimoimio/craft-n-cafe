@@ -8,7 +8,7 @@ local SmallText = function(props)
 		MaxTextSize = props.MaxTextSize or props.TextSize or 18,
 		MinTextSize = props.MinTextSize or props.TextSize or 18,
 	})
-	children._UIStroke = e("UIStroke", { Thickness = 2 })
+	children._UIStroke = e("UIStroke", { Thickness = props.Thickness or 2 })
 	return e("TextLabel", {
 		AutomaticSize = props.AutomaticSize or Enum.AutomaticSize.XY,
 		BackgroundTransparency = props.BackgroundTransparency or 1,

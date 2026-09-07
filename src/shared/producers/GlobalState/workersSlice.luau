@@ -20,7 +20,7 @@ local initialState: WorkersState = {}
 -- /// REDUCERS ///
 local actions = {
 	startPlayerSession = function(state: WorkersState, playerId: string, data: PlayerData)
-		return Set(state, playerId, data.Cashiers)
+		return Set(state, playerId, data.Workers)
 	end,
 	endPlayerSession = function(state: WorkersState, playerId: string)
 		return RemoveKey(state, playerId)
