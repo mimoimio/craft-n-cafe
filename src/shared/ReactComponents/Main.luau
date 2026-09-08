@@ -35,11 +35,11 @@ local CafeBase = require(script.Parent.CafeBase)
 local CafeModel = require(script.Parent.CafeModel)
 local VStack = require(script.Parent.ui.VStack)
 local BillboardPromptButton = require(ReplicatedStorage.Shared.ReactComponents.ui.BillboardPromptButton)
+local BuildPanel = require(script.Parent.BuildPanel)
 
 local player = game:GetService("Players").LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
 local admin = not player or playerId == "5470482596"
-local PlacementController = require(ReplicatedStorage.Shared.Controllers.PlacementController)
 
 local function CashOverlay(props)
 	local textRef = React.useRef(nil)
@@ -138,24 +138,20 @@ local function CashOverlay(props)
 		}),
 	})
 end
+
 local function Main(props)
 	return e("Frame", {
 		Transparency = 1,
 		Size = UDim2.new(1, 0, 1, 0),
 	}, {
-		-- e(SmallButton, {
-		-- 	RichText = true,
-		-- 	Text = `<font size="12">console\n(playtest)</font>`,
-		-- 	Position = UDim2.new(1, 0, 0, 0),
-		-- 	AnchorPoint = Vector2.new(1, 1),
-		-- 	MinTextSize = 8,
-		-- }),
 		admin and e(require(script.Parent.ConsoleApp)),
+		e(BuildPanel),
 		e(require(script.Parent.CustomersOrder)),
 		e(CashOverlay),
 		e(Sidebar),
 	})
 end
+
 function SidebarButton(props)
 	return e(SmallButton, {
 		Size = UDim2.fromOffset(160, 40),
@@ -172,6 +168,7 @@ function SidebarButton(props)
 		}),
 	})
 end
+
 function Sidebar(props)
 	return e(VStack, {
 		VerticalFlex = Enum.UIFlexAlignment.None,
@@ -181,8 +178,7 @@ function Sidebar(props)
 	}, {
 		ToggleBuild = e(SidebarButton, {
 			[React.Event.Activated] = function()
-				PlacementController:setBuildMode(not PlacementController.buildModeActive)
-				PlacementController:selectItem("crate")
+				UIState.toggle("build")
 			end,
 			Text = "Toggle Build",
 		}),

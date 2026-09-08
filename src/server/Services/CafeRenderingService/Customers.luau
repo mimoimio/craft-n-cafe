@@ -60,7 +60,7 @@ local observeRigClone = function(clone: Model): (() -> ())?
 end
 
 local original = workspace.Rig:Clone()
-workspace.Rig:Destroy()
+-- workspace.Rig:Destroy()
 
 local function Customer(props: {
 	PlayerId: string,

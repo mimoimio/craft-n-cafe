@@ -13,11 +13,11 @@ export type PlacedItem = {
 export type PlotState = {
 	occupiedCoordinates: { [string]: string },
 	placedItems: { [string]: PlacedItem },
+	nextId: number, -- The internal counter
 }
 
--- Action Payloads
 export type PlaceItemPayload = {
-	uuid: string,
+	-- uuid: string, (Removed!)
 	itemId: string,
 	startX: number,
 	startZ: number,

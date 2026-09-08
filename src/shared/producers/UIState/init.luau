@@ -11,19 +11,23 @@ local Set = Dictionary.set
 local Merge = Dictionary.merge
 
 export type Breakpoint = "xs" | "sm" | "md" | "lg" | "xl"
-
 export type UIState = {
 	panel: string,
 	viewportSize: Vector2,
+	buildItemId: string?, -- Tracks the selected item
 }
 
 export type UIActions = {
 	toggle: (panel: string) -> (),
 	setViewportSize: (viewportSize: Vector2) -> (),
-	setCafeBase: (model: Model?) -> (),
+	selectBuildItem: (itemId: string) -> (),
 }
 
--- Shared/producers/UIState.luau
+local initialState: UIState = {
+	panel = "none",
+	buildItemId = "crate", -- Default item when opening build mode
+}
+
 local function calculateBreakpoint(viewportSize: Vector2): Breakpoint
 	local width = viewportSize.X
 	local height = viewportSize.Y
@@ -51,11 +55,6 @@ local function calculateBreakpoint(viewportSize: Vector2): Breakpoint
 	end
 end
 
-local initialState: UIState = {
-	panel = "none",
-	cafeBase = nil,
-}
-
 local producer = Reflex.createProducer(initialState, {
 	toggle = function(state: UIState, panel: string)
 		local newPanel = if state.panel == panel then "none" else panel
@@ -78,8 +77,8 @@ local producer = Reflex.createProducer(initialState, {
 			breakpoint = currentBreakpoint,
 		})
 	end,
-	setCafeBase = function(state: UIState, model: Model?)
-		return Set(state, "cafeBase", model)
+	selectBuildItem = function(state: UIState, itemId: string)
+		return Set(state, "buildItemId", itemId)
 	end,
 }) :: Reflex.Producer<UIState, UIActions>
 

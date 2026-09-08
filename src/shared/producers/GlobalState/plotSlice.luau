@@ -11,12 +11,12 @@ local RemoveKey = Dictionary.removeKey
 
 export type PlotState = Types.PlotState
 
--- Map of plots by PlayerId
 local initialState: { [string]: PlotState } = {}
 
 local actions = {
 	startPlayerSession = function(state: { [string]: PlotState }, playerId: string, data: Types.PlayerData)
-		return Set(state, playerId, data.Plot or { occupiedCoordinates = {}, placedItems = {} })
+		-- Ensure nextId initializes to 1 if loading a new plot
+		return Set(state, playerId, data.Plot or { occupiedCoordinates = {}, placedItems = {}, nextId = 1 })
 	end,
 
 	endPlayerSession = function(state: { [string]: PlotState }, playerId: string)
@@ -25,20 +25,20 @@ local actions = {
 
 	placeItem = function(state: { [string]: PlotState }, playerId: string, payload: Types.PlaceItemPayload)
 		local playerPlot = state[playerId]
-		-- If plot state doesn't exist for player, initialize it on the fly
 		if not playerPlot then
-			playerPlot = { occupiedCoordinates = {}, placedItems = {} }
+			playerPlot = { occupiedCoordinates = {}, placedItems = {}, nextId = 1 }
 		end
 
-		-- 1. Create a new occupied dictionary immutably
+		-- Grab the current ID from the counter
+		local generatedUuid = tostring(playerPlot.nextId)
+
 		local newOccupied = Dictionary.copy(playerPlot.occupiedCoordinates)
 		for x = payload.startX, payload.startX + payload.width - 1 do
 			for z = payload.startZ, payload.startZ + payload.length - 1 do
-				newOccupied[`{x}_{z}`] = payload.uuid
+				newOccupied[`{x}_{z}`] = generatedUuid
 			end
 		end
 
-		-- 2. Create the new item data
 		local newItem: Types.PlacedItem = {
 			id = payload.itemId,
 			x = payload.startX,
@@ -48,11 +48,13 @@ local actions = {
 			r = payload.rotation,
 		}
 
-		-- 3. Merge into the next state
+		-- Merge increments the counter for the next item
 		local nextPlayerPlot = Merge(playerPlot, {
 			occupiedCoordinates = newOccupied,
-			placedItems = Set(playerPlot.placedItems, payload.uuid, newItem),
+			placedItems = Set(playerPlot.placedItems, generatedUuid, newItem),
+			nextId = playerPlot.nextId + 1,
 		})
+
 		local newstate = Set(state, playerId, nextPlayerPlot)
 		warn("success", newstate)
 		return newstate
@@ -79,6 +81,7 @@ local actions = {
 		local nextPlayerPlot = Merge(playerPlot, {
 			occupiedCoordinates = newOccupied,
 			placedItems = RemoveKey(playerPlot.placedItems, payload.uuid),
+			-- nextId is explicitly NOT modified here so it never reuses IDs
 		})
 
 		return Set(state, playerId, nextPlayerPlot)

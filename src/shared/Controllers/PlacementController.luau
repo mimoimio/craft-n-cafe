@@ -10,9 +10,8 @@ local PlacementVisualizer = require(script.Parent.Parent.PlacementVisualizer)
 
 local self = {}
 
-function self.new(plotPart: Part, gridSize: number, itemPrefabsFolder: Folder)
+function self.new(plotPart: Part, itemPrefabsFolder: Folder)
 	self.plot = plotPart
-	self.gridSize = gridSize
 	self.itemPrefabs = itemPrefabsFolder
 
 	self.visualizer = nil
@@ -28,7 +27,8 @@ function self:setBuildMode(isActive: boolean)
 
 	if isActive then
 		if not self.visualizer then
-			self.visualizer = PlacementVisualizer.new(self.plot, self.gridSize)
+			-- We pass the Grid.SIZE directly to the visualizer here
+			self.visualizer = PlacementVisualizer.new(self.plot, Grid.SIZE)
 		end
 	else
 		if self.visualizer then
@@ -64,8 +64,8 @@ function self:update(cursorWorldPos: Vector3)
 	if not prefab then
 		return
 	end
-	local primary = prefab.PrimaryPart or prefab:FindFirstChildWhichIsA("BasePart")
 
+	local _, itemSize = prefab:GetBoundingBox()
 	local plotCFrame, plotSize
 	if typeof(self.plot) == "Instance" and self.plot:IsA("Model") then
 		plotCFrame, plotSize = self.plot:GetBoundingBox()
@@ -73,30 +73,35 @@ function self:update(cursorWorldPos: Vector3)
 		plotCFrame, plotSize = self.plot.CFrame, self.plot.Size
 	end
 
-	local width, length = Grid.getFootprint(primary.Size, self.gridSize, self.rotation)
-	local rawGridX, rawGridZ = Grid.worldToGrid(cursorWorldPos, plotCFrame, self.gridSize, primary.Size, self.rotation)
-	local gridX, gridZ = Grid.clampToGrid(rawGridX, rawGridZ, width, length, plotSize, self.gridSize)
+	-- 1. Logical footprint (used for state bounds checking)
+	local width, length = Grid.getFootprint(itemSize, self.rotation)
 
-	-- Fetch state from Reflex instead of local OOP
+	-- 2. Physical snapped size (used for world math alignment)
+	local rawX, rawZ = Grid.getFootprint(itemSize, 0)
+	local snappedSize = Vector3.new(rawX * Grid.SIZE, itemSize.Y, rawZ * Grid.SIZE)
+
+	-- Pass snappedSize to grid translation to prevent float alignment issues
+	local rawGridX, rawGridZ = Grid.worldToGrid(cursorWorldPos, plotCFrame, snappedSize, self.rotation)
+	local gridX, gridZ = Grid.clampToGrid(rawGridX, rawGridZ, width, length, plotSize)
+
 	local playerId = Players.LocalPlayer and tostring(Players.LocalPlayer.UserId) or "MockUser"
 	local state = GlobalState:getState()
 	local plotState = state.Plot and state.Plot[playerId]
 
 	local isFree = Grid.isAreaFree(plotState, gridX, gridZ, width, length)
-	local targetCFrame =
-		Grid.gridToWorld(gridX, gridZ, plotCFrame, plotSize, self.gridSize, primary.Size, self.rotation)
+	local targetCFrame = Grid.gridToWorld(gridX, gridZ, plotCFrame, plotSize, snappedSize, self.rotation)
 
 	self.visualizer:updateGhost(targetCFrame, isFree)
 end
 
 function self:placeItem(cursorWorldPos: Vector3)
 	if not self.buildModeActive or not self.currentItemId then
-		return false, nil
+		return false
 	end
 
 	local prefab = self.itemPrefabs:FindFirstChild(self.currentItemId)
-	local primary = prefab.PrimaryPart or prefab:FindFirstChildWhichIsA("BasePart")
 
+	local _, itemSize = prefab:GetBoundingBox()
 	local plotCFrame, plotSize
 	if typeof(self.plot) == "Instance" and self.plot:IsA("Model") then
 		plotCFrame, plotSize = self.plot:GetBoundingBox()
@@ -104,24 +109,23 @@ function self:placeItem(cursorWorldPos: Vector3)
 		plotCFrame, plotSize = self.plot.CFrame, self.plot.Size
 	end
 
-	local width, length = Grid.getFootprint(primary.Size, self.gridSize, self.rotation)
-	local rawGridX, rawGridZ = Grid.worldToGrid(cursorWorldPos, plotCFrame, self.gridSize, primary.Size, self.rotation)
-	local gridX, gridZ = Grid.clampToGrid(rawGridX, rawGridZ, width, length, plotSize, self.gridSize)
+	local width, length = Grid.getFootprint(itemSize, self.rotation)
+	local rawX, rawZ = Grid.getFootprint(itemSize, 0)
+	local snappedSize = Vector3.new(rawX * Grid.SIZE, itemSize.Y, rawZ * Grid.SIZE)
+
+	local rawGridX, rawGridZ = Grid.worldToGrid(cursorWorldPos, plotCFrame, snappedSize, self.rotation)
+	local gridX, gridZ = Grid.clampToGrid(rawGridX, rawGridZ, width, length, plotSize)
 
 	local playerId = Players.LocalPlayer and tostring(Players.LocalPlayer.UserId) or "MockUser"
 	local state = GlobalState:getState()
 	local plotState = state.Plot and state.Plot[playerId]
 
 	if Grid.isAreaFree(plotState, gridX, gridZ, width, length) then
-		local uuid = HttpService:GenerateGUID(false)
-
-		Remotes.PlaceItem:FireServer(uuid, self.currentItemId, gridX, gridZ, width, length, self.rotation)
-
-		return true, uuid
+		Remotes.PlaceItem:FireServer(self.currentItemId, gridX, gridZ, self.rotation)
+		return true
 	end
-	return false, nil
+	return false
 end
-
 function self:destroyItem(uuid: string)
 	Remotes.DestroyItem:FireServer(uuid)
 	return true

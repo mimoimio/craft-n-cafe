@@ -4,23 +4,18 @@ local Types = require(ReplicatedStorage.Shared.Types)
 
 local Grid = {}
 
+Grid.SIZE = 4 -- Centralized Constant
+
 -- [[ MATH OPERATIONS ]]
 
-function Grid.getFootprint(itemSize: Vector3, gridSize: number, rotation: number): (number, number)
+function Grid.getFootprint(itemSize: Vector3, rotation: number): (number, number)
 	local isRotated = math.abs(rotation % 180) == 90
 	local x = isRotated and itemSize.Z or itemSize.X
 	local z = isRotated and itemSize.X or itemSize.Z
-
-	return math.max(1, math.round(x / gridSize)), math.max(1, math.round(z / gridSize))
+	return math.max(1, math.round(x / Grid.SIZE)), math.max(1, math.round(z / Grid.SIZE))
 end
 
-function Grid.worldToGrid(
-	worldPos: Vector3,
-	plotCFrame: CFrame,
-	gridSize: number,
-	itemSize: Vector3,
-	rotation: number
-): (number, number)
+function Grid.worldToGrid(worldPos: Vector3, plotCFrame: CFrame, itemSize: Vector3, rotation: number): (number, number)
 	local localPos = plotCFrame:PointToObjectSpace(worldPos)
 
 	local isRotated = math.abs(rotation % 180) == 90
@@ -30,8 +25,8 @@ function Grid.worldToGrid(
 	local cornerLocalX = localPos.X - (itemX / 2)
 	local cornerLocalZ = localPos.Z - (itemZ / 2)
 
-	local gridX = math.round(cornerLocalX / gridSize)
-	local gridZ = math.round(cornerLocalZ / gridSize)
+	local gridX = math.round(cornerLocalX / Grid.SIZE)
+	local gridZ = math.round(cornerLocalZ / Grid.SIZE)
 
 	return gridX, gridZ
 end
@@ -41,7 +36,6 @@ function Grid.gridToWorld(
 	gridZ: number,
 	plotCFrame: CFrame,
 	plotSize: Vector3,
-	gridSize: number,
 	itemSize: Vector3,
 	rotation: number
 ): CFrame
@@ -51,8 +45,8 @@ function Grid.gridToWorld(
 	local itemX = isRotated and itemSize.Z or itemSize.X
 	local itemZ = isRotated and itemSize.X or itemSize.Z
 
-	local localX = (gridX * gridSize) + (itemX / 2)
-	local localZ = (gridZ * gridSize) + (itemZ / 2)
+	local localX = (gridX * Grid.SIZE) + (itemX / 2)
+	local localZ = (gridZ * Grid.SIZE) + (itemZ / 2)
 	local localY = (plotSize.Y / 2) + (itemSize.Y / 2)
 
 	return plotCFrame * CFrame.new(localX, localY, localZ) * CFrame.Angles(0, rad, 0)
@@ -63,13 +57,12 @@ function Grid.clampToGrid(
 	gridZ: number,
 	itemWidth: number,
 	itemLength: number,
-	plotSize: Vector3,
-	gridSize: number
+	plotSize: Vector3
 ): (number, number)
-	local minX = math.ceil((-plotSize.X / 2) / gridSize)
-	local maxX = math.floor((plotSize.X / 2) / gridSize) - itemWidth
-	local minZ = math.ceil((-plotSize.Z / 2) / gridSize)
-	local maxZ = math.floor((plotSize.Z / 2) / gridSize) - itemLength
+	local minX = math.ceil((-plotSize.X / 2) / Grid.SIZE)
+	local maxX = math.floor((plotSize.X / 2) / Grid.SIZE) - itemWidth
+	local minZ = math.ceil((-plotSize.Z / 2) / Grid.SIZE)
+	local maxZ = math.floor((plotSize.Z / 2) / Grid.SIZE) - itemLength
 
 	return math.clamp(gridX, minX, maxX), math.clamp(gridZ, minZ, maxZ)
 end

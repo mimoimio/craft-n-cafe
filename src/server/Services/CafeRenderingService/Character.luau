@@ -1,6 +1,7 @@
 -- CafeRenderingService.luau
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local RENDERTAG = "RENDEREDOBJECT"
 local React = require(ReplicatedStorage.Packages.React)
 local Promise = require(ReplicatedStorage.Packages.Promise)
@@ -13,6 +14,8 @@ local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local CafeTypes = require(game.ReplicatedStorage.Shared.CafeTypes) -- = require(script.CafeTypes)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 local Types = require(ReplicatedStorage.Shared.Types)
+
+local isEdit = not RunService:IsRunning() and RunService:IsStudio()
 
 local function Cup(props: { Character: Model, PlayerId: string, WorkerId: string })
 	local children = {}
@@ -116,6 +119,9 @@ local function Character(props: {
 		PlayerId = props.PlayerId,
 	})
 	useEffect(function()
+		if isEdit then
+			return
+		end
 		if not props.PlayerId then
 			return
 		end

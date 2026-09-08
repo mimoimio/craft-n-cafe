@@ -88,6 +88,7 @@ local PROFILE_TEMPLATE: PlayerData = {
 	Ingredients = {},
 	Customers = {},
 	Workers = {},
+	Plots = { occupiedCoordinates = {}, placedItems = {}, nextId = 1 },
 }
 
 -- Recursively clones a table so we don't accidentally pass memory references

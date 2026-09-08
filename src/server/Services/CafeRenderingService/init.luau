@@ -1,5 +1,6 @@
 -- ServerScriptService/Server/ CafeRenderingService.luau
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local RENDERTAG = "RENDEREDOBJECT"
 local React = require(ReplicatedStorage.Packages.React)
 local e = React.createElement
@@ -13,6 +14,7 @@ local Cafe = require(script.Cafe)
 local Character = require(script.Character)
 
 local CafeRenderingService = {}
+local isEdit = not RunService:IsRunning() and RunService:IsStudio()
 
 local function selectPlayerStatsById(state: GlobalState.GlobalState)
 	return state.Stats -- Capitalized to match GlobalState definition
@@ -26,8 +28,14 @@ local function BasesManager()
 	local bases, setBases = useState({})
 
 	useEffect(function()
+		if isEdit then
+			setBases({
+				[workspace.CafeBase] = "MockUser",
+			})
+			return
+		end
 		local unsub = GlobalState:observe(selectPlayerStatsById, getPlayerId, function(stats, playerId)
-			warn(`stats ({stats}), playerId({playerId})`)
+			-- warn(`stats ({stats}), playerId({playerId})`)
 			-- Mount/Update logic
 			setBases(function(prev)
 				local new = table.clone(prev)
@@ -89,15 +97,17 @@ local function BasesManager()
 end
 
 function CafeRenderingService.initialize()
-	local rootValue = Instance.new("StringValue", workspace)
-	rootValue.Name = "root"
+	CafeRenderingService.rootValue = Instance.new("StringValue", workspace)
+	CafeRenderingService.rootValue.Name = "root"
 
-	CafeRenderingService.root = ReactRoblox.createRoot(rootValue)
+	CafeRenderingService.root = ReactRoblox.createRoot(CafeRenderingService.rootValue)
 	CafeRenderingService.root:render(e(BasesManager))
 end
 
 function CafeRenderingService.cleanup()
 	CafeRenderingService.root:unmount()
+	CafeRenderingService.rootValue:Destroy()
 end
 
 return CafeRenderingService
+-- return {}
