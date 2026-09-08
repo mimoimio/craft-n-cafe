@@ -1,4 +1,4 @@
--- CafeRenderingService/Cafe.luau
+-- ServerScriptService/Server/Services/CafeRenderingService/Cafe.luau
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RENDERTAG = "RENDEREDOBJECT"
@@ -55,12 +55,6 @@ local function Cafe(props: {
 			clone.Name = "Cafe"
 			-- Parent it to the BaseModel so your type definitions hold true in the Explorer!
 			clone.Parent = props.BaseModel
-			-- for i, spot: Part in clone.StandSpots:GetChildren() do
-			-- 	if not spot:IsA("BasePart") then
-			-- 		continue
-			-- 	end
-			-- 	spot.Transparency = 1
-			-- end
 			for i, desc: Part in clone:GetDescendants() do
 				if not desc:IsA("BasePart") or desc == clone.Part then
 					continue
@@ -68,7 +62,6 @@ local function Cafe(props: {
 				desc.CollisionGroup = "Walls"
 			end
 
-			-- Tell React the model is ready!
 			local tag = props.PlayerId .. "Cafe"
 			clone:AddTag(tag)
 
@@ -76,7 +69,6 @@ local function Cafe(props: {
 
 			return function()
 				clone:Destroy()
-				-- We don't need to setClonedCafe(nil) because the component is unmounting
 			end
 		else
 			warn("CAFE TEMPLATE NOT FOUND")

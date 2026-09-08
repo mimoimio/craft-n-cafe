@@ -39,6 +39,7 @@ local BillboardPromptButton = require(ReplicatedStorage.Shared.ReactComponents.u
 local player = game:GetService("Players").LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
 local admin = not player or playerId == "5470482596"
+local PlacementController = require(ReplicatedStorage.Shared.Controllers.PlacementController)
 
 local function CashOverlay(props)
 	local textRef = React.useRef(nil)
@@ -138,28 +139,37 @@ local function CashOverlay(props)
 	})
 end
 local function Main(props)
-	local adminOpen, setAdminOpen = useState(false)
-
 	return e("Frame", {
 		Transparency = 1,
 		Size = UDim2.new(1, 0, 1, 0),
 	}, {
-		e(SmallButton, {
-			RichText = true,
-			Text = `<font size="12">console\n(playtest)</font>`,
-			Position = UDim2.new(1, 0, 0, 0),
-			AnchorPoint = Vector2.new(1, 1),
-			[React.Event.Activated] = function()
-				setAdminOpen(function(prev)
-					return not prev
-				end)
-			end,
-			MinTextSize = 8,
-		}),
+		-- e(SmallButton, {
+		-- 	RichText = true,
+		-- 	Text = `<font size="12">console\n(playtest)</font>`,
+		-- 	Position = UDim2.new(1, 0, 0, 0),
+		-- 	AnchorPoint = Vector2.new(1, 1),
+		-- 	MinTextSize = 8,
+		-- }),
 		admin and e(require(script.Parent.ConsoleApp)),
 		e(require(script.Parent.CustomersOrder)),
 		e(CashOverlay),
 		e(Sidebar),
+	})
+end
+function SidebarButton(props)
+	return e(SmallButton, {
+		Size = UDim2.fromOffset(160, 40),
+		AutomaticSize = Enum.AutomaticSize.None,
+		[React.Event.Activated] = props[React.Event.Activated],
+	}, {
+		e(VStack, {
+			VerticalFlex = Enum.UIFlexAlignment.None,
+			HorizontalFlex = Enum.UIFlexAlignment.None,
+			VerticalAlignment = Enum.VerticalAlignment.Center,
+			HorizontalAlignment = Enum.HorizontalAlignment.Left,
+		}, {
+			e(SmallText, { Text = props.Text }),
+		}),
 	})
 end
 function Sidebar(props)
@@ -169,21 +179,18 @@ function Sidebar(props)
 		VerticalAlignment = Enum.VerticalAlignment.Center,
 		HorizontalAlignment = Enum.HorizontalAlignment.Left,
 	}, {
-		e(SmallButton, {
-			Size = UDim2.fromOffset(160, 40),
-			AutomaticSize = Enum.AutomaticSize.None,
+		ToggleBuild = e(SidebarButton, {
 			[React.Event.Activated] = function()
-				
+				PlacementController:setBuildMode(not PlacementController.buildModeActive)
+				PlacementController:selectItem("crate")
 			end,
-		}, {
-			e(VStack, {
-				VerticalFlex = Enum.UIFlexAlignment.None,
-				HorizontalFlex = Enum.UIFlexAlignment.None,
-				VerticalAlignment = Enum.VerticalAlignment.Center,
-				HorizontalAlignment = Enum.HorizontalAlignment.Left,
-			}, {
-				e(SmallText, { Text = "Toggle Build" }),
-			}),
+			Text = "Toggle Build",
+		}),
+		Console = e(SidebarButton, {
+			[React.Event.Activated] = function()
+				UIState.toggle("admin")
+			end,
+			Text = "Console",
 		}),
 	})
 end

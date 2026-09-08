@@ -17,7 +17,7 @@ local function CreateMockRemote(name: string)
 		-- Client calls this in UI Labs
 		FireServer = function(self, ...)
 			-- Server logic expects a Player object as the first argument
-			local dummyPlayer = Players.LocalPlayer or { Name = "StudioTester", UserId = 1 }
+			local dummyPlayer = Players.LocalPlayer or { Name = "MockUser", UserId = "MockUser" }
 			for _, callback in ipairs(listeners) do
 				task.spawn(callback, dummyPlayer, ...)
 			end
@@ -105,4 +105,6 @@ return {
 	ServeCustomer = CreateRemote("ServeCustomer"),
 	GetCup = CreateRemote("GetCup"),
 	AddIngredient = CreateRemote("AddIngredient"),
+	PlaceItem = CreateRemote("PlaceItem"),
+	DestroyItem = CreateRemote("DestroyItem"),
 }

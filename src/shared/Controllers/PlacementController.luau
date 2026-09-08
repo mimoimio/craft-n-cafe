@@ -1,38 +1,29 @@
--- PlacementController.luau
+-- Shared/Controllers/PlacementController.luau
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
-local TextService = game:GetService("TextService")
 
-local GridMath = require(script.Parent.Parent.GridMath)
-local GridState = require(script.Parent.Parent.GridState)
+local Remotes = require(script.Parent.Parent.Remotes)
+local GlobalState = require(script.Parent.Parent.producers.GlobalState)
+local Grid = require(script.Parent.Parent.Grid)
 local PlacementVisualizer = require(script.Parent.Parent.PlacementVisualizer)
 
-local PlacementController = {}
-PlacementController.__index = PlacementController
+local self = {}
 
-function PlacementController.new(plotPart: Part, gridSize: number, itemPrefabsFolder: Folder)
-	local self = setmetatable({}, PlacementController)
-
+function self.new(plotPart: Part, gridSize: number, itemPrefabsFolder: Folder)
 	self.plot = plotPart
 	self.gridSize = gridSize
 	self.itemPrefabs = itemPrefabsFolder
 
-	self.state = GridState.new()
 	self.visualizer = nil
-
 	self.buildModeActive = false
 	self.currentItemId = nil
 	self.rotation = 0
 
-	-- Cached plot grid dimensions
-	self.plotGridWidth = math.floor(plotPart.Size.X / gridSize)
-	self.plotGridLength = math.floor(plotPart.Size.Z / gridSize)
-
 	return self
 end
 
--- Use Case 1: Toggle Build Mode
-function PlacementController:setBuildMode(isActive: boolean)
+function self:setBuildMode(isActive: boolean)
 	self.buildModeActive = isActive
 
 	if isActive then
@@ -47,7 +38,8 @@ function PlacementController:setBuildMode(isActive: boolean)
 		self.currentItemId = nil
 	end
 end
-function PlacementController:selectItem(itemId: string)
+
+function self:selectItem(itemId: string)
 	if not self.buildModeActive then
 		return
 	end
@@ -59,12 +51,11 @@ function PlacementController:selectItem(itemId: string)
 	end
 end
 
-function PlacementController:rotateItem()
+function self:rotateItem()
 	self.rotation = (self.rotation + 90) % 360
 end
 
--- Render loop
-function PlacementController:update(cursorWorldPos: Vector3)
+function self:update(cursorWorldPos: Vector3)
 	if not self.buildModeActive or not self.currentItemId or not self.visualizer then
 		return
 	end
@@ -75,7 +66,6 @@ function PlacementController:update(cursorWorldPos: Vector3)
 	end
 	local primary = prefab.PrimaryPart or prefab:FindFirstChildWhichIsA("BasePart")
 
-	-- Dynamically fetch CFrame and Size to support Models (CafeBase) and Parts (Baseplate)
 	local plotCFrame, plotSize
 	if typeof(self.plot) == "Instance" and self.plot:IsA("Model") then
 		plotCFrame, plotSize = self.plot:GetBoundingBox()
@@ -83,19 +73,23 @@ function PlacementController:update(cursorWorldPos: Vector3)
 		plotCFrame, plotSize = self.plot.CFrame, self.plot.Size
 	end
 
-	local width, length = GridMath.getFootprint(primary.Size, self.gridSize, self.rotation)
-	local rawGridX, rawGridZ =
-		GridMath.worldToGrid(cursorWorldPos, plotCFrame, self.gridSize, primary.Size, self.rotation)
-	local gridX, gridZ = GridMath.clampToGrid(rawGridX, rawGridZ, width, length, plotSize, self.gridSize)
+	local width, length = Grid.getFootprint(primary.Size, self.gridSize, self.rotation)
+	local rawGridX, rawGridZ = Grid.worldToGrid(cursorWorldPos, plotCFrame, self.gridSize, primary.Size, self.rotation)
+	local gridX, gridZ = Grid.clampToGrid(rawGridX, rawGridZ, width, length, plotSize, self.gridSize)
 
-	local isFree = self.state:isAreaFree(gridX, gridZ, width, length)
+	-- Fetch state from Reflex instead of local OOP
+	local playerId = Players.LocalPlayer and tostring(Players.LocalPlayer.UserId) or "MockUser"
+	local state = GlobalState:getState()
+	local plotState = state.Plot and state.Plot[playerId]
+
+	local isFree = Grid.isAreaFree(plotState, gridX, gridZ, width, length)
 	local targetCFrame =
-		GridMath.gridToWorld(gridX, gridZ, plotCFrame, plotSize, self.gridSize, primary.Size, self.rotation)
+		Grid.gridToWorld(gridX, gridZ, plotCFrame, plotSize, self.gridSize, primary.Size, self.rotation)
 
 	self.visualizer:updateGhost(targetCFrame, isFree)
 end
--- Use Case 2: Place Item
-function PlacementController:placeItem(cursorWorldPos: Vector3)
+
+function self:placeItem(cursorWorldPos: Vector3)
 	if not self.buildModeActive or not self.currentItemId then
 		return false, nil
 	end
@@ -110,36 +104,27 @@ function PlacementController:placeItem(cursorWorldPos: Vector3)
 		plotCFrame, plotSize = self.plot.CFrame, self.plot.Size
 	end
 
-	local width, length = GridMath.getFootprint(primary.Size, self.gridSize, self.rotation)
-	local rawGridX, rawGridZ =
-		GridMath.worldToGrid(cursorWorldPos, plotCFrame, self.gridSize, primary.Size, self.rotation)
-	local gridX, gridZ = GridMath.clampToGrid(rawGridX, rawGridZ, width, length, plotSize, self.gridSize)
+	local width, length = Grid.getFootprint(primary.Size, self.gridSize, self.rotation)
+	local rawGridX, rawGridZ = Grid.worldToGrid(cursorWorldPos, plotCFrame, self.gridSize, primary.Size, self.rotation)
+	local gridX, gridZ = Grid.clampToGrid(rawGridX, rawGridZ, width, length, plotSize, self.gridSize)
 
-	if self.state:isAreaFree(gridX, gridZ, width, length) then
+	local playerId = Players.LocalPlayer and tostring(Players.LocalPlayer.UserId) or "MockUser"
+	local state = GlobalState:getState()
+	local plotState = state.Plot and state.Plot[playerId]
+
+	if Grid.isAreaFree(plotState, gridX, gridZ, width, length) then
 		local uuid = HttpService:GenerateGUID(false)
-		local success = self.state:occupy(uuid, self.currentItemId, gridX, gridZ, width, length)
 
-		if success then
-			local placedModel = prefab:Clone()
-			placedModel:PivotTo(
-				GridMath.gridToWorld(gridX, gridZ, plotCFrame, plotSize, self.gridSize, primary.Size, self.rotation)
-			)
-			placedModel.Parent = workspace
+		Remotes.PlaceItem:FireServer(uuid, self.currentItemId, gridX, gridZ, width, length, self.rotation)
 
-			return true, uuid
-		end
+		return true, uuid
 	end
 	return false, nil
 end
 
--- Use Case 3: Destroy Item
-function PlacementController:destroyItem(uuid: string)
-	local success = self.state:free(uuid)
-	if success then
-		-- Later: Find the physical model associated with UUID and destroy it
-		return true
-	end
-	return false
+function self:destroyItem(uuid: string)
+	Remotes.DestroyItem:FireServer(uuid)
+	return true
 end
 
-return PlacementController
+return self

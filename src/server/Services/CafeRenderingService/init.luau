@@ -1,4 +1,4 @@
--- CafeRenderingService.luau
+-- ServerScriptService/Server/ CafeRenderingService.luau
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RENDERTAG = "RENDEREDOBJECT"
 local React = require(ReplicatedStorage.Packages.React)
@@ -40,8 +40,6 @@ local function BasesManager()
 					end
 					new[base] = playerId
 					base:SetAttribute("OwnerId", playerId)
-
-					-- break -- Assigns only one base per player observed
 					return new
 				end
 
@@ -87,17 +85,19 @@ local function BasesManager()
 	end
 
 	children.recipeHint = e(require(ReplicatedStorage.Shared.ReactComponents.RecipeHint))
-
-	warn("rendered")
-	return e(React.Fragment, nil, children) -- Ensure children are rendered in a Fragment
+	return e(React.Fragment, nil, children)
 end
 
 function CafeRenderingService.initialize()
 	local rootValue = Instance.new("StringValue", workspace)
 	rootValue.Name = "root"
 
-	local root = ReactRoblox.createRoot(rootValue)
-	root:render(e(BasesManager))
+	CafeRenderingService.root = ReactRoblox.createRoot(rootValue)
+	CafeRenderingService.root:render(e(BasesManager))
+end
+
+function CafeRenderingService.cleanup()
+	CafeRenderingService.root:unmount()
 end
 
 return CafeRenderingService

@@ -15,7 +15,7 @@ function PlacementVisualizer.new(plotPart: Part, gridSize: number)
 	self.gridSize = gridSize
 	self.ghostModel = nil :: Model?
 	self.primaryPart = nil :: Part?
-	self.lerpSpeed = 0.8
+	self.lerpSpeed = 0.2
 
 	-- Render Plot Grid
 	self.texture = Instance.new("Texture")

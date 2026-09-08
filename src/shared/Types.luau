@@ -1,5 +1,34 @@
 -- Shared/Types.luau
 --v1
+
+export type PlacedItem = {
+	id: string,
+	x: number,
+	z: number,
+	w: number,
+	l: number,
+	r: number, -- Rotation is needed for rendering
+}
+
+export type PlotState = {
+	occupiedCoordinates: { [string]: string },
+	placedItems: { [string]: PlacedItem },
+}
+
+-- Action Payloads
+export type PlaceItemPayload = {
+	uuid: string,
+	itemId: string,
+	startX: number,
+	startZ: number,
+	width: number,
+	length: number,
+	rotation: number,
+}
+
+export type DestroyItemPayload = {
+	uuid: string,
+}
 export type PlayerData = {
 	Stats: StatsEntity,
 	Ingredients: { [string]: number },

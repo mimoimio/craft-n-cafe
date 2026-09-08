@@ -8,29 +8,18 @@ local InputAdapter = require(ReplicatedStorage.Shared.Controllers.InputAdapter)
 
 local function story(frame: Frame)
 	local plot = workspace.CafeBase.Part
+	local models = game.ReplicatedStorage.Shared.Models
 
-	local models = Instance.new("Folder")
-	local crate = Instance.new("Model")
-	crate.Name = "crate"
-	local cratePart = Instance.new("Part")
-	cratePart.Size = Vector3.new(4, 12, 12)
-	cratePart.Parent = crate
-	crate.PrimaryPart = cratePart
-	crate.Parent = models
-
-	-- 2. Initialize Controller
 	local controller = PlacementController.new(plot, 4, models)
 	controller:setBuildMode(true)
-	controller:selectItem("crate")
+	controller:selectItem("cup")
 
-	-- 3. Wire the Update Loop
 	local connection = RunService.RenderStepped:Connect(function()
 		local hitPos = InputAdapter.getCursorWorldPosition(plot)
 
 		controller:update(hitPos)
 	end)
 
-	-- 4. Wire Inputs
 	local inputConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		if gameProcessed then
 			return
@@ -46,12 +35,10 @@ local function story(frame: Frame)
 		end
 	end)
 
-	-- 5. Cleanup
 	return function()
 		connection:Disconnect()
 		inputConnection:Disconnect()
 		controller:setBuildMode(false)
-		models:Destroy()
 	end
 end
 

@@ -100,14 +100,14 @@ local function ConsoleApp()
 	local visible, setVisible = useState(nil)
 	useEffect(function()
 		local unsub = UIState:subscribe(function(state: UIState.UIState)
-			local isOpen = state.panel == "recipe"
+			local isOpen = state.panel == "admin"
 			return isOpen
 		end, function(isOpen)
 			setVisible(isOpen)
 		end)
 		local panel = UIState:getState().panel
 		if panel then
-			setVisible(panel == "recipe")
+			setVisible(panel == "admin")
 		end
 		return unsub
 	end, {})
