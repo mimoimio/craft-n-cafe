@@ -11,26 +11,26 @@ export type CafeBase = Model & {
 	},
 	GetAttribute: (self: CafeBase, attribute: string & "OwnerId") -> string,
 }
+
 export type IngredientId = string
+
 export type Cafe = Model & {
 	Stations: Model & { [IngredientId]: Station },
-	Spots: Model & { -- the customers wait here
-		[string]: Part,
-	},
+	-- Spots removed! Customers now pathfind dynamically to placed items.
 	FeedbackPrompt: Part & {
 		ProximityPrompt: ProximityPrompt,
 	},
 }
 
 export type Station = Model & {
-	StationModel: Model, -- the cloned drinks from ReplicatedStorage.Shared.Models
-	Part: Part & { -- the PrimaryPart
+	StationModel: Model,
+	Part: Part & {
 		TriggerPrompt: ProximityPrompt,
 	},
 }
 
 export type Mixer = Model & {
-	MixerModel: Model?, -- the cloned model
+	MixerModel: Model?,
 	TriggerPrompt: ProximityPrompt,
 	Part: Part,
 }

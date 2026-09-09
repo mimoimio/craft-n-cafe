@@ -1,5 +1,6 @@
 -- Controllers/ViewportController.client.luau
 --!strict
+local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UIProducer = require(ReplicatedStorage.Shared.producers.UIState)

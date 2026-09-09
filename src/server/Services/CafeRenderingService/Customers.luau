@@ -16,6 +16,10 @@ local CustomersService = require(ServerScriptService.Server.Services.CustomersSe
 local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConfig)
 local DrinkModelUtil = require(ReplicatedStorage.Shared.Utils.DrinkModelUtil)
 
+-- NEW: Require Grid and Models to calculate dynamic CFrames
+local Grid = require(ReplicatedStorage.Shared.Grid)
+local Models = ReplicatedStorage.Shared.Models
+
 local e = React.createElement
 local useEffect = React.useEffect
 local useState = React.useState
@@ -59,6 +63,36 @@ local observeRigClone = function(clone: Model): (() -> ())?
 	end
 end
 
+local function getCounterTargetCFrame(playerId: string, baseModel: CafeTypes.CafeBase): CFrame?
+	local state = GlobalState:getState()
+	local plotState = state.Plot and state.Plot[playerId]
+	if not plotState then
+		return nil
+	end
+
+	for _, item in pairs(plotState.placedItems) do
+		if item.id == "Counter" then
+			local prefab = Models:FindFirstChild(item.id)
+			if not prefab then
+				continue
+			end
+
+			local _, itemSize = prefab:GetBoundingBox()
+			local plotCFrame, plotSize = baseModel.Part.CFrame, baseModel.Part.Size
+
+			local rawX, rawZ = Grid.getFootprint(itemSize, 0)
+			local snappedSize = Vector3.new(rawX * Grid.SIZE, itemSize.Y, rawZ * Grid.SIZE)
+
+			local counterCF =
+				Grid.gridToWorld(item.itemType or "Solid", item.x, item.z, plotCFrame, plotSize, snappedSize, item.r)
+
+			-- Offset by half the counter's depth + 1 stud so they don't clip inside the model!
+			return counterCF * CFrame.new(0, 0, -(itemSize.Z / 2 + 1))
+		end
+	end
+	return nil
+end
+
 local original = workspace.Rig:Clone()
 -- workspace.Rig:Destroy()
 
@@ -80,7 +114,6 @@ local function Customer(props: {
 
 	-- 1. Mounting: Clone the rig and Pivot to the deterministic start state
 	useEffect(function()
-		-- warn(`props.CafeModel {props.CafeModel}`)
 		local clone = original:Clone() :: CafeTypes.CustomerRig
 		local unsub = observeRigClone(clone)
 		local tag = "Customer" .. props.PlayerId
@@ -95,12 +128,13 @@ local function Customer(props: {
 
 		setRig(clone)
 		clone.TriggerPrompt.MaxActivationDistance = 15
-
 		setPrompt(clone.TriggerPrompt)
 
 		local entranceCF = props.BaseModel.Entrance:GetPivot()
-		local spotCF = props.CafeModel.Spots:FindFirstChild(props.Customer.spot):GetPivot()
 		local action = props.Customer.customerAction
+
+		-- FIX: Fetch dynamic spot CF, fallback to entrance if counter is missing
+		local spotCF = getCounterTargetCFrame(props.PlayerId, props.BaseModel) or entranceCF
 
 		local targetCF = entranceCF + Vector3.new(0, 4, 0)
 
@@ -115,14 +149,11 @@ local function Customer(props: {
 		clone.TriggerPrompt.RequiresLineOfSight = false
 		clone.TriggerPrompt.ActionText = "Tend Customer"
 		clone.TriggerPrompt.Style = Enum.ProximityPromptStyle.Default
-		-- clone.TriggerPrompt.Style = Enum.ProximityPromptStyle.Custom
 
 		local conn = clone.TriggerPrompt.Triggered:Connect(function(player: Player)
 			if tostring(player.UserId) ~= props.PlayerId then
-				warn("not player")
 				return
 			end
-
 			if actionRef.current == "waiting" then
 				CustomersService.ServeCustomer(player, props.Customer.id)
 			elseif actionRef.current == "queuing" then
@@ -156,13 +187,15 @@ local function Customer(props: {
 		local action = props.Customer.customerAction
 
 		local entranceCF = props.BaseModel.Entrance:GetPivot()
-		local spotCF = props.CafeModel.Spots:FindFirstChild(props.Customer.spot):GetPivot()
+
+		-- FIX: Fetch dynamic spot CF, fallback to entrance
+		local spotCF = getCounterTargetCFrame(props.PlayerId, props.BaseModel) or entranceCF
 
 		local targetPos = nil
 
-		-- Determine the ultimate target position based on the action state
 		local holdingAnimation: AnimationTrack?
 		local holdingAnimationThread: thread?
+
 		if action == "walking" or action == "entering" then
 			prompt.Enabled = false
 			targetPos = spotCF.Position

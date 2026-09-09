@@ -31,7 +31,6 @@ local function PlacedItemsManager(props: { PlayerId: string, BaseModel: CafeType
 
 	local children = {}
 
-	warn("placedItems", placedItems)
 	for uuid, itemData in placedItems do
 		children[uuid] = e(PlacedItemNode, {
 			Uuid = uuid,

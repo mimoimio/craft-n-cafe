@@ -149,6 +149,7 @@ local function Main(props)
 		e(require(script.Parent.CustomersOrder)),
 		e(CashOverlay),
 		e(Sidebar),
+		e(CafeBase),
 	})
 end
 

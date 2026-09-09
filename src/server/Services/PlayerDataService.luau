@@ -14,8 +14,9 @@ local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local Types = require(ReplicatedStorage.Shared.Types)
 local Signal = require(game.ReplicatedStorage.Packages.Signal)
 local ShopCycle = require(game.ReplicatedStorage.Shared.ShopCycle)
+local PlotConfig = require(game.ReplicatedStorage.Shared.Configs.PlotConfig)
 
--- local IS_PLAYTESTING = true
+local IS_PLAYTESTING = true
 --
 local DrinksBrewedLeaderboard = DataStoreService:GetOrderedDataStore("DrinksBrewed")
 
@@ -67,6 +68,7 @@ local function generateTables()
 	end
 	return tables
 end
+local firstPlot = PlotConfig.FirstPlot
 local PROFILE_TEMPLATE: PlayerData = {
 	Stats = {
 		SfxVolume = 0.5,
@@ -88,7 +90,7 @@ local PROFILE_TEMPLATE: PlayerData = {
 	Ingredients = {},
 	Customers = {},
 	Workers = {},
-	Plots = { occupiedCoordinates = {}, placedItems = {}, nextId = 1 },
+	Plot = firstPlot,
 }
 
 -- Recursively clones a table so we don't accidentally pass memory references

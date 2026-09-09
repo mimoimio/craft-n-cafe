@@ -147,24 +147,7 @@ local function Character(props: {
 				d.CollisionGroup = "Players"
 			end
 		end
-		local promise = Promise.defer(function(resolve)
-			local cafe = props.BaseModel:WaitForChild("Cafe", 1)
-			-- local cf, _s = cafe:GetBoundingBox()
-			local cf = cafe:WaitForChild("SpawnPoint", 1):GetPivot()
-			character:PivotTo((cf + Vector3.new(0, 5, 0)))
-			return resolve()
-		end)
-			:catch(function(err)
-				-- warn(`No spawnpoint: {tostring(err)}`)
-				local cafe = props.BaseModel:WaitForChild("Cafe", 1)
-				character:PivotTo(cafe:GetPivot())
-			end)
-			:catch(function(err)
-				warn("pivot error")
-			end)
-		return function()
-			promise:cancel()
-		end
+		character:PivotTo(props.BaseModel:GetPivot())
 	end, { character, props.BaseModel })
 
 	return e(React.Fragment, nil, children) -- Ensure children are rendered in a Fragment

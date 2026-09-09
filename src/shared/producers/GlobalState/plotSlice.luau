@@ -3,6 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Reflex = require(ReplicatedStorage.Packages.Reflex)
 local Sift = require(ReplicatedStorage.Packages.Sift)
 local Types = require(ReplicatedStorage.Shared.Types)
+local Grid = require(ReplicatedStorage.Shared.Grid)
 
 local Dictionary = Sift.Dictionary
 local Merge = Dictionary.merge
@@ -24,23 +25,23 @@ local actions = {
 	end,
 
 	placeItem = function(state: { [string]: PlotState }, playerId: string, payload: Types.PlaceItemPayload)
-		local playerPlot = state[playerId]
-		if not playerPlot then
-			playerPlot = { occupiedCoordinates = {}, placedItems = {}, nextId = 1 }
-		end
-
-		-- Grab the current ID from the counter
+		local playerPlot = state[playerId] or { grid = {}, placedItems = {}, nextId = 1 }
 		local generatedUuid = tostring(playerPlot.nextId)
 
-		local newOccupied = Dictionary.copy(playerPlot.occupiedCoordinates)
-		for x = payload.startX, payload.startX + payload.width - 1 do
-			for z = payload.startZ, payload.startZ + payload.length - 1 do
-				newOccupied[`{x}_{z}`] = generatedUuid
+		-- Grab Half-Grid bounds and write to the unified grid
+		local newGrid = Dictionary.copy(playerPlot.grid)
+		local startX, endX, startZ, endZ =
+			Grid.getHalfGridBounds(payload.itemType, payload.startX, payload.startZ, payload.width, payload.length)
+
+		for hx = startX, endX do
+			for hz = startZ, endZ do
+				newGrid[`{hx}_{hz}`] = generatedUuid
 			end
 		end
 
 		local newItem: Types.PlacedItem = {
 			id = payload.itemId,
+			itemType = payload.itemType,
 			x = payload.startX,
 			z = payload.startZ,
 			w = payload.width,
@@ -48,16 +49,13 @@ local actions = {
 			r = payload.rotation,
 		}
 
-		-- Merge increments the counter for the next item
 		local nextPlayerPlot = Merge(playerPlot, {
-			occupiedCoordinates = newOccupied,
+			grid = newGrid,
 			placedItems = Set(playerPlot.placedItems, generatedUuid, newItem),
 			nextId = playerPlot.nextId + 1,
 		})
 
-		local newstate = Set(state, playerId, nextPlayerPlot)
-		warn("success", newstate)
-		return newstate
+		return Set(state, playerId, nextPlayerPlot)
 	end,
 
 	destroyItem = function(state: { [string]: PlotState }, playerId: string, payload: Types.DestroyItemPayload)
@@ -71,17 +69,20 @@ local actions = {
 			return state
 		end
 
-		local newOccupied = Dictionary.copy(playerPlot.occupiedCoordinates)
-		for x = itemData.x, itemData.x + itemData.w - 1 do
-			for z = itemData.z, itemData.z + itemData.l - 1 do
-				newOccupied[`{x}_{z}`] = nil
+		-- Grab bounds from saved itemData and clear those exact Half-Grid keys
+		local newGrid = Dictionary.copy(playerPlot.grid)
+		local startX, endX, startZ, endZ =
+			Grid.getHalfGridBounds(itemData.itemType, itemData.x, itemData.z, itemData.w, itemData.l)
+
+		for hx = startX, endX do
+			for hz = startZ, endZ do
+				newGrid[`{hx}_{hz}`] = nil
 			end
 		end
 
 		local nextPlayerPlot = Merge(playerPlot, {
-			occupiedCoordinates = newOccupied,
+			grid = newGrid,
 			placedItems = RemoveKey(playerPlot.placedItems, payload.uuid),
-			-- nextId is explicitly NOT modified here so it never reuses IDs
 		})
 
 		return Set(state, playerId, nextPlayerPlot)

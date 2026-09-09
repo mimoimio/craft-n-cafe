@@ -3,22 +3,21 @@
 
 export type PlacedItem = {
 	id: string,
+	itemType: string, -- "Solid", "Wall_V", or "Wall_H"
 	x: number,
 	z: number,
 	w: number,
 	l: number,
-	r: number, -- Rotation is needed for rendering
+	r: number,
 }
-
 export type PlotState = {
-	occupiedCoordinates: { [string]: string },
+	grid: { [string]: string }, -- UNIFIED MATRIX
 	placedItems: { [string]: PlacedItem },
-	nextId: number, -- The internal counter
+	nextId: number,
 }
-
 export type PlaceItemPayload = {
-	-- uuid: string, (Removed!)
 	itemId: string,
+	itemType: string,
 	startX: number,
 	startZ: number,
 	width: number,

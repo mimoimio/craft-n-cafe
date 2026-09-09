@@ -6,6 +6,7 @@ local GamepadService = game:GetService("GamepadService")
 local StarterGui = game:GetService("StarterGui")
 local Reflex = require(ReplicatedStorage.Packages.Reflex)
 local Sift = require(ReplicatedStorage.Packages.Sift)
+local CafeTypes = require(ReplicatedStorage.Shared.CafeTypes)
 local Dictionary = Sift.Dictionary
 local Set = Dictionary.set
 local Merge = Dictionary.merge
@@ -15,12 +16,14 @@ export type UIState = {
 	panel: string,
 	viewportSize: Vector2,
 	buildItemId: string?, -- Tracks the selected item
+	cafeBase: CafeTypes.CafeBase,
 }
 
 export type UIActions = {
 	toggle: (panel: string) -> (),
 	setViewportSize: (viewportSize: Vector2) -> (),
 	selectBuildItem: (itemId: string) -> (),
+	setCafeBase: (cafeBase: CafeTypes.CafeBase) -> (),
 }
 
 local initialState: UIState = {
@@ -79,6 +82,9 @@ local producer = Reflex.createProducer(initialState, {
 	end,
 	selectBuildItem = function(state: UIState, itemId: string)
 		return Set(state, "buildItemId", itemId)
+	end,
+	setCafeBase = function(state: UIState, cafeBase: CafeTypes.CafeBase)
+		return Set(state, "cafeBase", cafeBase)
 	end,
 }) :: Reflex.Producer<UIState, UIActions>
 
