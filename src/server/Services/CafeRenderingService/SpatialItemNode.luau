@@ -1,10 +1,9 @@
--- PlacedItemNode.luau
+-- ServerScriptService/Server/Services/CafeRenderingService/SpatialItemNode.luau
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local React = require(ReplicatedStorage.Packages.React)
 local useEffect = React.useEffect
 
-local Grid = require(ReplicatedStorage.Shared.Grid)
 local Types = require(ReplicatedStorage.Shared.Types)
 local CafeTypes = require(ReplicatedStorage.Shared.CafeTypes)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
@@ -12,11 +11,10 @@ local DrinksService = require(ServerScriptService.Server.Services.DrinksService)
 
 local Models = ReplicatedStorage.Shared.Models
 
-local function PlacedItemNode(props: {
+local function SpatialItemNode(props: {
 	Uuid: string,
-	ItemData: Types.PlacedItem,
+	ItemData: Types.SpatialItem,
 	BaseModel: CafeTypes.CafeBase,
-	GridSize: number,
 	PlayerId: string,
 })
 	useEffect(function()
@@ -27,34 +25,20 @@ local function PlacedItemNode(props: {
 
 		local clone = prefab:Clone()
 		local primary = clone.PrimaryPart or clone:FindFirstChildWhichIsA("BasePart")
-		local pp = clone:FindFirstChild("ProximityPrompt")
+
+		-- Disable existing prompts attached to the prefab
+		local pp = clone:FindFirstChildWhichIsA("ProximityPrompt", true)
 		if pp then
 			pp.Enabled = false
 		end
 
-		-- local originalCFrame, itemSize = clone:GetBoundingBox()
-		local originalCFrame, itemSize = Grid.getModelBounds(clone)
-		local plotCFrame, plotSize = props.BaseModel.Part.CFrame, props.BaseModel.Part.Size
-
-		-- ALWAYS get the unrotated footprint for the base snappedSize Vector3
-		-- This prevents double-swapping when passed into gridToWorld
-		local rawX, rawZ = Grid.getFootprint(itemSize, 0)
-		local snappedSize = Vector3.new(rawX * Grid.SIZE, itemSize.Y, rawZ * Grid.SIZE)
-
-		local targetCFrame = Grid.gridToWorld(
-			props.ItemData.itemType,
-			props.ItemData.x,
-			props.ItemData.z,
-			plotCFrame,
-			plotSize,
-			snappedSize,
-			props.ItemData.r
-		)
-
+		local _, itemSize = clone:GetBoundingBox()
+		local plotCFrame = props.BaseModel.Part.CFrame
+		local targetCFrame = plotCFrame:ToWorldSpace(props.ItemData.cframe)
 		local conn = nil
 
 		-- [[ FUNCTIONAL ROUTING ]]
-		-- Match IDs like "milk_station", "cup_station", "trash_station"
+		-- Enables tabletop ingredients and mini appliances!
 		local stationName = string.match(props.ItemData.id, "^(.+)_station$")
 
 		if stationName then
@@ -77,7 +61,6 @@ local function PlacedItemNode(props: {
 			conn = prompt.Triggered:Connect(function(player: Player)
 				local playerId = tostring(player.UserId)
 				if playerId ~= props.PlayerId then
-					print("not playerId")
 					return
 				end
 
@@ -106,20 +89,21 @@ local function PlacedItemNode(props: {
 				pl:Destroy()
 			end
 		until not found
-
-		-- Setup the new perfectly-snapped PrimaryPart
+		-- Setup the new perfectly-snapped PrimaryPart bounding box
 		local part = Instance.new("Part")
 		part.Anchored = true
-		part.Color = Color3.new(0, 0, 1)
-		part.Size = snappedSize
+		part.Color = Color3.new(1, 0, 0) -- Red outline in debug mode to distinguish from Grid items
+		part.Size = itemSize
 		part.CanCollide = false
 		part.CanTouch = false
 		part.CanQuery = false
 		part.Transparency = 1
 		part.Parent = clone
-		part:PivotTo(originalCFrame) -- this is important
+		part:PivotTo(_) -- Resets orientation internally
 
+		-- 🎯 CRITICAL: Tag the model so the Delete Raycaster can find its UUID
 		clone:SetAttribute("Uuid", props.Uuid)
+
 		clone.PrimaryPart = part
 		clone:PivotTo(targetCFrame)
 		clone.Parent = props.BaseModel
@@ -135,4 +119,4 @@ local function PlacedItemNode(props: {
 	return nil
 end
 
-return PlacedItemNode
+return SpatialItemNode

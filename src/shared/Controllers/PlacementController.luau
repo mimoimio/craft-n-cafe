@@ -21,11 +21,10 @@ function self.new(plotPart: Part, itemPrefabsFolder: Folder)
 
 	self.visualizer = nil
 	self.buildModeActive = false
-	self.deleteModeActive = false -- NEW
+	self.deleteModeActive = false
 	self.currentItemId = nil
 	self.rotation = 0
 
-	-- NEW: Setup the red highlight for hovered items
 	self.hoveredUuid = nil
 	local newHighlight
 	newHighlight = function()
@@ -43,10 +42,9 @@ function self.new(plotPart: Part, itemPrefabsFolder: Folder)
 	self.initialized = true
 	return self
 end
--- NEW: Method to toggle delete mode
+
 function self:setDeleteMode(isActive: boolean)
 	if not self.initialized then
-		print("not initialized yet")
 		return
 	end
 
@@ -61,16 +59,15 @@ function self:setDeleteMode(isActive: boolean)
 		self.deleteHighlight.Parent = nil
 	end
 end
+
 function self:setBuildMode(isActive: boolean)
 	if not self.initialized then
-		print("not initialized yet")
 		return
 	end
 	self.buildModeActive = isActive
 
 	if isActive then
 		if not self.visualizer then
-			-- We pass the Grid.SIZE directly to the visualizer here
 			self.visualizer = PlacementVisualizer.new(self.plot, Grid.SIZE)
 		end
 	else
@@ -83,11 +80,7 @@ function self:setBuildMode(isActive: boolean)
 end
 
 function self:selectItem(itemId: string)
-	if not self.initialized then
-		print("not initialized yet")
-		return
-	end
-	if not self.buildModeActive then
+	if not self.initialized or not self.buildModeActive then
 		return
 	end
 	self.currentItemId = itemId
@@ -100,12 +93,10 @@ end
 
 function self:rotateItem()
 	if not self.initialized then
-		print("not initialized yet")
 		return
 	end
 	self.rotation = (self.rotation + 90) % 360
 end
--- (Snippet focusing on update and placeItem)
 
 function self:update(cursorWorldPos: Vector3)
 	if not self.initialized or not self.buildModeActive then
@@ -119,8 +110,6 @@ function self:update(cursorWorldPos: Vector3)
 
 		if hoveredUuid and self.hoveredUuid ~= hoveredUuid then
 			self.hoveredUuid = hoveredUuid
-
-			-- Find the physical model by Uuid attribute to attach the highlight
 			for _, child in baseModel:GetChildren() do
 				if child:GetAttribute("Uuid") == hoveredUuid then
 					self.deleteHighlight.Parent = child
@@ -131,8 +120,7 @@ function self:update(cursorWorldPos: Vector3)
 			self.hoveredUuid = nil
 			self.deleteHighlight.Parent = nil
 		end
-
-		return -- Exit early, do not run placement ghost logic
+		return
 	end
 
 	-- [[ NORMAL PLACEMENT LOGIC ]]
@@ -145,123 +133,214 @@ function self:update(cursorWorldPos: Vector3)
 		return
 	end
 
+	local placementType = prefab:GetAttribute("PlacementType") or "Grid"
 	local itemTypeAttr = prefab:GetAttribute("ItemType") or "Solid"
 
-	local _, itemSize = prefab:GetBoundingBox()
-	local plotCFrame, plotSize = self.plot.CFrame, self.plot.Size
-
-	local resolvedItemType = "Solid"
-	local finalRotation = self.rotation -- The player's explicit rotation is the absolute truth now
-	local rawGridX, rawGridZ
-
-	if itemTypeAttr == "Wall" then
-		-- Pass the rotation into worldToEdge so it knows which axis to lock onto
-		resolvedItemType, rawGridX, rawGridZ = Grid.worldToEdge(cursorWorldPos, plotCFrame, finalRotation)
-	else
-		resolvedItemType = "Solid"
-		rawGridX, rawGridZ = Grid.worldToSolid(cursorWorldPos, plotCFrame, itemSize, finalRotation)
-	end
-
-	local width, length = Grid.getFootprint(itemSize, finalRotation)
-	local rawX, rawZ = Grid.getFootprint(itemSize, 0)
-	local snappedSize = Vector3.new(rawX * Grid.SIZE, itemSize.Y, rawZ * Grid.SIZE)
-
-	local gridX, gridZ = Grid.clampToGrid(resolvedItemType, rawGridX, rawGridZ, width, length, plotSize)
-
-	local playerId = Players.LocalPlayer and tostring(Players.LocalPlayer.UserId) or "MockUser"
-	local state = GlobalState:getState()
-	local plotState = state.Plot and state.Plot[playerId]
-
-	local isFree = Grid.isAreaFree(plotState, resolvedItemType, gridX, gridZ, width, length)
-	local targetCFrame =
-		Grid.gridToWorld(resolvedItemType, gridX, gridZ, plotCFrame, plotSize, snappedSize, finalRotation)
-
-	self.visualizer:updateGhost(targetCFrame, isFree)
-end
-
-function self:placeItem(cursorWorldPos: Vector3)
-	if not self.initialized then
-		print("not initialized yet")
-		return
-	end
-	if not self.buildModeActive or not self.currentItemId then
-		return false
-	end
-
-	local prefab = self.itemPrefabs:FindFirstChild(self.currentItemId)
-	local itemTypeAttr = prefab:GetAttribute("ItemType") or "Solid"
-
-	local _, itemSize = prefab:GetBoundingBox()
+	local _, itemSize = Grid.getModelBounds(prefab)
 	local plotCFrame, plotSize = self.plot.CFrame, self.plot.Size
 
 	local resolvedItemType = "Solid"
 	local finalRotation = self.rotation
 	local rawGridX, rawGridZ
 
-	if itemTypeAttr == "Wall" then
-		-- Pass the rotation into worldToEdge
-		resolvedItemType, rawGridX, rawGridZ = Grid.worldToEdge(cursorWorldPos, plotCFrame, finalRotation)
+	local targetCFrame
+	local isFree = false
+	local hitUuid = nil
+
+	if placementType == "Free" then
+		-- [[ SPATIAL PLACEMENT LOGIC ]]
+		local ignoreList = self.visualizer.ghostModel and { self.visualizer.ghostModel } or {}
+		local rayResult = InputAdapter.getSpatialRaycast(self.plot.Parent, ignoreList)
+
+		if rayResult then
+			local hitPos = rayResult.Position
+			local normal = rayResult.Normal
+
+			local hitModel = rayResult.Instance:FindFirstAncestorWhichIsA("Model")
+			hitUuid = hitModel and hitModel:GetAttribute("Uuid") or "Plot"
+
+			if math.abs(normal.Y) > 0.99 then
+				targetCFrame = CFrame.new(hitPos + normal * (itemSize.Y / 2))
+					* CFrame.Angles(0, math.rad(self.rotation), 0)
+			else
+				targetCFrame = CFrame.lookAt(hitPos + normal * (itemSize.Z / 2), hitPos + normal * 2)
+			end
+
+			local relativeCFrame = plotCFrame:ToObjectSpace(targetCFrame)
+			local maxRadius = math.max(itemSize.X, itemSize.Z) / 2
+
+			local isWithinBounds = math.abs(relativeCFrame.X) + maxRadius <= (plotSize.X / 2)
+				and math.abs(relativeCFrame.Z) + maxRadius <= (plotSize.Z / 2)
+
+			isFree = isWithinBounds
+		else
+			targetCFrame = self.plot.CFrame * CFrame.new(0, -100, 0)
+			isFree = false
+		end
 	else
-		resolvedItemType = "Solid"
-		rawGridX, rawGridZ = Grid.worldToSolid(cursorWorldPos, plotCFrame, itemSize, finalRotation)
+		-- [[ EXISTING GRID LOGIC ]]
+		if itemTypeAttr == "Wall" then
+			resolvedItemType, rawGridX, rawGridZ = Grid.worldToEdge(cursorWorldPos, plotCFrame, finalRotation)
+		else
+			resolvedItemType = itemTypeAttr
+			rawGridX, rawGridZ = Grid.worldToSolid(cursorWorldPos, plotCFrame, itemSize, finalRotation)
+		end
+
+		local width, length = Grid.getFootprint(itemSize, finalRotation)
+		local rawX, rawZ = Grid.getFootprint(itemSize, 0)
+
+		-- FIX: Use the SNAPPED footprint for X and Z, just like PlacedItemNode!
+		local dummyY = itemSize.Y
+		local mathItemType = resolvedItemType
+
+		if itemTypeAttr == "Roof" then
+			dummyY = itemSize.Y + Grid.WALL_HEIGHT
+			mathItemType = "Solid" -- Prevent gridToWorld from double-elevating the ghost
+		end
+
+		local snappedSize = Vector3.new(rawX * Grid.SIZE, dummyY, rawZ * Grid.SIZE)
+
+		local gridX, gridZ = Grid.clampToGrid(resolvedItemType, rawGridX, rawGridZ, width, length, plotSize)
+
+		local playerId = Players.LocalPlayer and tostring(Players.LocalPlayer.UserId) or "MockUser"
+		local state = GlobalState:getState()
+		local plotState = state.Plot and state.Plot[playerId]
+
+		isFree = Grid.isAreaFree(plotState, resolvedItemType, gridX, gridZ, width, length)
+
+		-- Pass snappedSize instead of visualItemSize
+		targetCFrame = Grid.gridToWorld(mathItemType, gridX, gridZ, plotCFrame, plotSize, snappedSize, finalRotation)
+	end
+	self.visualizer:updateGhost(targetCFrame, isFree)
+end
+
+function self:placeItem(cursorWorldPos: Vector3)
+	if not self.initialized or not self.buildModeActive or not self.currentItemId then
+		return false
 	end
 
-	local width, length = Grid.getFootprint(itemSize, finalRotation)
-	local gridX, gridZ = Grid.clampToGrid(resolvedItemType, rawGridX, rawGridZ, width, length, plotSize)
+	local prefab = self.itemPrefabs:FindFirstChild(self.currentItemId)
+	local placementType = prefab:GetAttribute("PlacementType") or "Grid"
+	local itemTypeAttr = prefab:GetAttribute("ItemType") or "Solid"
+
+	local _, itemSize = Grid.getModelBounds(prefab)
+	local plotCFrame, plotSize = self.plot.CFrame, self.plot.Size
 
 	local playerId = Players.LocalPlayer and tostring(Players.LocalPlayer.UserId) or "MockUser"
 	local state = GlobalState:getState()
 	local plotState = state.Plot and state.Plot[playerId]
 
-	if Grid.isAreaFree(plotState, resolvedItemType, gridX, gridZ, width, length) then
-		Remotes.PlaceItem:FireServer(self.currentItemId, gridX, gridZ, finalRotation)
+	if placementType == "Free" then
+		-- [[ SPATIAL PLACEMENT LOGIC ]]
+		local ignoreList = self.visualizer and self.visualizer.ghostModel and { self.visualizer.ghostModel } or {}
+		if Players.LocalPlayer and Players.LocalPlayer.Character then
+			table.insert(ignoreList, Players.LocalPlayer.Character)
+		end
+
+		local rayResult = InputAdapter.getSpatialRaycast(self.plot.Parent, ignoreList)
+		if not rayResult then
+			return false
+		end
+
+		local hitPos = rayResult.Position
+		local normal = rayResult.Normal
+		local targetCFrame
+
+		if math.abs(normal.Y) > 0.99 then
+			targetCFrame = CFrame.new(hitPos + normal * (itemSize.Y / 2)) * CFrame.Angles(0, math.rad(self.rotation), 0)
+		else
+			targetCFrame = CFrame.lookAt(hitPos + normal * (itemSize.Z / 2), hitPos + normal * 2)
+		end
+
+		local hitModel = rayResult.Instance:FindFirstAncestorWhichIsA("Model")
+		local hitUuid = hitModel and hitModel:GetAttribute("Uuid") or "Plot"
+
+		local relativeCFrame = plotCFrame:ToObjectSpace(targetCFrame)
+		local maxRadius = math.max(itemSize.X, itemSize.Z) / 2
+		local isWithinBounds = math.abs(relativeCFrame.X) + maxRadius <= (plotSize.X / 2)
+			and math.abs(relativeCFrame.Z) + maxRadius <= (plotSize.Z / 2)
+
+		if not isWithinBounds then
+			return false
+		end
+
+		Remotes.PlaceItem:FireServer({
+			itemId = self.currentItemId,
+			placementType = "Free",
+			cframe = relativeCFrame,
+			parentUuid = hitUuid,
+		})
 		return true
+	else
+		-- [[ EXISTING GRID LOGIC ]]
+		local resolvedItemType = "Solid"
+		local finalRotation = self.rotation
+		local rawGridX, rawGridZ
+
+		if itemTypeAttr == "Wall" then
+			resolvedItemType, rawGridX, rawGridZ = Grid.worldToEdge(cursorWorldPos, plotCFrame, finalRotation)
+		else
+			resolvedItemType = itemTypeAttr
+			rawGridX, rawGridZ = Grid.worldToSolid(cursorWorldPos, plotCFrame, itemSize, finalRotation)
+		end
+
+		local width, length = Grid.getFootprint(itemSize, finalRotation)
+		local gridX, gridZ = Grid.clampToGrid(resolvedItemType, rawGridX, rawGridZ, width, length, plotSize)
+
+		if Grid.isAreaFree(plotState, resolvedItemType, gridX, gridZ, width, length) then
+			Remotes.PlaceItem:FireServer({
+				itemId = self.currentItemId,
+				placementType = "Grid",
+				itemType = resolvedItemType,
+				startX = gridX,
+				startZ = gridZ,
+				width = width,
+				length = length,
+				rotation = finalRotation,
+			})
+			return true
+		end
 	end
+
 	return false
 end
+
 function self:placeCurrent()
 	if not self.initialized or not self.plot or not self.buildModeActive then
 		return false
 	end
-
-	-- Dynamically fetch the center of the screen or mouse pos
 	local hitPos = InputAdapter.getCursorWorldPosition(self.plot)
 	local success, uuid = self:placeItem(hitPos)
-
 	if success then
-		print("Successfully placed item via UI/Center Screen with UUID:", uuid)
+		print("Successfully placed item with UUID:", uuid)
 	end
-
 	return success
 end
+
 function self:destroyItem(uuid: string)
 	if not self.initialized then
-		print("not initialized yet")
 		return
 	end
 	Remotes.DestroyItem:FireServer(uuid)
 	return true
 end
+
 function self:attemptDestroyAtCursor()
 	if not self.initialized or not self.plot then
 		return false
 	end
-
 	local baseModel = self.plot.Parent
 	local hoveredUuid = InputAdapter.getHoveredItemUuid(baseModel)
 
 	if hoveredUuid then
 		self:destroyItem(hoveredUuid)
-		print("Successfully destroyed item with UUID:", hoveredUuid)
-
-		-- Immediately clear the highlight so it doesn't hang on a deleted object
 		self.hoveredUuid = nil
 		self.deleteHighlight.Parent = nil
 		return true
 	end
-
 	return false
 end
+
 function self.initialize()
 	self.initializePromise = Promise.defer(function(resolve, reject, onCancel)
 		local playersPlot = UIState:getState().cafeBase or nil
@@ -287,7 +366,6 @@ function self.initialize()
 			warn("initialized controller")
 			self.new(cafeBase.Part, ReplicatedStorage.Shared.Models)
 
-			-- 4. Wire Inputs & Update Loop
 			self.connection = RunService.RenderStepped:Connect(function()
 				local hitPos = InputAdapter.getCursorWorldPosition(cafeBase.Part)
 				self:update(hitPos)
@@ -302,15 +380,10 @@ function self.initialize()
 					self:rotateItem()
 				elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
 					if self.deleteModeActive then
-						-- EXECUTE DELETE
 						self:attemptDestroyAtCursor()
 					else
-						-- EXECUTE PLACE
 						local hitPos = InputAdapter.getCursorWorldPosition(cafeBase.Part)
-						local success, uuid = self:placeItem(hitPos)
-						if success then
-							print("Successfully placed item with UUID:", uuid)
-						end
+						self:placeItem(hitPos)
 					end
 				end
 			end)
@@ -319,6 +392,7 @@ function self.initialize()
 			warn("PlacementController error:", err)
 		end)
 end
+
 function self.cleanup()
 	self.initializePromise:cancel()
 	if self.connection then

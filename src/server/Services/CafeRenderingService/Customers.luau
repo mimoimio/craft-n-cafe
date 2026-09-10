@@ -125,6 +125,11 @@ local function Customer(props: {
 		if rootPart and rootPart:CanSetNetworkOwnership() then
 			rootPart:SetNetworkOwner(nil)
 		end
+		for i, desc: BasePart in clone:GetDescendants() do
+			if desc:IsA("BasePart") then
+				desc.CollisionGroup = "Characters"
+			end
+		end
 
 		setRig(clone)
 		clone.TriggerPrompt.MaxActivationDistance = 15

@@ -45,11 +45,23 @@ function PlacementVisualizer:setGhostItem(modelPrefab: Model?)
 	self.ghostModel = modelPrefab:Clone()
 
 	-- 1. Grab the original bounding box center and size
-	local originalCFrame, itemSize = self.ghostModel:GetBoundingBox()
+	local originalCFrame, itemSize = Grid.getModelBounds(self.ghostModel)
+	local itemTypeAttr = modelPrefab:GetAttribute("ItemType") or "Solid"
 
 	-- 2. Calculate the snapped footprint size
 	local rawX, rawZ = Grid.getFootprint(itemSize, 0)
-	local snappedSize = Vector3.new(rawX * Grid.SIZE, itemSize.Y, rawZ * Grid.SIZE)
+
+	local dummyY = itemSize.Y
+	local pivotOffset = CFrame.identity
+
+	-- FIX: Stretch Roof hitboxes to the floor!
+	if itemTypeAttr == "Roof" then
+		dummyY = itemSize.Y + Grid.WALL_HEIGHT
+		-- Offset the dummy part's center downwards so the actual roof mesh stays at the top
+		pivotOffset = CFrame.new(0, -(Grid.WALL_HEIGHT / 2), 0)
+	end
+
+	local snappedSize = Vector3.new(rawX * Grid.SIZE, dummyY, rawZ * Grid.SIZE)
 
 	-- Strip package links just like the renderer
 	repeat
@@ -63,7 +75,7 @@ function PlacementVisualizer:setGhostItem(modelPrefab: Model?)
 	local part = Instance.new("Part")
 	part.Anchored = true
 	part.Size = snappedSize
-	part:PivotTo(originalCFrame) -- VERY IMPORTANT: Align to internal center first
+	part:PivotTo(originalCFrame * pivotOffset) -- Align to internal center + downward offset
 	part.CanCollide = false
 	part.Transparency = 0.5
 	part.Color = Color3.new(0, 1, 0)
@@ -77,8 +89,6 @@ function PlacementVisualizer:setGhostItem(modelPrefab: Model?)
 	for _, desc in self.ghostModel:GetDescendants() do
 		if desc:IsA("BasePart") and desc ~= part then
 			desc.CanCollide = false
-			-- desc.Transparency = 0.5
-
 			local alpha = 1 - desc.Transparency
 			desc.Transparency = 1 - alpha * 0.6
 		end

@@ -145,9 +145,9 @@ local function BuildPanel()
 	}, {
 		e(VStack, {
 			-- Size = UDim2.new(0, mobile and 260 or 300, 1, 0),
-			Position = UDim2.new(0, 0, 0, 0),
+			Position = UDim2.new(0, 0, 0.5, 0),
 			AutomaticSize = Enum.AutomaticSize.XY,
-			AnchorPoint = Vector2.new(1, 0),
+			AnchorPoint = Vector2.new(1, 0.5),
 			-- OnMount = warn,
 			BackgroundTransparency = 1,
 			BackgroundColor3 = Color3.new(0.1, 0.1, 0.1),
@@ -186,8 +186,6 @@ local function BuildPanel()
 				LayoutOrder = -1, -- Force it to the top of the list
 				[React.Event.Activated] = function()
 					local is = UIState:getState().buildItemId ~= "DELETE_MODE" and "DELETE_MODE" or "crate"
-					warn("UIState:getState().buildItemId", UIState:getState().buildItemId)
-					warn("is", is)
 					UIState.selectBuildItem(is)
 				end,
 			}, {

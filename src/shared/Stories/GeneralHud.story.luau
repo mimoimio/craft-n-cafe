@@ -2,6 +2,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local RunService = game:GetService("RunService")
+local ServerStorage = game:GetService("ServerStorage")
 local UserInputService = game:GetService("UserInputService")
 local React = require(ReplicatedStorage.Packages.React)
 local e = React.createElement
@@ -9,16 +10,20 @@ local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
 
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
+local Grid = require(ReplicatedStorage.Shared.Grid)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local ViewportController = require(ReplicatedStorage.Shared.Controllers.ViewportController)
 local Main = require(ReplicatedStorage.Shared.ReactComponents.Main)
+local PlotConfig = require(ReplicatedStorage.Shared.Configs.PlotConfig:Clone())
 
 local PlacementController = require(ReplicatedStorage.Shared.Controllers.PlacementController)
 local InputAdapter = require(ReplicatedStorage.Shared.Controllers.InputAdapter)
 
 local CafeRenderingService = require(ServerScriptService.Server.Services.CafeRenderingService)
+local playersPlotString
 local function formatValue(value, depth)
 	local indent = string.rep("\t", depth)
+	-- local indent = ""
 	if type(value) == "table" then
 		local results = {}
 		for k, v in value do
@@ -32,25 +37,33 @@ local function formatValue(value, depth)
 					string.format("%s%s = {", indent, if type(k) == "string" then `["{tostring(k)}"]` else tostring(k))
 				)
 				table.insert(results, formatValue(v, depth + 1))
-				table.insert(results, indent .. "}")
+				table.insert(results, indent .. "},")
 			else
 				table.insert(
 					results,
 					-- string.format(`%s%s : "%s"`, indent, k == "customerAction" and k or "", tostring(v))
 					string.format(
-						"%s%-20s = %s,",
+						"%s%s=%s,",
 						indent,
 						if type(k) == "string" then `["{tostring(k)}"]` else tostring(k),
-						if type(v) == "string" then `"{v}"` else tostring(v)
+						if type(v) == "string"
+							then `"{v}"`
+							elseif typeof(v) == "CFrame" then `CFrame.new({tostring(v)})`
+							else tostring(v)
 					)
 					-- string.format("%s%24s (%s): %s(%s),", indent, tostring(k), type(k), tostring(v), type(v))
 				)
 			end
 		end
-		return table.concat(results, "\n")
+		-- return table.concat(results)
+		return table.concat(results, "\n") -- not needed, not for viewing
 	else
 		return string.format("%s%s,", indent, tostring(value))
 	end
+end
+
+local function getPlot()
+	return PlotConfig.FirstPlot
 end
 
 local function story(frame: Frame)
@@ -59,7 +72,7 @@ local function story(frame: Frame)
 
 	-- 1. Initialize Mock State for UI Labs
 	GlobalState.startPlayerSession("MockUser", {
-		Plot = { grid = {}, placedItems = {}, nextId = 1 }, -- Updated to unified 'grid'
+		Plot = getPlot(), -- Updated to unified 'grid'
 		Stats = {
 			Level = 1,
 		} :: any,
@@ -70,46 +83,67 @@ local function story(frame: Frame)
 	})
 
 	-- 2. Mock Server: Listen for Mock Remote Events
-	local placeListener = Remotes.PlaceItem.OnServerEvent:Connect(function(player, itemId, startX, startZ, rotation)
+	local placeListener = Remotes.PlaceItem.OnServerEvent:Connect(function(player, payload)
 		local playerId = player and tostring(player.UserId) or "MockUser"
 
 		-- 1. Authoritative Prefab Lookup
-		local prefab = game.ReplicatedStorage.Shared.Models:FindFirstChild(itemId)
+		local prefab = game.ReplicatedStorage.Shared.Models:FindFirstChild(payload.itemId)
 		if not prefab then
 			return
 		end
 
-		-- 2. Authoritative Type Resolution
-		local itemTypeAttr = prefab:GetAttribute("ItemType") or "Solid"
-		local resolvedItemType = "Solid"
+		if payload.placementType == "Free" then
+			-- [[ SERVER-SIDE GUARD FOR SPATIAL ITEMS ]]
+			local _, itemSize = Grid.getModelBounds(prefab)
+			local maxRadius = math.max(itemSize.X, itemSize.Z) / 2
+			local plotSize = workspace.CafeBase.Part.Size
 
-		if itemTypeAttr == "Wall" then
-			local isRotated = math.abs(rotation % 180) == 90
+			local relativePos = payload.cframe.Position
+			local isWithinBounds = math.abs(relativePos.X) + maxRadius <= (plotSize.X / 2)
+				and math.abs(relativePos.Z) + maxRadius <= (plotSize.Z / 2)
 
-			-- FIX: 90 degrees now means it's running along the Z-axis (Wall_V)
-			resolvedItemType = isRotated and "Wall_V" or "Wall_H"
+			if not isWithinBounds then
+				warn(`Exploit prevented: Player {playerId} attempted to place {payload.itemId} outside plot bounds.`)
+				return
+			end
+
+			GlobalState.placeItem(playerId, payload)
+		else
+			-- [[ GRID PLACEMENT ]]
+			-- FIX: Properly preserve Roof and Floor tags
+			local itemTypeAttr = prefab:GetAttribute("ItemType") or "Solid"
+			local resolvedItemType = itemTypeAttr
+
+			if itemTypeAttr == "Wall" then
+				local isRotated = math.abs(payload.rotation % 180) == 90
+				resolvedItemType = isRotated and "Wall_V" or "Wall_H"
+			end
+
+			-- 3. Authoritative Math
+			local _, itemSize = Grid.getModelBounds(prefab)
+			local Grid = require(game.ReplicatedStorage.Shared.Grid)
+			local width, length = Grid.getFootprint(itemSize, payload.rotation)
+
+			-- Dispatch to the slice using the trusted resolvedItemType
+			GlobalState.placeItem(playerId, {
+				itemId = payload.itemId,
+				placementType = "Grid",
+				itemType = resolvedItemType, -- Now correctly passes "Roof"
+				startX = payload.startX,
+				startZ = payload.startZ,
+				width = width,
+				length = length,
+				rotation = payload.rotation,
+			})
 		end
 
-		-- 3. Authoritative Math
-		local _, itemSize = prefab:GetBoundingBox()
-		local Grid = require(game.ReplicatedStorage.Shared.Grid)
-		local width, length = Grid.getFootprint(itemSize, rotation)
-
-		-- Dispatch to the slice using the trusted resolvedItemType
-		GlobalState.placeItem(playerId, {
-			itemId = itemId,
-			itemType = resolvedItemType,
-			startX = startX,
-			startZ = startZ,
-			width = width,
-			length = length,
-			rotation = rotation,
-		})
-		warn(formatValue(GlobalState:getState().Plot["MockUser"], 0))
+		playersPlotString = formatValue(GlobalState:getState().Plot["MockUser"], 1)
 	end)
+
 	local destroyListener = Remotes.DestroyItem.OnServerEvent:Connect(function(player, uuid)
 		local playerId = player and tostring(player.UserId) or "MockUser"
 		GlobalState.destroyItem(playerId, { uuid = uuid })
+		playersPlotString = formatValue(GlobalState:getState().Plot["MockUser"], 1)
 	end)
 
 	-- 3. Initialize Controllers & Services
@@ -157,6 +191,10 @@ local function story(frame: Frame)
 		inputConnection:Disconnect()
 		placeListener:Disconnect()
 		destroyListener:Disconnect()
+		local PlotTemplate = ServerStorage:FindFirstChild("PlotTemplate")
+		if PlotTemplate and playersPlotString then
+			PlotTemplate.Source = `return \{\n{playersPlotString}\n}`
+		end
 
 		PlacementController:setBuildMode(false)
 		root:unmount()

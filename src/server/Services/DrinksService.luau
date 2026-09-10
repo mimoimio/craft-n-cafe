@@ -11,7 +11,7 @@ function DrinksService.GetCup(player: Player)
 	local state = GlobalState:getState()
 
 	local playersCups = state.Cups[playerId]
-	local cup = playersCups[playerId]
+	local cup = playersCups.player
 
 	if cup then
 		print("cup already")

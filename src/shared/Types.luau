@@ -10,11 +10,6 @@ export type PlacedItem = {
 	l: number,
 	r: number,
 }
-export type PlotState = {
-	grid: { [string]: string }, -- UNIFIED MATRIX
-	placedItems: { [string]: PlacedItem },
-	nextId: number,
-}
 export type PlaceItemPayload = {
 	itemId: string,
 	itemType: string,
@@ -24,7 +19,36 @@ export type PlaceItemPayload = {
 	length: number,
 	rotation: number,
 }
+export type PlotState = {
+	grid: { [string]: string }, -- The Half-Grid matrix for structural stuff
+	placedItems: { [string]: PlacedItem }, -- Grid-based items (Tables, Walls)
+	spatialItems: { [string]: SpatialItem }, -- NEW: Free-placed items (Decorations, Cups)
+	nextId: number,
+}
 
+export type SpatialItem = {
+	id: string,
+	parentUuid: string, -- E.g., "Plot" (floor) or the UUID of the Table it sits on
+	cframe: CFrame, -- Exact 3D transform
+}
+
+-- We expand the payload to handle both placement types
+export type PlaceItemPayload = {
+	itemId: string,
+	placementType: string, -- "Grid" or "Free"
+
+	-- Grid specific fields
+	itemType: string?,
+	startX: number?,
+	startZ: number?,
+	width: number?,
+	length: number?,
+	rotation: number?,
+
+	-- Spatial specific fields
+	cframe: CFrame?,
+	parentUuid: string?,
+}
 export type DestroyItemPayload = {
 	uuid: string,
 }

@@ -4,6 +4,26 @@ local Types = require(ReplicatedStorage.Shared.Types)
 
 local Grid = {}
 Grid.SIZE = 4
+Grid.WALL_HEIGHT = 14 -- NEW: Adjust this to match the height of your physical Wall models!
+
+--- Checks for a designated logical Hitbox part, otherwise falls back to mesh bounds
+function Grid.getModelBounds(model: Model): (CFrame, Vector3)
+	local hitbox = model:FindFirstChild("Hitbox")
+	if hitbox and hitbox:IsA("BasePart") then
+		return hitbox.CFrame, hitbox.Size
+	end
+	return model:GetBoundingBox()
+end
+-- NEW: Helper to separate physical layers so a Floor doesn't block a Table
+function Grid.getLayer(itemType: string): string
+	if itemType == "Floor" then
+		return "Floor"
+	end
+	if itemType == "Roof" then
+		return "Roof"
+	end
+	return "Main" -- Solid, Wall_V, and Wall_H share the Main collision layer
+end
 
 -- [[ MATH OPERATIONS ]]
 
@@ -62,7 +82,8 @@ function Grid.gridToWorld(
 
 	local localX, localZ
 
-	if itemType == "Solid" then
+	-- UPDATED: Floor and Roof share the "Solid" footprint logic (centered in cells)
+	if itemType == "Solid" or itemType == "Floor" or itemType == "Roof" then
 		localX = (gridX * Grid.SIZE) + (itemX / 2)
 		localZ = (gridZ * Grid.SIZE) + (itemZ / 2)
 	elseif itemType == "Wall_V" then
@@ -73,7 +94,15 @@ function Grid.gridToWorld(
 		localZ = (gridZ * Grid.SIZE) -- Snaps directly onto the Z line
 	end
 
+	-- [[ Z-AXIS ELEVATION LOGIC ]]
 	local localY = (plotSize.Y / 2) + (itemSize.Y / 2)
+
+	if itemType == "Roof" then
+		localY += Grid.WALL_HEIGHT
+	elseif itemType == "Floor" then
+		localY += 0.05 -- Tiny offset so floor textures don't Z-fight with the plot part
+	end
+
 	return plotCFrame * CFrame.new(localX, localY, localZ) * CFrame.Angles(0, rad, 0)
 end
 
@@ -102,7 +131,7 @@ function Grid.clampToGrid(
 		maxX = baseMaxX - itemWidth
 		maxZ = baseMaxZ
 	else
-		-- Solids consume space on both axes
+		-- UPDATED: Solids, Floors, and Roofs consume space on both axes
 		maxX = baseMaxX - itemWidth
 		maxZ = baseMaxZ - itemLength
 	end
@@ -113,7 +142,9 @@ end
 -- [[ STATE VALIDATION ]]
 function Grid.getHalfGridBounds(itemType: string, stdX: number, stdZ: number, stdW: number, stdL: number)
 	local startX, endX, startZ, endZ
-	if itemType == "Solid" then
+
+	-- UPDATED: Treat Floors and Roofs mathematically like Solids
+	if itemType == "Solid" or itemType == "Floor" or itemType == "Roof" then
 		startX = stdX * 2
 		endX = 2 * (stdX + stdW - 1)
 		startZ = stdZ * 2
@@ -143,11 +174,16 @@ function Grid.isAreaFree(
 	if not plotState then
 		return true
 	end
+
 	local startX, endX, startZ, endZ = Grid.getHalfGridBounds(itemType, stdX, stdZ, width, length)
+
+	-- NEW: Get the target layer string
+	local layer = Grid.getLayer(itemType)
 
 	for hx = startX, endX do
 		for hz = startZ, endZ do
-			if plotState.grid[`{hx}_{hz}`] ~= nil then
+			-- UPDATED: Prefix the grid key with the layer so they don't intersect
+			if plotState.grid[`{layer}_{hx}_{hz}`] ~= nil then
 				return false
 			end
 		end

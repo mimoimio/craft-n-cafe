@@ -54,6 +54,7 @@ local function generateEmptyShelves()
 	end
 	return shelves
 end
+
 local function generateTables()
 	local tables = {}
 	for shelfIndex = 1, 6 do
