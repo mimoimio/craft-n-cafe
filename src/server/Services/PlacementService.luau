@@ -43,6 +43,28 @@ function PlacementService.PlaceItem(player: Player, payload: Types.PlaceItemRemo
 			return
 		end
 
+		local CafeRenderingService = require(script.Parent.CafeRenderingService)
+		local playerbase = CafeRenderingService.getCafeBaseFromPlayerId(playerId)
+		if not (playerbase and playerbase.Spatial) then
+			return
+		end
+		-- 1. Get the Anchor's World CFrame
+		local anchor = playerbase:FindFirstChild("Anchor")
+		local plotCFrame = anchor and anchor.CFrame or CFrame.new(0, 0, 0)
+		-- 2. Convert the relative payload CFrame back to World Space
+		local worldCFrame = Grid.spatialToWorld(payload.cframe, plotCFrame, plotSize)
+
+		local _, s = prefab:GetBoundingBox()
+		s = Vector3.new(math.max(0, s.X - 0.2), math.max(0, s.Y - 0.2), math.max(0, s.Z - 0.2))
+
+		local overlapparams = OverlapParams.new()
+		overlapparams.FilterType = Enum.RaycastFilterType.Include
+		overlapparams.FilterDescendantsInstances = { playerbase.Spatial }
+		local parts = workspace:GetPartBoundsInBox(worldCFrame, s, overlapparams)
+		if parts and #parts > 0 then
+			return
+		end
+
 		-- Serialize to the State Payload
 		local statePayload: Types.PlaceItemPayload = {
 			itemId = payload.itemId, -- checked in prefab

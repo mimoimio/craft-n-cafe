@@ -132,10 +132,12 @@ local function story(frame: Frame)
 			local worldCFrame = Grid.spatialToWorld(payload.cframe, plotCFrame, plotSize)
 
 			local _, s = prefab:GetBoundingBox()
+			s = Vector3.new(math.max(0, s.X - 0.2), math.max(0, s.Y - 0.2), math.max(0, s.Z - 0.2))
+
 			local overlapparams = OverlapParams.new()
 			overlapparams.FilterType = Enum.RaycastFilterType.Include
 			overlapparams.FilterDescendantsInstances = { playerbase.Spatial }
-			local parts = workspace:GetPartBoundsInBox(worldCFrame, s * 0.8, overlapparams)
+			local parts = workspace:GetPartBoundsInBox(worldCFrame, s, overlapparams)
 			if parts and #parts > 0 then
 				return
 			end

@@ -174,10 +174,11 @@ function self:update(cursorWorldPos: Vector3)
 
 			if isFree then
 				local _, s = prefab:GetBoundingBox()
+				s = Vector3.new(math.max(0, s.X - 0.2), math.max(0, s.Y - 0.2), math.max(0, s.Z - 0.2))
 				local overlapparams = OverlapParams.new()
 				overlapparams.FilterType = Enum.RaycastFilterType.Include
 				overlapparams.FilterDescendantsInstances = { self.plot.Parent.Spatial }
-				local parts = workspace:GetPartBoundsInBox(targetCFrame, s * 0.8, overlapparams)
+				local parts = workspace:GetPartBoundsInBox(targetCFrame, s, overlapparams)
 				if parts and #parts > 0 then
 					isFree = false
 				end

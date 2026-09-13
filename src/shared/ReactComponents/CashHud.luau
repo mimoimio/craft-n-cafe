@@ -243,7 +243,7 @@ local function CashHud(props: {
 
 		text = e("ImageLabel", {
 			-- AutomaticSize = Enum.AutomaticSize.XY,
-			Image = "rbxassetid://17368060122",
+			Image = "rbxassetid://15402844695",
 			ScaleType = Enum.ScaleType.Fit,
 			Size = UDim2.new(0, 200, 0, 50),
 			BackgroundTransparency = 1,
@@ -256,7 +256,7 @@ local function CashHud(props: {
 				-- ):format(coins or 0),
 				Text = Mionum.new(coins or 0):toString(),
 				RichText = true,
-				TextSize = 42,
+				TextSize = 32,
 				TextColor3 = Color3.new(1, 1, 1),
 				OnMount = props.OnMount,
 				Size = UDim2.new(0, 200, 0, 50),
@@ -265,28 +265,7 @@ local function CashHud(props: {
 				TextYAlignment = Enum.TextYAlignment.Center,
 				Rotation = hudRot,
 				LayoutOrder = 1, -- Force it to stay on top
-			}, {
-
-				-- e(SmallText, {
-				-- 	-- Text = (
-				-- 	-- 	([[<font family="rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json">%s</font>]]):format(
-				-- 	-- 		COINICON
-				-- 	-- 	) .. [[%s]]
-				-- 	-- ):format(coins or 0),
-				-- 	Text = `{Mionum.new(rate or 0):toString()}/s`,
-				-- 	RichText = true,
-				-- 	TextSize = 18,
-				-- 	TextColor3 = Color3.new(1, 1, 1),
-				-- 	Size = UDim2.new(0, 200, 0, 0),
-				-- 	AutomaticSize = Enum.AutomaticSize.XY,
-				-- 	TextXAlignment = Enum.TextXAlignment.Center,
-				-- 	TextYAlignment = Enum.TextYAlignment.Center,
-				-- 	Rotation = hudRot,
-				-- 	LayoutOrder = 1, -- Force it to stay on top
-				-- 	Position = UDim2.new(0.5, 0, 1, 0),
-				-- 	AnchorPoint = Vector2.new(0, 0),
-				-- }),
-			}),
+			}, {}),
 		}),
 
 		-- Container exclusively for toasts right underneath
@@ -302,64 +281,3 @@ end
 return CashHud
 
 --#endregion
-
--- -- CashHud.luau
-
--- local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
--- local COINICON = "robux"
--- local React = require(ReplicatedStorage.Packages.React)
--- local ReactFlow = require(ReplicatedStorage.Packages.ReactFlow)
-
--- local Primitives = ReplicatedStorage.Shared.ReactComponents.ui
--- local SmallText = require(Primitives.SmallText)
-
--- local e = React.createElement
--- local useState = React.useState
--- local useSpring = ReactFlow.useSpring
--- local useEffect = React.useEffect
-
--- local function CashHud(props: {
--- 	coins: number,
--- 	OnMount: () -> (),
--- })
--- 	local coins = props.Coins
--- 	local hudRot, setHudRot = useSpring({
--- 		target = 0,
--- 		start = 0,
--- 		speed = 0,
--- 		damper = 0.6,
--- 	})
-
--- 	useEffect(function()
--- 		setHudRot({
--- 			target = 0,
--- 			start = 10,
--- 			speed = 10,
--- 			damper = 0.6,
--- 		})
--- 	end, { coins })
--- 	return e("Frame", {
--- 		AutomaticSize = Enum.AutomaticSize.XY,
--- 		Position = UDim2.new(0.5, 0, 0, 0),
--- 		AnchorPoint = Vector2.new(0.5, 0),
--- 		BackgroundTransparency = 1,
--- 	}, {
--- 		-- toast = ,
--- 		text = e(SmallText, {
--- 			Text = (
--- 				([[<font family="rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json">%s</font>]]):format(
--- 					COINICON
--- 				) .. [[%s]]
--- 			):format(coins),
--- 			RichText = true,
--- 			TextSize = 42,
--- 			TextColor3 = Color3.new(1, 1, 0),
--- 			OnMount = props.OnMount,
--- 			AutomaticSize = Enum.AutomaticSize.XY,
--- 			Rotation = hudRot,
--- 		}),
--- 	})
--- end
-
--- return CashHud

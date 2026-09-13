@@ -88,7 +88,6 @@ export type StatsEntity = {
 	MusicOn: boolean,
 	ParticleOn: boolean,
 	CafeOpen: boolean,
-
 	TutorialCompleted: boolean,
 
 	Level: number,
@@ -201,30 +200,45 @@ export type CoffeeModule = {
 	IngredientConfigs: { IngredientConfig },
 	Config: { [string]: CoffeeConfigType },
 	Array: { CoffeeConfigType },
-	SortedArray: { CoffeeConfigType },
 
-	Craft: ({ string }) -> CoffeeConfigType?,
-	GetId: ({ string }) -> string,
+	Craft: (ingredients: { string }) -> CoffeeConfigType?,
+	GetId: (ingredients: { string }) -> string,
 }
+
 export type CoffeeConfigType = {
 	Id: string,
 	DisplayName: string,
-	Cost: number,
 	Ingredients: { string }?,
-	RecipePath: { string }?,
-	Rate: number,
-	Instruction: string?,
+	Instruction: string?, -- Flat hint list (e.g. "Espresso + Milk")
 	Image: string?,
-	Price: number,
-	Duration: number,
-	InitialStock: number,
+	Price: number, -- Automatically calculated as sum of ingredient prices
 }
+
 export type IngredientConfig = {
 	Id: string,
 	DisplayName: string,
-	Cost: number,
-	ItemTip: string,
+	Price: number,
+	ItemTip: string?,
+	Image: string?,
+}
+-- Placeables Modules
+export type PlaceableCategory = "Architecture" | "Surface" | "Cashier" | "Station" | "Furniture" | "Decoration"
+
+export type PlaceableConfig = {
+	Id: string,
+	DisplayName: string,
+	Category: PlaceableCategory,
+	Price: number,
+	UnlockLevel: number,
+	MaxAllowed: number, -- Use math.huge for infinite
 	Image: string?,
 }
 
+export type PlaceablesModule = {
+	Config: { [string]: PlaceableConfig },
+	Array: { PlaceableConfig },
+
+	GetConfig: (id: string) -> PlaceableConfig?,
+	GetUnlockedItems: (level: number) -> { PlaceableConfig },
+}
 return {}

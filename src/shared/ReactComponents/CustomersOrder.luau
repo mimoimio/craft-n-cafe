@@ -62,23 +62,22 @@ return function(props)
 		if config then
 			SoundController.Sound("talk player")
 		end
-	end, {config})
+	end, { config })
 
 	return e("Frame", {
 		Transparency = 1,
 		Size = UDim2.new(1, 0, 1, 0),
 	}, {
-		e(SmallText, {
-			Size = UDim2.new(1, 0, 1, 0),
-			Text = `<font size="{mdTextSize}">{config and config.DisplayName or ""}</font>\n<font size="{smTextSize}">{config and `({table.concat(
-				config.RecipePath,
-				", "
-			)})` or ""}</font>`,
-			TextXAlignment = Enum.TextXAlignment.Center,
-			TextYAlignment = Enum.TextYAlignment.Center,
-			RichText = true,
-			MinTextSize = smTextSize,
-			MaxTextSize = mdTextSize,
-		}),
+		config
+				and e(SmallText, {
+					Size = UDim2.new(1, 0, 1, 0),
+					Text = `<font size="{mdTextSize}">{config and config.DisplayName or ""}</font>\n<font size="{smTextSize}">{config and `({config.Instruction})` or ""}</font>`,
+					TextXAlignment = Enum.TextXAlignment.Center,
+					TextYAlignment = Enum.TextYAlignment.Center,
+					RichText = true,
+					MinTextSize = smTextSize,
+					MaxTextSize = mdTextSize,
+				})
+			or nil,
 	})
 end

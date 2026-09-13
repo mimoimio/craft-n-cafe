@@ -85,21 +85,6 @@ local function BuildPanel()
 	-- Generate buttons for every model in ReplicatedStorage.Shared.Models
 	local itemButtons = {}
 
-	-- -- 1. Insert the special Delete Tool Button first
-	-- itemButtons["DELETE_MODE"] = e(SmallButton, {
-	-- 	Size = UDim2.new(1, 0, 0, 50),
-	-- 	BackgroundColor3 = selectedItem == "DELETE_MODE" and Color3.new(0.8, 0.2, 0.2) or Color3.new(0.3, 0.1, 0.1),
-	-- 	LayoutOrder = -1, -- Force it to the top of the list
-	-- 	[React.Event.Activated] = function()
-	-- 		UIState.selectBuildItem("DELETE_MODE")
-	-- 	end,
-	-- }, {
-	-- 	e(SmallText, {
-	-- 		Text = "🗑️",
-	-- 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
-	-- 	}),
-	-- })
-
 	-- 2. Generate standard item buttons
 	for _, model in Models:GetChildren() do
 		local isSelected = selectedItem == model.Name
@@ -289,37 +274,6 @@ local function BuildPanel()
 				List = e("UIListLayout", { Padding = UDim.new(0, 5) }),
 				Items = e(React.Fragment, nil, itemButtons),
 			}),
-
-			-- NEW: Dynamic Place Button, appears only when an item is selected
-			-- PlaceActionContainer = (
-			-- 	UserInputService.PreferredInput == Enum.PreferredInput.Touch
-			-- 	or UserInputService.PreferredInput == Enum.PreferredInput.Gamepad
-			-- )
-			-- 		and selectedItem
-			-- 		and e("Frame", {
-			-- 			Size = UDim2.new(1, 0, 0, 50),
-			-- 			BackgroundTransparency = 1,
-			-- 			LayoutOrder = 3,
-			-- 		}, {
-			-- 			ActionButton = e(SmallButton, {
-			-- 				Size = UDim2.new(1, 0, 1, 0),
-			-- 				BackgroundColor3 = selectedItem == "DELETE_MODE" and Color3.new(0.8, 0.2, 0.2)
-			-- 					or Color3.new(0.2, 0.7, 0.2),
-			-- 				[React.Event.Activated] = function()
-			-- 					if selectedItem == "DELETE_MODE" then
-			-- 						PlacementController:attemptDestroyAtCursor()
-			-- 					else
-			-- 						PlacementController:placeCurrent()
-			-- 					end
-			-- 				end,
-			-- 			}, {
-			-- 				e(SmallText, {
-			-- 					Text = selectedItem == "DELETE_MODE" and "DELETE ITEM" or "PLACE ITEM",
-			-- 					HorizontalAlignment = Enum.HorizontalAlignment.Center,
-			-- 				}),
-			-- 			}),
-			-- 		})
-			-- 	or nil,
 		}),
 	})
 end
