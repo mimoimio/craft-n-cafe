@@ -1,54 +1,70 @@
 -- Shared/Types.luau
 --v1
 
+export type GridStud = number
+export type HalfGridStud = number
 export type PlacedItem = {
 	id: string,
 	itemType: string, -- "Solid", "Wall_V", or "Wall_H"
-	x: number,
-	z: number,
-	w: number,
-	l: number,
+	x: GridStud,
+	z: GridStud,
+	w: GridStud,
+	l: GridStud,
 	r: number,
-}
-export type PlaceItemPayload = {
-	itemId: string,
-	itemType: string,
-	startX: number,
-	startZ: number,
-	width: number,
-	length: number,
-	rotation: number,
 }
 export type PlotState = {
 	grid: { [string]: string }, -- The Half-Grid matrix for structural stuff
 	placedItems: { [string]: PlacedItem }, -- Grid-based items (Tables, Walls)
 	spatialItems: { [string]: SpatialItem }, -- NEW: Free-placed items (Decorations, Cups)
 	nextId: number,
+	plotSize: number,
 }
 
 export type SpatialItem = {
 	id: string,
-	parentUuid: string, -- E.g., "Plot" (floor) or the UUID of the Table it sits on
-	cframe: CFrame, -- Exact 3D transform
+	parentUuid: string,
+	cframe: { number }, -- FIX: Array of 12 numbers for DataStore serialization
 }
 
--- We expand the payload to handle both placement types
-export type PlaceItemPayload = {
+export type GridPlacementPayload = {
 	itemId: string,
-	placementType: string, -- "Grid" or "Free"
-
-	-- Grid specific fields
-	itemType: string?,
-	startX: number?,
-	startZ: number?,
-	width: number?,
-	length: number?,
-	rotation: number?,
-
-	-- Spatial specific fields
-	cframe: CFrame?,
-	parentUuid: string?,
+	placementType: "Grid",
+	itemType: string,
+	startX: GridStud,
+	startZ: GridStud,
+	width: GridStud,
+	length: GridStud,
+	rotation: number,
 }
+export type GridPlacementRemotePayload = {
+	itemId: string,
+	-- placementType: "Grid",
+	-- itemType: string,
+	startX: GridStud,
+	startZ: GridStud,
+	width: GridStud,
+	length: GridStud,
+	rotation: number,
+}
+
+export type FreePlacementStatePayload = {
+	itemId: string,
+	placementType: "Free",
+	cframe: { number },
+	parentUuid: string,
+}
+export type ExpandPlotPayload = {
+	newSize: number,
+}
+export type FreePlacementRemotePayload = {
+	itemId: string,
+	placementType: "Free",
+	cframe: CFrame,
+	parentUuid: string,
+}
+
+export type PlaceItemPayload = GridPlacementPayload | FreePlacementStatePayload
+export type PlaceItemRemotePayload = GridPlacementRemotePayload | FreePlacementRemotePayload
 export type DestroyItemPayload = {
 	uuid: string,
 }
@@ -106,11 +122,20 @@ export type CustomerEntity = {
 	id: string,
 	customerId: string?,
 	order: string?,
-	spot: number?,
+	targetCounterUuid: string?, -- NEW: Explicitly links customer to a specific counter
 	customerAction: "entering" | "walking" | "queuing" | "waiting" | "sitting" | "leaving",
 	servedBy: ("player" | string)?,
 	actionStartTime: number,
 }
+
+export type SpawnCustomerPayload = {
+	targetCounterUuid: string, -- NEW
+	customerUid: string,
+	customerId: string,
+	order: string?,
+	timestamp: number,
+}
+
 export type CustomersState = {
 	[PlayerId]: {
 		[string]: CustomerEntity,
@@ -123,13 +148,6 @@ export type AddIngredientPayload = {
 	ingredient: string,
 	newDrinkId: string,
 	score: number,
-}
-export type SpawnCustomerPayload = {
-	spot: number,
-	customerUid: string,
-	customerId: string,
-	order: string,
-	timestamp: number,
 }
 export type WrongOrderPayload = {
 	customerUid: string,
@@ -162,13 +180,15 @@ export type CombinedActions = {
 		Level: number,
 	}) -> (),
 
+	destroyItem: (playerId: string, payload: DestroyItemPayload) -> (),
+	placeItem: (playerId: string, payload: PlaceItemPayload) -> (),
 	toggleCafeOpen: (playerId: PlayerId) -> (),
 	toggleMusic: (playerId: PlayerId) -> (),
 	toggleSfx: (playerId: PlayerId) -> (),
 	toggleParticle: (playerId: PlayerId) -> (),
 	setSfxVolume: (playerId: PlayerId, volume: number) -> (),
 	setMusicVolume: (playerId: PlayerId, volume: number) -> (),
-
+	expandPlot: (playerId: PlayerId, payload: ExpandPlotPayload) -> (),
 	addIngredient: (playerId: PlayerId, payload: AddIngredientPayload) -> (),
 	spawnCustomer: (playerId: PlayerId, payload: SpawnCustomerPayload) -> (),
 	removeCustomer: (playerId: PlayerId, uid: string) -> (),

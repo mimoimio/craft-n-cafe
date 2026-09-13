@@ -22,21 +22,22 @@ local initialState: CustomersState = {}
 local actions = {
 	startPlayerSession = function(state: CustomersState, playerId: string, data: PlayerData)
 		return Set(state, playerId, data.Customers)
-		-- return Set(state, playerId, {})
 	end,
 	endPlayerSession = function(state: CustomersState, playerId: string, data: PlayerData)
 		return RemoveKey(state, playerId)
 	end,
 	spawnCustomer = function(state: CustomersState, playerId: string, payload: Types.SpawnCustomerPayload)
 		local playersCustomers = state[playerId] or {}
+
+		-- FIX: Map targetCounterUuid from the payload to the state
 		return Set(
 			state,
 			playerId,
 			Insert(playersCustomers, #playersCustomers + 1, {
 				id = payload.customerUid,
 				customerId = payload.customerId,
+				targetCounterUuid = payload.targetCounterUuid,
 				customerAction = "walking",
-				spot = payload.spot,
 				actionStartTime = payload.timestamp,
 			})
 		)
@@ -87,12 +88,10 @@ local actions = {
 			playerId,
 			Update(playersCustomers, index, function(customer: Types.CustomerEntity)
 				local new = table.clone(customer)
-				new.drinkEntities = nil
 				new.customerAction = "waiting"
 				new.servedBy = payload.workerUid or "player"
 				new.actionStartTime = payload.timestamp
 				new.order = payload.order
-				warn(new)
 				return new
 			end)
 		)
@@ -120,7 +119,6 @@ local actions = {
 			playerId,
 			Update(playersCustomers, index, function(customer: Types.CustomerEntity)
 				local new = table.clone(customer)
-				new.drinkEntities = nil
 				new.customerAction = "paid"
 				new.servedBy = nil
 				new.actionStartTime = payload.timestamp
@@ -146,9 +144,10 @@ local actions = {
 			local new = table.clone(customer)
 			new.customerAction = "emptyHanded"
 			new.actionStartTime = payload.timestamp
+			new.servedBy = nil
+			new.order = nil
 			return new
 		end)
-		warn(`{newCustomers} & {playersCustomers} = {newCustomers == playersCustomers}`)
 
 		return Set(state, playerId, newCustomers)
 	end,

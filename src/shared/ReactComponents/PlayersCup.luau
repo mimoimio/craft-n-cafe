@@ -10,6 +10,7 @@ local e = React.createElement
 local createSelector = Reflex.createSelector
 local useEffect = React.useEffect
 local useState = React.useState
+local useRef = React.useRef
 local SmallText = require(ReplicatedStorage.Shared.ReactComponents.ui.SmallText)
 local useBreakpoint = require(ReplicatedStorage.Shared.Hooks.useBreakpoint)
 
@@ -17,63 +18,51 @@ local player = Players.LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
 
 return function(props)
-	local config, setConfig = useState(nil)
-
 	local xs, sm, md, lg, xl = useBreakpoint()
 	local mobile = xs or sm or md
 
 	local mdTextSize, smTextSize = mobile and 16 or 44, mobile and 10 or 12
+	local cup: Types.CupEntity?, setCup: (cup: Types.CupEntity) -> nil = useState(nil)
 	useEffect(function()
 		local unsub = GlobalState:subscribe(function(state: GlobalState.GlobalState)
-			return state.Customers[playerId]
-		end, function(playersCustomers)
-			if not (playersCustomers and type(playersCustomers) == "table") then
-				return
-			end
+			return state.Cups[playerId] and state.Cups[playerId].player or nil
+		end, setCup)
 
-			for i, customer: Types.CustomerEntity in playersCustomers do
-				if customer.servedBy == "player" then
-					local config = CoffeeModule.Config[customer.order]
-					setConfig(config)
-					return
-				end
-			end
-			setConfig(nil)
-		end)
 		local state = GlobalState:getState()
-		local playersCustomers = state.Customers[playerId]
-		if playersCustomers and type(playersCustomers) == "table" then
-			for i, customer: Types.CustomerEntity in playersCustomers do
-				if customer.servedBy == "player" then
-					local config = CoffeeModule.Config[customer.order]
-					setConfig(config)
-				end
-			end
-		end
+		local playersCup = state.Customers[playerId] and state.Cups[playerId].player
+		setCup(playersCup)
 
 		if not player then
-			setConfig(CoffeeModule.Config.frappuccino)
+			setCup({
+				drinkId = "shavedice",
+				score = 5,
+			})
 		end
 
 		return unsub
 	end)
 
+	local config = CoffeeModule.Config[cup and cup.drinkId]
+
+	local prevCupRef = useRef(nil)
 	useEffect(function()
-		if config then
-			SoundController.Sound("talk player")
+		if cup then
+			SoundController.Sound("cup")
 		end
-	end, {config})
+		if not cup and prevCupRef.current then
+			SoundController.Sound("TrashcanToss")
+		end
+		prevCupRef.current = cup
+	end, { cup })
 
 	return e("Frame", {
 		Transparency = 1,
 		Size = UDim2.new(1, 0, 1, 0),
 	}, {
 		e(SmallText, {
-			Size = UDim2.new(1, 0, 1, 0),
-			Text = `<font size="{mdTextSize}">{config and config.DisplayName or ""}</font>\n<font size="{smTextSize}">{config and `({table.concat(
-				config.RecipePath,
-				", "
-			)})` or ""}</font>`,
+			Size = UDim2.new(1, 0, 0, 0),
+			Text = config and `<font size="{mdTextSize}">Drink in hand: {config and config.DisplayName or ""}</font>`
+				or "",
 			TextXAlignment = Enum.TextXAlignment.Center,
 			TextYAlignment = Enum.TextYAlignment.Center,
 			RichText = true,

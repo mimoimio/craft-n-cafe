@@ -20,7 +20,6 @@ local VStack = require(Primitives.VStack)
 local HStack = require(Primitives.HStack)
 
 -- Point this to your new VFX setup
-local IngredientVFXContainer = require(script.Parent.IngredientVFXContainer)
 local CLOCK =
 	[[<font family="rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json"><b>clock</b></font>]]
 local STOCK =

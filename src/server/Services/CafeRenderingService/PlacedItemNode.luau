@@ -2,6 +2,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local React = require(ReplicatedStorage.Packages.React)
+local useState = React.useState
 local useEffect = React.useEffect
 
 local Grid = require(ReplicatedStorage.Shared.Grid)
@@ -10,6 +11,7 @@ local CafeTypes = require(ReplicatedStorage.Shared.CafeTypes)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 local DrinksService = require(ServerScriptService.Server.Services.DrinksService)
 
+local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local Models = ReplicatedStorage.Shared.Models
 
 local function PlacedItemNode(props: {
@@ -19,9 +21,28 @@ local function PlacedItemNode(props: {
 	GridSize: number,
 	PlayerId: string,
 })
+	-- 1. Native Reflex Subscription Pattern
+	local plotSizeNum, setPlotSizeNum = useState(32)
+
+	useEffect(function()
+		local function selectPlotSize(state)
+			local plotState = state.Plot and state.Plot[props.PlayerId]
+			return plotState and plotState.plotSize or 32
+		end
+
+		local unsub = GlobalState:subscribe(selectPlotSize, setPlotSizeNum)
+
+		-- Initialize state immediately
+		setPlotSizeNum(selectPlotSize(GlobalState:getState()))
+
+		return unsub
+	end, { props.PlayerId })
+
+	-- 2. Physical Rendering
 	useEffect(function()
 		local prefab = Models:FindFirstChild(props.ItemData.id)
 		if not prefab then
+			warn("prefab not found")
 			return
 		end
 
@@ -32,9 +53,12 @@ local function PlacedItemNode(props: {
 			pp.Enabled = false
 		end
 
-		-- local originalCFrame, itemSize = clone:GetBoundingBox()
 		local originalCFrame, itemSize = Grid.getModelBounds(clone)
-		local plotCFrame, plotSize = props.BaseModel.Part.CFrame, props.BaseModel.Part.Size
+
+		-- FIX: Use the invisible Anchor for position, and Reflex state for the Size!
+		local anchor = props.BaseModel:FindFirstChild("Anchor")
+		local plotCFrame = anchor and anchor.CFrame or props.BaseModel.Part.CFrame
+		local plotSize = Vector3.new(plotSizeNum, 1, plotSizeNum)
 
 		-- ALWAYS get the unrotated footprint for the base snappedSize Vector3
 		-- This prevents double-swapping when passed into gridToWorld
@@ -54,7 +78,6 @@ local function PlacedItemNode(props: {
 		local conn = nil
 
 		-- [[ FUNCTIONAL ROUTING ]]
-		-- Match IDs like "milk_station", "cup_station", "trash_station"
 		local stationName = string.match(props.ItemData.id, "^(.+)_station$")
 
 		if stationName then
@@ -130,7 +153,7 @@ local function PlacedItemNode(props: {
 			end
 			clone:Destroy()
 		end
-	end, { props.ItemData, props.BaseModel, props.PlayerId })
+	end, { props.ItemData, props.BaseModel, props.PlayerId, plotSizeNum }) -- Re-run if plot size expands!
 
 	return nil
 end

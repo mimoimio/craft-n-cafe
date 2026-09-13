@@ -5,7 +5,7 @@ local useState = React.useState
 local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
 local DefaultScrollFrame = require(ReplicatedStorage.Shared.ReactComponents.DefaultScrollFrame)
 local SmallText = require(ReplicatedStorage.Shared.ReactComponents.ui.SmallText)
-local MixerProgressBar = require(ReplicatedStorage.Shared.ReactComponents.MixerProgressBar)
+-- local MixerProgressBar = require(ReplicatedStorage.Shared.ReactComponents.MixerProgressBar)
 local BonusHud = require(ReplicatedStorage.Shared.ReactComponents.BonusHud)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 local function story(frame: Frame)

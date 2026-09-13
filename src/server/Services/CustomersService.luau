@@ -11,12 +11,6 @@ local Types = require(ReplicatedStorage.Shared.Types)
 local SPAWN_INTERVAL = 30
 local rng = Random.new()
 
-type CustomerDrink = {
-	drinkId: string,
-	variationId: string?,
-	size: number?, -- NEW: Ensure size is tracked per drink for the customer
-}
-
 -- Dictionary to track when we last spawned a customer for a player
 local lastSpawnTimes = {}
 
@@ -28,42 +22,56 @@ local CustomersService = {}
 
 function CustomersService.SpawnCustomer(playerId: string)
 	local state = GlobalState:getState()
-	local customers = state.Customers or {}
-	local playersCustomers = customers[playerId] or {}
 	local playerStats = state.Stats[playerId]
-	if not playerStats then
+	local playersCustomers = state.Customers[playerId] or {}
+	local plotState = state.Plot and state.Plot[playerId]
+
+	if not playerStats or not plotState or not playerStats.CafeOpen then
 		return
 	end
 
-	local cafeCapacity = playerStats.CafeCapacity
-	if type(playersCustomers) == "table" and #playersCustomers >= cafeCapacity or not playerStats.CafeOpen then
-		return
+	-- 1. Find all placed Counters
+	local counterUuids = {}
+	for uuid, item in pairs(plotState.placedItems) do
+		-- Make sure "Counter" matches your exact Prefab ID for the counter!
+		if item.id == "Counter" then
+			table.insert(counterUuids, uuid)
+		end
 	end
 
+	if #counterUuids == 0 then
+		return -- No counters placed, so we cannot spawn customers
+	end
+
+	-- 2. Check which Counters are already occupied by active customers
+	local occupiedCounters = {}
+	for _, customer in pairs(playersCustomers) do
+		if customer.targetCounterUuid then
+			occupiedCounters[customer.targetCounterUuid] = true
+		end
+	end
+
+	-- 3. Find the empty Counters
+	local availableCounters = {}
+	for _, uuid in ipairs(counterUuids) do
+		if not occupiedCounters[uuid] then
+			table.insert(availableCounters, uuid)
+		end
+	end
+
+	if #availableCounters == 0 then
+		return -- Cafe is at max capacity (all counters full)
+	end
+
+	-- Pick a random available counter
+	local chosenCounterUuid = availableCounters[math.random(1, #availableCounters)]
 	local uid = HttpService:GenerateGUID(false)
-	local spot
-	for i = 1, cafeCapacity do
-		local available = true
-		for _, customer in playersCustomers do
-			available = customer.spot ~= i
-			if not available then
-				break
-			end
-		end
-		if available then
-			spot = i
-		end
-	end
-
-	if not spot then
-		return
-	end
 
 	GlobalState.spawnCustomer(playerId, {
 		customerId = "",
 		customerUid = uid,
-		spot = spot,
-		timestamp = workspace:GetServerTimeNow(), -- Pass deterministic time
+		targetCounterUuid = chosenCounterUuid,
+		timestamp = workspace:GetServerTimeNow(),
 	})
 
 	lastSpawnTimes[playerId] = workspace:GetServerTimeNow()

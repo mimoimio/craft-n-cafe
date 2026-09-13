@@ -11,10 +11,11 @@ if not PlotTemplate then
 	PlotTemplate = Instance.new("ModuleScript")
 	PlotTemplate.Name = "PlotTemplate"
 	PlotTemplate.Source = [[return {
-	["grid"] = {},
-	["nextId"] = 1,
-	["placedItems"] = {},
-	["spatialItems"] = {},
+	grid = {},
+	placedItems = {},
+	spatialItems = {},
+	plotSize = 32,
+	nextId = 1,
 }]]
 	PlotTemplate.Parent = ServerStorage
 end
@@ -25,11 +26,12 @@ end
 
 PlotConfig.FirstPlot = plot and plot.grid and plot.nextId and plot.placedItems and plot.spatialItems and plot
 	or {
-		["grid"] = {},
-		["nextId"] = 1,
-		["placedItems"] = {},
-		["spatialItems"] = {},
+		grid = {},
+		placedItems = {},
+		spatialItems = {},
+		plotSize = 32,
+		nextId = 1,
 	}
-warn("plot", plot)
-warn("PlotConfig.FirstPlot", PlotConfig.FirstPlot)
+-- warn("plot", plot)
+-- warn("PlotConfig.FirstPlot", PlotConfig.FirstPlot)
 return PlotConfig

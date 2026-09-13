@@ -6,6 +6,9 @@ local Grid = {}
 Grid.SIZE = 4
 Grid.WALL_HEIGHT = 14 -- NEW: Adjust this to match the height of your physical Wall models!
 
+export type GridStud = Types.GridStud
+export type HalfGridStud = Types.HalfGridStud
+
 --- Checks for a designated logical Hitbox part, otherwise falls back to mesh bounds
 function Grid.getModelBounds(model: Model): (CFrame, Vector3)
 	local hitbox = model:FindFirstChild("Hitbox")
@@ -27,14 +30,19 @@ end
 
 -- [[ MATH OPERATIONS ]]
 
-function Grid.getFootprint(itemSize: Vector3, rotation: number): (number, number)
+function Grid.getFootprint(itemSize: Vector3, rotation: number): (GridStud, GridStud)
 	local isRotated = math.abs(rotation % 180) == 90
 	local x = isRotated and itemSize.Z or itemSize.X
 	local z = isRotated and itemSize.X or itemSize.Z
 	return math.max(1, math.round(x / Grid.SIZE)), math.max(1, math.round(z / Grid.SIZE))
 end
 
-function Grid.worldToSolid(worldPos: Vector3, plotCFrame: CFrame, itemSize: Vector3, rotation: number): (number, number)
+function Grid.worldToSolid(
+	worldPos: Vector3,
+	plotCFrame: CFrame,
+	itemSize: Vector3,
+	rotation: number
+): (GridStud, GridStud)
 	local localPos = plotCFrame:PointToObjectSpace(worldPos)
 
 	local isRotated = math.abs(rotation % 180) == 90
@@ -47,7 +55,7 @@ function Grid.worldToSolid(worldPos: Vector3, plotCFrame: CFrame, itemSize: Vect
 	return math.round(cornerLocalX / Grid.SIZE), math.round(cornerLocalZ / Grid.SIZE)
 end
 
-function Grid.worldToEdge(worldPos: Vector3, plotCFrame: CFrame, rotation: number): (string, number, number)
+function Grid.worldToEdge(worldPos: Vector3, plotCFrame: CFrame, rotation: number): (string, GridStud, GridStud)
 	local localPos = plotCFrame:PointToObjectSpace(worldPos)
 
 	local rawX = localPos.X / Grid.SIZE
@@ -68,8 +76,8 @@ end
 
 function Grid.gridToWorld(
 	itemType: string,
-	gridX: number,
-	gridZ: number,
+	gridX: GridStud,
+	gridZ: GridStud,
 	plotCFrame: CFrame,
 	plotSize: Vector3,
 	itemSize: Vector3,
@@ -100,7 +108,7 @@ function Grid.gridToWorld(
 	if itemType == "Roof" then
 		localY += Grid.WALL_HEIGHT
 	elseif itemType == "Floor" then
-		localY += 0.05 -- Tiny offset so floor textures don't Z-fight with the plot part
+		localY = (plotSize.Y / 2)
 	end
 
 	return plotCFrame * CFrame.new(localX, localY, localZ) * CFrame.Angles(0, rad, 0)
@@ -108,12 +116,12 @@ end
 
 function Grid.clampToGrid(
 	itemType: string,
-	gridX: number,
-	gridZ: number,
-	itemWidth: number,
-	itemLength: number,
+	gridX: GridStud,
+	gridZ: GridStud,
+	itemWidth: GridStud,
+	itemLength: GridStud,
 	plotSize: Vector3
-): (number, number)
+): (GridStud, GridStud)
 	local minX = math.ceil((-plotSize.X / 2) / Grid.SIZE)
 	local baseMaxX = math.floor((plotSize.X / 2) / Grid.SIZE)
 
@@ -140,7 +148,13 @@ function Grid.clampToGrid(
 end
 
 -- [[ STATE VALIDATION ]]
-function Grid.getHalfGridBounds(itemType: string, stdX: number, stdZ: number, stdW: number, stdL: number)
+function Grid.getHalfGridBounds(
+	itemType: string,
+	stdX: number,
+	stdZ: number,
+	stdW: number,
+	stdL: number
+): (HalfGridStud, HalfGridStud, HalfGridStud)
 	local startX, endX, startZ, endZ
 
 	-- UPDATED: Treat Floors and Roofs mathematically like Solids
@@ -166,10 +180,10 @@ end
 function Grid.isAreaFree(
 	plotState: Types.PlotState?,
 	itemType: string,
-	stdX: number,
-	stdZ: number,
-	width: number,
-	length: number
+	stdX: GridStud,
+	stdZ: GridStud,
+	width: GridStud,
+	length: GridStud
 ): boolean
 	if not plotState then
 		return true
@@ -190,5 +204,60 @@ function Grid.isAreaFree(
 	end
 	return true
 end
+-- [[ SPATIAL/FREE PLACEMENT OPERATIONS ]]
 
+-- Converts a real-world CFrame into a saved coordinate relative to the plot's TOP surface
+function Grid.worldToSpatial(worldCFrame: CFrame, plotCFrame: CFrame, plotSize: Vector3): CFrame
+	local plotTopCFrame = plotCFrame * CFrame.new(0, plotSize.Y / 2, 0)
+	return plotTopCFrame:ToObjectSpace(worldCFrame)
+end
+
+-- Converts a saved spatial coordinate back into a real-world CFrame for rendering
+function Grid.spatialToWorld(relativeCFrame: CFrame, plotCFrame: CFrame, plotSize: Vector3): CFrame
+	local plotTopCFrame = plotCFrame * CFrame.new(0, plotSize.Y / 2, 0)
+	return plotTopCFrame:ToWorldSpace(relativeCFrame)
+end
+
+-- Validates that a free-placed item does not hang off the edge of the plot
+function Grid.isSpatialInBounds(relativeCFrame: CFrame, itemSize: Vector3, plotSize: Vector3): boolean
+	-- 1. Grab the rotational vectors of the item
+	local right = relativeCFrame.RightVector
+	local up = relativeCFrame.UpVector
+	local look = relativeCFrame.LookVector
+
+	local halfX = itemSize.X / 2
+	local halfY = itemSize.Y / 2
+	local halfZ = itemSize.Z / 2
+
+	-- 2. Calculate the exact projected size on the Plot's X and Z axes based on its current rotation
+	local extentX = math.abs(right.X) * halfX + math.abs(up.X) * halfY + math.abs(look.X) * halfZ
+	local extentZ = math.abs(right.Z) * halfX + math.abs(up.Z) * halfY + math.abs(look.Z) * halfZ
+
+	local posAbsX = math.abs(relativeCFrame.Position.X)
+	local posAbsZ = math.abs(relativeCFrame.Position.Z)
+
+	local plotHalfX = plotSize.X / 2
+	local plotHalfZ = plotSize.Z / 2
+
+	local xValid = (posAbsX + extentX) <= plotHalfX
+	local zValid = (posAbsZ + extentZ) <= plotHalfZ
+
+	-- 3. Log accurate failures
+	-- local r = math.random() < 0.08
+	if not (xValid and zValid) then
+		-- if not xValid and r then
+		-- 	warn(
+		-- 		`[Grid.isSpatialInBounds] Placement Rejected: -> X-Axis Failed: (Position: {xAbs} + Radius: {maxRadius}) > Limit: {plotHalfX}`
+		-- 	)
+		-- end
+		-- if not zValid and r then
+		-- 	warn(
+		-- 		`[Grid.isSpatialInBounds] Placement Rejected: -> Z-Axis Failed: (Position: {zAbs} + Radius: {maxRadius}) > Limit: {plotHalfZ}`
+		-- 	)
+		-- end
+		return false
+	end
+
+	return true
+end
 return Grid

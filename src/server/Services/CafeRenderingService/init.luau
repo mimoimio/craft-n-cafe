@@ -1,4 +1,4 @@
--- ServerScriptService/Server/ CafeRenderingService.luau
+-- ServerScriptService/Server/CafeRenderingService.luau
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local RENDERTAG = "RENDEREDOBJECT"
@@ -9,7 +9,7 @@ local useEffect = React.useEffect
 local useRef = React.useRef
 local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
-local CafeTypes = require(game.ReplicatedStorage.Shared.CafeTypes) -- = require(script.CafeTypes)
+local CafeTypes = require(game.ReplicatedStorage.Shared.CafeTypes)
 local Cafe = require(script.Cafe)
 local Character = require(script.Character)
 
@@ -17,25 +17,27 @@ local CafeRenderingService = {}
 local isEdit = not RunService:IsRunning() and RunService:IsStudio()
 
 local function selectPlayerStatsById(state: GlobalState.GlobalState)
-	return state.Stats -- Capitalized to match GlobalState definition
+	return state.Stats
 end
 
 local function getPlayerId(stats, playerId: string)
 	return playerId
 end
 
+local PlayersBase: { [string]: Model }
+
 local function BasesManager()
 	local bases, setBases = useState({})
 
 	useEffect(function()
-		if isEdit then
-			setBases({
-				[workspace.CafeBase] = "MockUser",
-			})
-			return
-		end
+		-- if isEdit then
+		-- 	setBases({
+		-- 		[workspace.CafeBase] = "MockUser",
+		-- 	})
+		-- 	return
+		-- end
+
 		local unsub = GlobalState:observe(selectPlayerStatsById, getPlayerId, function(stats, playerId)
-			-- warn(`stats ({stats}), playerId({playerId})`)
 			-- Mount/Update logic
 			setBases(function(prev)
 				local new = table.clone(prev)
@@ -47,6 +49,7 @@ local function BasesManager()
 						continue
 					end
 					new[base] = playerId
+					warn("setting attribute", playerId)
 					base:SetAttribute("OwnerId", playerId)
 					return new
 				end
@@ -68,6 +71,7 @@ local function BasesManager()
 					for base, prevPlayerId in new do
 						if prevPlayerId == playerId then
 							new[base] = nil
+							base:SetAttribute("OwnerId", nil) -- FIX: Clear the attribute so it can be reclaimed!
 						end
 					end
 					return new
@@ -79,6 +83,13 @@ local function BasesManager()
 			unsub()
 		end
 	end, {})
+	useEffect(function()
+		local newPlayerBase = {}
+		for base, playerId in bases do
+			newPlayerBase[playerId] = base
+		end
+		PlayersBase = newPlayerBase
+	end, { bases })
 
 	local children = {}
 	for base, playerId in bases do
@@ -96,6 +107,10 @@ local function BasesManager()
 	return e(React.Fragment, nil, children)
 end
 
+function CafeRenderingService.getCafeBaseFromPlayerId(playerId: string): CafeTypes.CafeBase?
+	return PlayersBase[playerId]
+end
+
 function CafeRenderingService.initialize()
 	CafeRenderingService.rootValue = Instance.new("StringValue", workspace)
 	CafeRenderingService.rootValue.Name = "root"
@@ -110,4 +125,3 @@ function CafeRenderingService.cleanup()
 end
 
 return CafeRenderingService
--- return {}

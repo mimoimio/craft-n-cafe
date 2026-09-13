@@ -63,34 +63,45 @@ local observeRigClone = function(clone: Model): (() -> ())?
 	end
 end
 
-local function getCounterTargetCFrame(playerId: string, baseModel: CafeTypes.CafeBase): CFrame?
-	local state = GlobalState:getState()
-	local plotState = state.Plot and state.Plot[playerId]
-	if not plotState then
+local function getCounterTargetCFrame(playerId: string, baseModel: CafeTypes.CafeBase, counterUuid: string?): CFrame?
+	if not counterUuid then
+		warn("not counterUuid")
 		return nil
 	end
 
-	for _, item in pairs(plotState.placedItems) do
-		if item.id == "Counter" then
-			local prefab = Models:FindFirstChild(item.id)
-			if not prefab then
-				continue
-			end
-
-			local _, itemSize = prefab:GetBoundingBox()
-			local plotCFrame, plotSize = baseModel.Part.CFrame, baseModel.Part.Size
-
-			local rawX, rawZ = Grid.getFootprint(itemSize, 0)
-			local snappedSize = Vector3.new(rawX * Grid.SIZE, itemSize.Y, rawZ * Grid.SIZE)
-
-			local counterCF =
-				Grid.gridToWorld(item.itemType or "Solid", item.x, item.z, plotCFrame, plotSize, snappedSize, item.r)
-
-			-- Offset by half the counter's depth + 1 stud so they don't clip inside the model!
-			return counterCF * CFrame.new(0, 0, -(itemSize.Z / 2 + 1))
-		end
+	local state = GlobalState:getState()
+	local plotState = state.Plot and state.Plot[playerId]
+	if not plotState then
+		warn("not plotState")
+		return nil
 	end
-	return nil
+
+	-- Directly fetch the exact counter the server assigned them!
+	local item = plotState.placedItems[counterUuid]
+	if not item then
+		warn("not item")
+		return nil
+	end
+
+	local prefab = Models:FindFirstChild(item.id)
+	if not prefab then
+		warn("not prefab")
+		return nil
+	end
+
+	-- Ensure you use the updated getModelBounds we made earlier
+	local _, itemSize = Grid.getModelBounds(prefab)
+	local plotCFrame, plotSize = baseModel.Part.CFrame, baseModel.Part.Size
+
+	local rawX, rawZ = Grid.getFootprint(itemSize, 0)
+	local snappedSize = Vector3.new(rawX * Grid.SIZE, itemSize.Y, rawZ * Grid.SIZE)
+
+	local counterCF =
+		Grid.gridToWorld(item.itemType or "Solid", item.x, item.z, plotCFrame, plotSize, snappedSize, item.r)
+
+	-- Offset by half the counter's depth + 1 stud so they stand perfectly in front of it
+	local finalcf = counterCF * CFrame.new(0, 0, -(itemSize.Z / 2 + 1))
+	return finalcf
 end
 
 local original = workspace.Rig:Clone()
@@ -139,7 +150,8 @@ local function Customer(props: {
 		local action = props.Customer.customerAction
 
 		-- FIX: Fetch dynamic spot CF, fallback to entrance if counter is missing
-		local spotCF = getCounterTargetCFrame(props.PlayerId, props.BaseModel) or entranceCF
+		local spotCF = getCounterTargetCFrame(props.PlayerId, props.BaseModel, props.Customer.targetCounterUuid)
+			or entranceCF
 
 		local targetCF = entranceCF + Vector3.new(0, 4, 0)
 
@@ -194,7 +206,8 @@ local function Customer(props: {
 		local entranceCF = props.BaseModel.Entrance:GetPivot()
 
 		-- FIX: Fetch dynamic spot CF, fallback to entrance
-		local spotCF = getCounterTargetCFrame(props.PlayerId, props.BaseModel) or entranceCF
+		local spotCF = getCounterTargetCFrame(props.PlayerId, props.BaseModel, props.Customer.targetCounterUuid)
+			or entranceCF
 
 		local targetPos = nil
 

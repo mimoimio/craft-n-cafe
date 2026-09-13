@@ -4,44 +4,55 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local Grid = require(ReplicatedStorage.Shared.Grid)
+local Types = require(ReplicatedStorage.Shared.Types)
 local Models = ReplicatedStorage.Shared.Models
 
 local PlacementService = {}
 
-function PlacementService.PlaceItem(player: Player, payload: any)
+function PlacementService.PlaceItem(player: Player, payload: Types.PlaceItemRemotePayload)
 	local playerId = tostring(player.UserId)
 
-	-- 1. Authoritative Prefab Lookup
 	local prefab = Models:FindFirstChild(payload.itemId)
 	if not prefab then
 		warn(`Placement failed: Prefab '{payload.itemId}' does not exist.`)
 		return
 	end
 
-	if payload.placementType == "Free" then
-		-- [[ SERVER-SIDE GUARD FOR SPATIAL ITEMS ]]
-		local _, itemSize = prefab:GetBoundingBox()
-		local maxRadius = math.max(itemSize.X, itemSize.Z) / 2
+	local placementType = prefab:GetAttribute("PlacementType") or "Grid"
 
-		-- Note: Replace this with however you fetch the player's true plot size on the server.
-		-- For the Mock Server (story.luau), it's workspace.CafeBase.Part.Size
-		local plotSize = workspace.CafeBase.Part.Size
+	-- Fetch the dynamic plot size from Reflex State
+	local state = GlobalState:getState()
+	local plotState = state.Plot and state.Plot[playerId]
+	if not plotState then
+		warn(`Placement failed: No plot state found for Player {playerId}.`)
+		return
+	end
 
-		local relativePos = payload.cframe.Position
-		local isWithinBounds = math.abs(relativePos.X) + maxRadius <= (plotSize.X / 2)
-			and math.abs(relativePos.Z) + maxRadius <= (plotSize.Z / 2)
+	local plotSizeNum = plotState.plotSize
+	local plotSize = Vector3.new(plotSizeNum, 1, plotSizeNum)
 
-		if not isWithinBounds then
-			warn(`Exploit prevented: Player {playerId} attempted to place {payload.itemId} outside plot bounds.`)
+	if placementType == "Free" then
+		if typeof(payload.cframe) ~= "CFrame" then
+			return warn("Spatial Placement has no cframe")
+		end
+
+		local _, itemSize = Grid.getModelBounds(prefab)
+
+		if not Grid.isSpatialInBounds(payload.cframe, itemSize, plotSize) then
+			warn(`PlaceItem failed: Player {playerId} attempted to place {payload.itemId} outside plot bounds.`)
 			return
 		end
 
-		-- If it passed the bounds check, commit it to state
-		GlobalState.placeItem(playerId, payload)
-	else
-		-- [[ GRID PLACEMENT ]]
+		-- Serialize to the State Payload
+		local statePayload: Types.PlaceItemPayload = {
+			itemId = payload.itemId, -- checked in prefab
+			placementType = "Free", -- got from prefab
+			cframe = { payload.cframe:GetComponents() }, -- Convert CFrame to {number} for Reflex/DataStore
+			parentUuid = payload.parentUuid or "Plot",
+		}
 
-		-- FIX: Properly preserve Roof and Floor tags, instead of defaulting to Solid!
+		GlobalState.placeItem(playerId, statePayload)
+	else
 		local itemTypeAttr = prefab:GetAttribute("ItemType") or "Solid"
 		local resolvedItemType = itemTypeAttr
 
@@ -50,21 +61,43 @@ function PlacementService.PlaceItem(player: Player, payload: any)
 			resolvedItemType = isRotated and "Wall_V" or "Wall_H"
 		end
 
-		-- 3. Authoritative Math
-		local _, itemSize = prefab:GetBoundingBox()
+		local _, itemSize = Grid.getModelBounds(prefab)
 		local width, length = Grid.getFootprint(itemSize, payload.rotation)
 
-		-- 4. Dispatch to the slice using the trusted resolvedItemType
-		GlobalState.placeItem(playerId, {
-			itemId = payload.itemId,
-			placementType = "Grid",
-			itemType = resolvedItemType, -- Now this correctly passes "Roof" instead of "Solid"
-			startX = payload.startX,
-			startZ = payload.startZ,
-			width = width,
-			length = length,
-			rotation = payload.rotation,
-		})
+		if typeof(payload.startX) ~= "number" or typeof(payload.startZ) ~= "number" then
+			return warn(
+				`PlaceItem failed: not a number: 1. payload.startX: {payload.startX} 2. payload.startZ: {payload.startZ}`
+			)
+		end
+
+		-- [[ GRID PLACEMENT SERVER GUARDS ]]
+		-- 1. Bounds Check: Verify the client's coordinates match the server's clamped coordinates
+		local clampedX, clampedZ =
+			Grid.clampToGrid(resolvedItemType, payload.startX, payload.startZ, width, length, plotSize)
+
+		if payload.startX ~= clampedX or payload.startZ ~= clampedZ then
+			warn(`Exploit prevented: Player {playerId} attempted to place {payload.itemId} outside grid bounds.`)
+			return
+		end
+
+		-- 2. Collision Check: Verify the grid space is actually free
+		if not Grid.isAreaFree(plotState, resolvedItemType, payload.startX, payload.startZ, width, length) then
+			warn(`Exploit prevented: Player {playerId} attempted to place {payload.itemId} in an occupied space.`)
+			return
+		end
+
+		local statePayload: Types.PlaceItemPayload = {
+			itemId = payload.itemId, -- checked in prefab
+			placementType = "Grid", -- default to grid if not free
+			itemType = resolvedItemType, -- default to solid
+			startX = payload.startX, -- guarded
+			startZ = payload.startZ, -- guarded
+			width = width, -- got from prefab
+			length = length, -- got from prefab
+			rotation = payload.rotation, -- would've errored at modulus operator if not number
+		}
+
+		GlobalState.placeItem(playerId, statePayload)
 	end
 end
 

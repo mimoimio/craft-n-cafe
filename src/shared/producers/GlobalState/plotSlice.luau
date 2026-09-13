@@ -16,11 +16,9 @@ local initialState: { [string]: PlotState } = {}
 
 local actions = {
 	startPlayerSession = function(state: { [string]: PlotState }, playerId: string, data: Types.PlayerData)
-		-- Initialize with the new unified architecture including spatialItems
-		local defaultPlot = { grid = {}, placedItems = {}, spatialItems = {}, nextId = 1 }
+		local defaultPlot = { grid = {}, placedItems = {}, spatialItems = {}, plotSize = 32, nextId = 1 }
 		return Set(state, playerId, data.Plot or defaultPlot)
 	end,
-
 	endPlayerSession = function(state: { [string]: PlotState }, playerId: string)
 		return RemoveKey(state, playerId)
 	end,
@@ -77,7 +75,17 @@ local actions = {
 
 		return Set(state, playerId, nextPlayerPlot)
 	end,
+	expandPlot = function(state: { [string]: PlotState }, playerId: string, payload: Types.ExpandPlotPayload)
+		local playerPlot = state[playerId]
+		if not playerPlot then
+			return state
+		end
 
+		local nextPlayerPlot = Dictionary.copy(playerPlot)
+		nextPlayerPlot.plotSize = payload.newSize
+
+		return Set(state, playerId, nextPlayerPlot)
+	end,
 	destroyItem = function(state: { [string]: PlotState }, playerId: string, payload: Types.DestroyItemPayload)
 		local playerPlot = state[playerId]
 		if not playerPlot then

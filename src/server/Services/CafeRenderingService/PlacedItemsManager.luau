@@ -21,12 +21,15 @@ local function PlacedItemsManager(props: { PlayerId: string, BaseModel: CafeType
 		local unsub = GlobalState:subscribe(function(state)
 			return state.Plot and state.Plot[props.PlayerId] and state.Plot[props.PlayerId] or nil
 		end, function(plotState)
+			if not plotState then
+				return
+			end
 			setPlacedItems(plotState.placedItems)
 			setSpatialItems(plotState.spatialItems)
 		end)
 
 		local state = GlobalState:getState()
-		local plotState = state.Plot and state.Plot[props.PlayerId]
+		local plotState = state and state.Plot and state.Plot[props.PlayerId]
 
 		setPlacedItems(plotState and plotState.placedItems or {})
 		setSpatialItems(plotState and plotState.spatialItems or {})

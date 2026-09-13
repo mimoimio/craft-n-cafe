@@ -113,7 +113,13 @@ function self:update(cursorWorldPos: Vector3)
 			for _, child in baseModel:GetChildren() do
 				if child:GetAttribute("Uuid") == hoveredUuid then
 					self.deleteHighlight.Parent = child
-					break
+					return
+				end
+			end
+			for _, child in baseModel.Spatial:GetChildren() do
+				if child:GetAttribute("Uuid") == hoveredUuid then
+					self.deleteHighlight.Parent = child
+					return
 				end
 			end
 		elseif not hoveredUuid then
@@ -156,9 +162,6 @@ function self:update(cursorWorldPos: Vector3)
 			local hitPos = rayResult.Position
 			local normal = rayResult.Normal
 
-			local hitModel = rayResult.Instance:FindFirstAncestorWhichIsA("Model")
-			hitUuid = hitModel and hitModel:GetAttribute("Uuid") or "Plot"
-
 			if math.abs(normal.Y) > 0.99 then
 				targetCFrame = CFrame.new(hitPos + normal * (itemSize.Y / 2))
 					* CFrame.Angles(0, math.rad(self.rotation), 0)
@@ -166,13 +169,19 @@ function self:update(cursorWorldPos: Vector3)
 				targetCFrame = CFrame.lookAt(hitPos + normal * (itemSize.Z / 2), hitPos + normal * 2)
 			end
 
-			local relativeCFrame = plotCFrame:ToObjectSpace(targetCFrame)
-			local maxRadius = math.max(itemSize.X, itemSize.Z) / 2
+			local relativeCFrame = Grid.worldToSpatial(targetCFrame, plotCFrame, plotSize)
+			isFree = Grid.isSpatialInBounds(relativeCFrame, itemSize, plotSize)
 
-			local isWithinBounds = math.abs(relativeCFrame.X) + maxRadius <= (plotSize.X / 2)
-				and math.abs(relativeCFrame.Z) + maxRadius <= (plotSize.Z / 2)
-
-			isFree = isWithinBounds
+			if isFree then
+				local _, s = prefab:GetBoundingBox()
+				local overlapparams = OverlapParams.new()
+				overlapparams.FilterType = Enum.RaycastFilterType.Include
+				overlapparams.FilterDescendantsInstances = { self.plot.Parent.Spatial }
+				local parts = workspace:GetPartBoundsInBox(targetCFrame, s * 0.8, overlapparams)
+				if parts and #parts > 0 then
+					isFree = false
+				end
+			end
 		else
 			targetCFrame = self.plot.CFrame * CFrame.new(0, -100, 0)
 			isFree = false
@@ -189,7 +198,6 @@ function self:update(cursorWorldPos: Vector3)
 		local width, length = Grid.getFootprint(itemSize, finalRotation)
 		local rawX, rawZ = Grid.getFootprint(itemSize, 0)
 
-		-- FIX: Use the SNAPPED footprint for X and Z, just like PlacedItemNode!
 		local dummyY = itemSize.Y
 		local mathItemType = resolvedItemType
 
@@ -255,10 +263,8 @@ function self:placeItem(cursorWorldPos: Vector3)
 		local hitModel = rayResult.Instance:FindFirstAncestorWhichIsA("Model")
 		local hitUuid = hitModel and hitModel:GetAttribute("Uuid") or "Plot"
 
-		local relativeCFrame = plotCFrame:ToObjectSpace(targetCFrame)
-		local maxRadius = math.max(itemSize.X, itemSize.Z) / 2
-		local isWithinBounds = math.abs(relativeCFrame.X) + maxRadius <= (plotSize.X / 2)
-			and math.abs(relativeCFrame.Z) + maxRadius <= (plotSize.Z / 2)
+		local relativeCFrame = Grid.worldToSpatial(targetCFrame, plotCFrame, plotSize)
+		local isWithinBounds = Grid.isSpatialInBounds(relativeCFrame, itemSize, plotSize)
 
 		if not isWithinBounds then
 			return false
@@ -288,6 +294,7 @@ function self:placeItem(cursorWorldPos: Vector3)
 		local gridX, gridZ = Grid.clampToGrid(resolvedItemType, rawGridX, rawGridZ, width, length, plotSize)
 
 		if Grid.isAreaFree(plotState, resolvedItemType, gridX, gridZ, width, length) then
+			-- FIX: Explicitly send placementType so the server unions match!
 			Remotes.PlaceItem:FireServer({
 				itemId = self.currentItemId,
 				placementType = "Grid",
@@ -309,7 +316,16 @@ function self:placeCurrent()
 	if not self.initialized or not self.plot or not self.buildModeActive then
 		return false
 	end
-	local hitPos = InputAdapter.getCursorWorldPosition(self.plot)
+
+	local targetElevation = nil
+	if self.currentItemId then
+		local prefab = self.itemPrefabs:FindFirstChild(self.currentItemId)
+		if prefab and prefab:GetAttribute("ItemType") == "Roof" then
+			targetElevation = Grid.WALL_HEIGHT
+		end
+	end
+
+	local hitPos = InputAdapter.getCursorWorldPosition(self.plot, targetElevation)
 	local success, uuid = self:placeItem(hitPos)
 	if success then
 		print("Successfully placed item with UUID:", uuid)
@@ -358,21 +374,48 @@ function self.initialize()
 		end)
 			:timeout(10)
 			:catch(function(err)
-				warn("Error waiting cafeBase.Part:", err)
+				warn("Error waiting cafeBase:", err)
 			end)
 			:await()
 	end)
 		:andThen(function(cafeBase)
-			warn("initialized controller")
-			self.new(cafeBase.Part, ReplicatedStorage.Shared.Models)
+			-- Ensure we actually have the part before initializing
+			local initialPart = cafeBase:FindFirstChild("Part") or cafeBase:WaitForChild("Part", 10)
+			self.new(initialPart, ReplicatedStorage.Shared.Models)
+
+			-- FIX: Listen directly to the Model's children!
+			-- When the Server's React tree resizes the plot, it destroys the old Part and adds a new one.
+			self.partAddedConn = cafeBase.ChildAdded:Connect(function(child)
+				if child.Name == "Part" and child:IsA("BasePart") then
+					self.plot = child
+
+					-- If the visualizer is currently active, ensure it updates its bounds reference too!
+					if self.visualizer then
+						self.visualizer.plot = child
+					end
+					print("PlacementController: Plot expanded and synced!")
+				end
+			end)
 
 			self.connection = RunService.RenderStepped:Connect(function()
-				local hitPos = InputAdapter.getCursorWorldPosition(cafeBase.Part)
+				if not self.plot then
+					return
+				end
+
+				local targetElevation = nil
+				if self.currentItemId then
+					local prefab = self.itemPrefabs:FindFirstChild(self.currentItemId)
+					if prefab and prefab:GetAttribute("ItemType") == "Roof" then
+						targetElevation = Grid.WALL_HEIGHT
+					end
+				end
+
+				local hitPos = InputAdapter.getCursorWorldPosition(self.plot, targetElevation)
 				self:update(hitPos)
 			end)
 
 			self.inputConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
-				if gameProcessed then
+				if gameProcessed or not self.plot then
 					return
 				end
 
@@ -382,7 +425,15 @@ function self.initialize()
 					if self.deleteModeActive then
 						self:attemptDestroyAtCursor()
 					else
-						local hitPos = InputAdapter.getCursorWorldPosition(cafeBase.Part)
+						local targetElevation = nil
+						if self.currentItemId then
+							local prefab = self.itemPrefabs:FindFirstChild(self.currentItemId)
+							if prefab and prefab:GetAttribute("ItemType") == "Roof" then
+								targetElevation = Grid.WALL_HEIGHT
+							end
+						end
+
+						local hitPos = InputAdapter.getCursorWorldPosition(self.plot, targetElevation)
 						self:placeItem(hitPos)
 					end
 				end
@@ -404,6 +455,9 @@ function self.cleanup()
 	if self.highlightConn then
 		self.highlightConn:Disconnect()
 	end
+	-- Clean up our instance listener
+	if self.partAddedConn then
+		self.partAddedConn:Disconnect()
+	end
 end
-
 return self

@@ -7,8 +7,11 @@ local useEffect = React.useEffect
 local Types = require(ReplicatedStorage.Shared.Types)
 local CafeTypes = require(ReplicatedStorage.Shared.CafeTypes)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
+local Grid = require(ReplicatedStorage.Shared.Grid)
 local DrinksService = require(ServerScriptService.Server.Services.DrinksService)
 
+local useState = React.useState
+local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local Models = ReplicatedStorage.Shared.Models
 
 local function SpatialItemNode(props: {
@@ -17,6 +20,21 @@ local function SpatialItemNode(props: {
 	BaseModel: CafeTypes.CafeBase,
 	PlayerId: string,
 })
+	local plotSizeNum, setPlotSizeNum = useState(32)
+
+	useEffect(function()
+		local function selectPlotSize(state)
+			local plotState = state.Plot and state.Plot[props.PlayerId]
+			return plotState and plotState.plotSize or 32
+		end
+
+		local unsub = GlobalState:subscribe(selectPlotSize, setPlotSizeNum)
+
+		-- Initialize state immediately
+		setPlotSizeNum(selectPlotSize(GlobalState:getState()))
+
+		return unsub
+	end, { props.PlayerId })
 	useEffect(function()
 		local prefab = Models:FindFirstChild(props.ItemData.id)
 		if not prefab then
@@ -25,6 +43,12 @@ local function SpatialItemNode(props: {
 
 		local clone = prefab:Clone()
 		local primary = clone.PrimaryPart or clone:FindFirstChildWhichIsA("BasePart")
+		local hitbox = clone:FindFirstChild("Hitbox")
+		if hitbox then
+			if hitbox.Transparency == 1 then
+				hitbox:Destroy()
+			end
+		end
 
 		-- Disable existing prompts attached to the prefab
 		local pp = clone:FindFirstChildWhichIsA("ProximityPrompt", true)
@@ -32,9 +56,20 @@ local function SpatialItemNode(props: {
 			pp.Enabled = false
 		end
 
-		local _, itemSize = clone:GetBoundingBox()
-		local plotCFrame = props.BaseModel.Part.CFrame
-		local targetCFrame = plotCFrame:ToWorldSpace(props.ItemData.cframe)
+		-- FIX: Capture originalCFrame to properly orient the bounding box later
+		local originalCFrame, itemSize = clone:GetBoundingBox()
+
+		-- FIX: Use the invisible Anchor for position, and Reflex for the Size
+		local anchor = props.BaseModel:FindFirstChild("Anchor")
+		local plotCFrame = anchor and anchor.CFrame or props.BaseModel.Part.CFrame
+		local plotSize = Vector3.new(plotSizeNum, 1, plotSizeNum)
+
+		local spatialCFrame = if typeof(props.ItemData.cframe) == "table"
+			then CFrame.new(table.unpack(props.ItemData.cframe))
+			elseif typeof(props.ItemData.cframe) == "CFrame" then props.ItemData.cframe
+			else warn("ERROR: SpatialItem NOR CFRAME OR TABLE") or CFrame.new(0, 0, 0)
+
+		local targetCFrame = Grid.spatialToWorld(spatialCFrame, plotCFrame, plotSize)
 		local conn = nil
 
 		-- [[ FUNCTIONAL ROUTING ]]
@@ -89,6 +124,7 @@ local function SpatialItemNode(props: {
 				pl:Destroy()
 			end
 		until not found
+
 		-- Setup the new perfectly-snapped PrimaryPart bounding box
 		local part = Instance.new("Part")
 		part.Anchored = true
@@ -99,22 +135,32 @@ local function SpatialItemNode(props: {
 		part.CanQuery = false
 		part.Transparency = 1
 		part.Parent = clone
-		part:PivotTo(_) -- Resets orientation internally
+
+		-- FIX: Use the actual originalCFrame instead of `_`
+		part:PivotTo(originalCFrame)
 
 		-- 🎯 CRITICAL: Tag the model so the Delete Raycaster can find its UUID
 		clone:SetAttribute("Uuid", props.Uuid)
 
 		clone.PrimaryPart = part
 		clone:PivotTo(targetCFrame)
-		clone.Parent = props.BaseModel
+
+		if props.ItemData.id == "cup" then
+			warn("targetCFrame Position: ", targetCFrame.Position)
+		end
+
+		part:Destroy()
+		clone.Parent = props.BaseModel and props.BaseModel.Parent and props.BaseModel.Spatial or nil
 
 		return function()
 			if conn then
 				conn:Disconnect()
 			end
-			clone:Destroy()
+			if clone and clone.Parent then
+				clone:Destroy()
+			end
 		end
-	end, { props.ItemData, props.BaseModel, props.PlayerId })
+	end, { props.ItemData, props.BaseModel, props.PlayerId, plotSizeNum }) -- Re-run if plot size expands!
 
 	return nil
 end

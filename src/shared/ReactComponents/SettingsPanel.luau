@@ -16,7 +16,6 @@ local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 
 local Primitives = ReplicatedStorage.Shared.ReactComponents.ui
-local DefaultPanel = require(script.Parent.DefaultPanel)
 local DefaultScrollFrame = require(script.Parent.DefaultScrollFrame)
 local Toasts = require(script.Parent.Toasts)
 local useToast = Toasts.useToast

@@ -7,6 +7,8 @@ local Reflex = require(ReplicatedStorage.Packages.Reflex)
 
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local PlacementController = require(ReplicatedStorage.Shared.Controllers.PlacementController)
+local BuildersIcon = require(ReplicatedStorage.Shared.Utils.BuildersIcon)
+local TOUCHICON = BuildersIcon["hand-half-ellipse"]
 
 local Primitives = ReplicatedStorage.Shared.ReactComponents.ui
 local VStack = require(Primitives.VStack)
@@ -155,6 +157,7 @@ local function BuildPanel()
 			VerticalFlex = Enum.UIFlexAlignment.None,
 			HorizontalFlex = Enum.UIFlexAlignment.None,
 			Visible = visible,
+			Spacing = UDim.new(0, 8),
 			Size = UDim2.new(0, 0, 0, 0),
 		}, {
 			HideButton = e(SmallButton, {
@@ -168,11 +171,12 @@ local function BuildPanel()
 				AnchorPoint = Vector2.new(1, 0.5),
 				Size = UDim2.new(0, 0, 0, 0),
 				AutomaticSize = Enum.AutomaticSize.XY,
+				LayoutOrder = 1,
 			}, {
 				e("UIStroke", { Thickness = 2 }),
 				e(SmallText, {
 					TextSize = 48,
-					Text = "👀",
+					Text = show and ">>" or "<<",
 					AutomaticSize = Enum.AutomaticSize.XY,
 					HorizontalAlignment = Enum.HorizontalAlignment.Center,
 				}),
@@ -183,20 +187,77 @@ local function BuildPanel()
 				Size = UDim2.new(0, 0, 0, 0),
 				BackgroundColor3 = selectedItem == "DELETE_MODE" and Color3.new(1, 0.058823, 0.058823)
 					or Color3.new(1, 0.341176, 0.341176),
-				LayoutOrder = -1, -- Force it to the top of the list
 				[React.Event.Activated] = function()
 					local is = UIState:getState().buildItemId ~= "DELETE_MODE" and "DELETE_MODE" or "crate"
 					UIState.selectBuildItem(is)
 				end,
+				LayoutOrder = 2,
 			}, {
 				e("UIStroke", { Thickness = 2 }),
 				e(SmallText, {
 					TextSize = 48,
-					Text = "🗑️",
+					MinTextSize = 12,
+					MaxTextSize = 48,
+					Text = `<font size="48">🗑️</font>\n<font size="12">delete\nmode</font>`,
+					RichText = true,
+					AutomaticSize = Enum.AutomaticSize.XY,
+					HorizontalAlignment = Enum.HorizontalAlignment.Center,
+					TextXAlignment = Enum.TextXAlignment.Center,
+				}),
+			}),
+			Rotate = e(SmallButton, {
+				Image = "",
+				OverlayTextSize = 8,
+				AutomaticSize = Enum.AutomaticSize.XY,
+				Size = UDim2.new(0, 0, 0, 0),
+				LayoutOrder = 3,
+				[React.Event.Activated] = function()
+					PlacementController:rotateItem()
+				end,
+			}, {
+				e("UIStroke", { Thickness = 2 }),
+				e(SmallText, {
+					MinTextSize = 12,
+					MaxTextSize = 48,
+					Text = `<font size="48">🔄️</font>\n<font size="12">rotate</font>`,
+					RichText = true,
+					TextXAlignment = Enum.TextXAlignment.Center,
 					AutomaticSize = Enum.AutomaticSize.XY,
 					HorizontalAlignment = Enum.HorizontalAlignment.Center,
 				}),
 			}),
+			Place = (
+				UserInputService.PreferredInput == Enum.PreferredInput.Touch
+				or UserInputService.PreferredInput == Enum.PreferredInput.Gamepad
+			)
+					and selectedItem
+					and e(SmallButton, {
+						Image = "",
+						OverlayTextSize = 8,
+						AutomaticSize = Enum.AutomaticSize.XY,
+						Size = UDim2.new(0, 0, 0, 0),
+						LayoutOrder = 4,
+						BackgroundColor3 = selectedItem == "DELETE_MODE" and Color3.new(0.8, 0.2, 0.2)
+							or Color3.new(0.2, 0.7, 0.2),
+						[React.Event.Activated] = function()
+							if selectedItem == "DELETE_MODE" then
+								PlacementController:attemptDestroyAtCursor()
+							else
+								PlacementController:placeCurrent()
+							end
+						end,
+					}, {
+						e("UIStroke", { Thickness = 2 }),
+						e(SmallText, {
+							MinTextSize = 12,
+							MaxTextSize = 48,
+							Text = `<font size="48">{TOUCHICON}</font>\n<font size="12">{selectedItem == "DELETE_MODE" and "delete\nitem" or "place\nitem"}</font>`,
+							RichText = true,
+							TextXAlignment = Enum.TextXAlignment.Center,
+							HorizontalAlignment = Enum.HorizontalAlignment.Center,
+						}),
+					})
+				or nil,
 		}),
 		e(VStack, {
 			Size = UDim2.new(0, mobile and 260 or 300, 1, 0),
@@ -230,35 +291,35 @@ local function BuildPanel()
 			}),
 
 			-- NEW: Dynamic Place Button, appears only when an item is selected
-			PlaceActionContainer = (
-				UserInputService.PreferredInput == Enum.PreferredInput.Touch
-				or UserInputService.PreferredInput == Enum.PreferredInput.Gamepad
-			)
-					and selectedItem
-					and e("Frame", {
-						Size = UDim2.new(1, 0, 0, 50),
-						BackgroundTransparency = 1,
-						LayoutOrder = 3,
-					}, {
-						ActionButton = e(SmallButton, {
-							Size = UDim2.new(1, 0, 1, 0),
-							BackgroundColor3 = selectedItem == "DELETE_MODE" and Color3.new(0.8, 0.2, 0.2)
-								or Color3.new(0.2, 0.7, 0.2),
-							[React.Event.Activated] = function()
-								if selectedItem == "DELETE_MODE" then
-									PlacementController:attemptDestroyAtCursor()
-								else
-									PlacementController:placeCurrent()
-								end
-							end,
-						}, {
-							e(SmallText, {
-								Text = selectedItem == "DELETE_MODE" and "DELETE ITEM" or "PLACE ITEM",
-								HorizontalAlignment = Enum.HorizontalAlignment.Center,
-							}),
-						}),
-					})
-				or nil,
+			-- PlaceActionContainer = (
+			-- 	UserInputService.PreferredInput == Enum.PreferredInput.Touch
+			-- 	or UserInputService.PreferredInput == Enum.PreferredInput.Gamepad
+			-- )
+			-- 		and selectedItem
+			-- 		and e("Frame", {
+			-- 			Size = UDim2.new(1, 0, 0, 50),
+			-- 			BackgroundTransparency = 1,
+			-- 			LayoutOrder = 3,
+			-- 		}, {
+			-- 			ActionButton = e(SmallButton, {
+			-- 				Size = UDim2.new(1, 0, 1, 0),
+			-- 				BackgroundColor3 = selectedItem == "DELETE_MODE" and Color3.new(0.8, 0.2, 0.2)
+			-- 					or Color3.new(0.2, 0.7, 0.2),
+			-- 				[React.Event.Activated] = function()
+			-- 					if selectedItem == "DELETE_MODE" then
+			-- 						PlacementController:attemptDestroyAtCursor()
+			-- 					else
+			-- 						PlacementController:placeCurrent()
+			-- 					end
+			-- 				end,
+			-- 			}, {
+			-- 				e(SmallText, {
+			-- 					Text = selectedItem == "DELETE_MODE" and "DELETE ITEM" or "PLACE ITEM",
+			-- 					HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			-- 				}),
+			-- 			}),
+			-- 		})
+			-- 	or nil,
 		}),
 	})
 end

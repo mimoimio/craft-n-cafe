@@ -67,7 +67,7 @@ local function initializeSoundPool(soundName: string, poolSize: number)
 	-- Pre-create and load sounds
 	for i = 1, poolSize do
 		local sound = sourceSound:Clone()
-		sound.Parent = game.ReplicatedStorage -- Store in ReplicatedStorage until needed
+		sound.Parent = ReplicatedStorage -- Store in ReplicatedStorage until needed
 		if not sound.IsLoaded then
 			sound.Loaded:Wait()
 		end
@@ -95,7 +95,7 @@ local function getSound(soundName: string): Sound?
 	else
 		-- Pool exhausted, create new instance
 		sound = pool.source:Clone()
-		sound.Parent = game.ReplicatedStorage
+		sound.Parent = ReplicatedStorage
 		if not sound.IsLoaded then
 			sound.Loaded:Wait()
 		end
@@ -122,7 +122,7 @@ local function returnSound(soundName: string, sound: Sound)
 	-- Reset sound properties and return to available pool
 	sound:Stop()
 	sound.PlaybackSpeed = pool.source.PlaybackSpeed -- Reset to absolute original speed!
-	sound.Parent = game.ReplicatedStorage
+	sound.Parent = ReplicatedStorage
 	table.insert(pool.available, sound)
 end
 

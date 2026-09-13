@@ -4,24 +4,27 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local React = require(ReplicatedStorage.Packages.React)
 local Promise = require(ReplicatedStorage.Packages.Promise)
-local e = React.createElement
-local useState = React.useState
 local useEffect = React.useEffect
-local useRef = React.useRef
-local useBinding = React.useBinding
-local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 
+local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local CafeTypes = require(ReplicatedStorage.Shared.CafeTypes)
 
-local player = game:GetService("Players").LocalPlayer
-local playerId = player and player.UserId or ""
+local player = Players.LocalPlayer
+local playerId = player and tostring(player.UserId) or "MockUser"
+local TIMEOUT = 1
 
 local CafeBase = function(props: {})
-	local cafeBase, setCafeBase = useState(nil)
 	useEffect(function()
-		if not player then
-			setCafeBase(workspace.CafeBase)
-		end
+		-- if not player then
+		-- 	-- UI Labs (Story) environment
+		-- 	task.spawn(function()
+		-- 		local part = workspace.CafeBase:WaitForChild("Part", TIMEOUT)
+		-- 		if part then
+		-- 			UIState.setCafeBase(workspace.CafeBase)
+		-- 		end
+		-- 	end)
+		-- 	return
+		-- end
 
 		local promise = Promise.defer(function(resolve, reject)
 			local basesModel = workspace:WaitForChild("Bases")
@@ -30,49 +33,50 @@ local CafeBase = function(props: {})
 			local found
 			local startTime = workspace:GetServerTimeNow()
 			local elapsed = 0
+
 			repeat
-				for i, base: CafeTypes.CafeBase in bases do
+				for _, base: CafeTypes.CafeBase in bases do
 					local ownerId = base:GetAttribute("OwnerId")
-					if not ownerId then
-						continue
+					if ownerId == playerId then
+						found = base
+						return resolve(base)
 					end
-					if not ownerId == playerId then
-						continue
-					end
-					found = base
-					-- warn("returned")
-					return resolve(base)
 				end
 
 				if not found then
 					task.wait()
 					elapsed = workspace:GetServerTimeNow() - startTime
-					if elapsed >= 10 then
+					if elapsed >= TIMEOUT then
 						return reject("Get base timeout")
 					end
 				end
-			until found or elapsed >= 10
+			until found or elapsed >= TIMEOUT
+
 			return reject("Get base timeout")
 		end)
 
 		promise
-			:andThen(function(cafeBase)
-				setCafeBase(cafeBase)
+			:andThen(function(resolvedBase)
+				-- Wait for the SERVER to replicate the dynamic Part to the Client
+				local plotPart = resolvedBase:WaitForChild("Part", TIMEOUT)
+				if plotPart then
+					UIState.setCafeBase(resolvedBase)
+				else
+					warn("[CafeBase] Timeout waiting for Server to replicate the dynamic Part.", resolvedBase)
+				end
 			end)
 			:catch(function(err)
-				warn(`[CafeBase] Failed to resolve descendants: {err}`)
+				warn(`[CafeBase] Failed to resolve base: {err}`)
 			end)
 
 		return function()
-			-- If the component unmounts before WaitForChild finishes, cancel the Promise
-			-- so it stops executing and doesn't attempt to update unmounted state.
 			promise:cancel()
+			UIState.setCafeBase(nil)
 		end
 	end, {})
 
-	useEffect(function()
-		UIState.setCafeBase(cafeBase)
-	end, { cafeBase })
+	-- Since the server renders the physical Part, this client component renders nothing visually!
+	return nil
 end
 
 return CafeBase

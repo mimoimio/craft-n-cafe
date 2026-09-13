@@ -1,4 +1,5 @@
 -- GeneralHud.story.luau
+local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local RunService = game:GetService("RunService")
@@ -21,6 +22,7 @@ local InputAdapter = require(ReplicatedStorage.Shared.Controllers.InputAdapter)
 
 local CafeRenderingService = require(ServerScriptService.Server.Services.CafeRenderingService)
 local playersPlotString
+
 local function formatValue(value, depth)
 	local indent = string.rep("\t", depth)
 	-- local indent = ""
@@ -28,10 +30,6 @@ local function formatValue(value, depth)
 		local results = {}
 		for k, v in value do
 			if type(v) == "table" then
-				-- table.insert(
-				-- 	results,
-				-- 	string.format("%s%s (%s): {", indent, k == "customerAction" and k or "", "")
-				-- )
 				table.insert(
 					results,
 					string.format("%s%s = {", indent, if type(k) == "string" then `["{tostring(k)}"]` else tostring(k))
@@ -39,24 +37,31 @@ local function formatValue(value, depth)
 				table.insert(results, formatValue(v, depth + 1))
 				table.insert(results, indent .. "},")
 			else
+				local cFrameText
+				local isCFrame = typeof(v) == "CFrame"
+				if isCFrame then
+					local components = { v:GetComponents() }
+					local texts = {}
+					for i, num in components do
+						table.insert(texts, `[{i}]=num,`)
+					end
+					cFrameText = table.concat(texts)
+				end
 				table.insert(
 					results,
-					-- string.format(`%s%s : "%s"`, indent, k == "customerAction" and k or "", tostring(v))
 					string.format(
 						"%s%s=%s,",
 						indent,
-						if type(k) == "string" then `["{tostring(k)}"]` else tostring(k),
-						if type(v) == "string"
-							then `"{v}"`
-							elseif typeof(v) == "CFrame" then `CFrame.new({tostring(v)})`
-							else tostring(v)
+						if type(k) == "string"
+							then `["{tostring(k)}"]`
+							elseif type(k) == "number" then `[{tostring(k)}]`
+							else tostring(k),
+						if isCFrame then cFrameText elseif type(v) == "string" then `"{v}"` else tostring(v)
 					)
-					-- string.format("%s%24s (%s): %s(%s),", indent, tostring(k), type(k), tostring(v), type(v))
 				)
 			end
 		end
-		-- return table.concat(results)
-		return table.concat(results, "\n") -- not needed, not for viewing
+		return table.concat(results, "\n")
 	else
 		return string.format("%s%s,", indent, tostring(value))
 	end
@@ -67,12 +72,11 @@ local function getPlot()
 end
 
 local function story(frame: Frame)
-	local plot = workspace.CafeBase.Part
 	local models = game.ReplicatedStorage.Shared.Models
 
 	-- 1. Initialize Mock State for UI Labs
 	GlobalState.startPlayerSession("MockUser", {
-		Plot = getPlot(), -- Updated to unified 'grid'
+		Plot = getPlot(),
 		Stats = {
 			Level = 1,
 		} :: any,
@@ -92,25 +96,60 @@ local function story(frame: Frame)
 			return
 		end
 
-		if payload.placementType == "Free" then
+		-- Fetch the dynamic plot size from Reflex State
+		local state = GlobalState:getState()
+		local plotState = state.Plot and state.Plot[playerId]
+		if not plotState then
+			warn(`Placement failed: No plot state found for Player {playerId}.`)
+			return
+		end
+
+		local placementType = prefab:GetAttribute("PlacementType") or "Grid"
+		local plotSizeNum = plotState.plotSize or 32
+		local plotSize = Vector3.new(plotSizeNum, 1, plotSizeNum)
+
+		if placementType == "Free" then
+			if typeof(payload.cframe) ~= "CFrame" then
+				return warn("Spatial Placement has no cframe")
+			end
+
 			-- [[ SERVER-SIDE GUARD FOR SPATIAL ITEMS ]]
 			local _, itemSize = Grid.getModelBounds(prefab)
-			local maxRadius = math.max(itemSize.X, itemSize.Z) / 2
-			local plotSize = workspace.CafeBase.Part.Size
 
-			local relativePos = payload.cframe.Position
-			local isWithinBounds = math.abs(relativePos.X) + maxRadius <= (plotSize.X / 2)
-				and math.abs(relativePos.Z) + maxRadius <= (plotSize.Z / 2)
-
-			if not isWithinBounds then
-				warn(`Exploit prevented: Player {playerId} attempted to place {payload.itemId} outside plot bounds.`)
+			if not Grid.isSpatialInBounds(payload.cframe, itemSize, plotSize) then
+				warn(`Place item error: Player {playerId} attempted to place {payload.itemId} outside plot bounds.`)
 				return
 			end
 
-			GlobalState.placeItem(playerId, payload)
+			local playerbase = CafeRenderingService.getCafeBaseFromPlayerId(playerId)
+			if not (playerbase and playerbase.Spatial) then
+				return
+			end
+			-- 1. Get the Anchor's World CFrame
+			local anchor = playerbase:FindFirstChild("Anchor")
+			local plotCFrame = anchor and anchor.CFrame or CFrame.new(0, 0, 0)
+			-- 2. Convert the relative payload CFrame back to World Space
+			local worldCFrame = Grid.spatialToWorld(payload.cframe, plotCFrame, plotSize)
+
+			local _, s = prefab:GetBoundingBox()
+			local overlapparams = OverlapParams.new()
+			overlapparams.FilterType = Enum.RaycastFilterType.Include
+			overlapparams.FilterDescendantsInstances = { playerbase.Spatial }
+			local parts = workspace:GetPartBoundsInBox(worldCFrame, s * 0.8, overlapparams)
+			if parts and #parts > 0 then
+				return
+			end
+
+			-- Serialize to the State Payload
+			local statePayload = {
+				itemId = payload.itemId,
+				placementType = "Free",
+				cframe = { payload.cframe:GetComponents() },
+				parentUuid = payload.parentUuid or "Plot",
+			}
+			GlobalState.placeItem(playerId, statePayload)
 		else
-			-- [[ GRID PLACEMENT ]]
-			-- FIX: Properly preserve Roof and Floor tags
+			-- [[ GRID PLACEMENT SERVER GUARDS ]]
 			local itemTypeAttr = prefab:GetAttribute("ItemType") or "Solid"
 			local resolvedItemType = itemTypeAttr
 
@@ -119,22 +158,39 @@ local function story(frame: Frame)
 				resolvedItemType = isRotated and "Wall_V" or "Wall_H"
 			end
 
-			-- 3. Authoritative Math
 			local _, itemSize = Grid.getModelBounds(prefab)
-			local Grid = require(game.ReplicatedStorage.Shared.Grid)
 			local width, length = Grid.getFootprint(itemSize, payload.rotation)
 
-			-- Dispatch to the slice using the trusted resolvedItemType
-			GlobalState.placeItem(playerId, {
+			if typeof(payload.startX) ~= "number" or typeof(payload.startZ) ~= "number" then
+				return warn(`PlaceItem failed: coordinates must be numbers`)
+			end
+
+			-- 1. Bounds Check
+			local clampedX, clampedZ =
+				Grid.clampToGrid(resolvedItemType, payload.startX, payload.startZ, width, length, plotSize)
+
+			if payload.startX ~= clampedX or payload.startZ ~= clampedZ then
+				warn(`Place item error: Player {playerId} attempted to place {payload.itemId} outside grid bounds.`)
+				return
+			end
+
+			-- 2. Collision Check
+			if not Grid.isAreaFree(plotState, resolvedItemType, payload.startX, payload.startZ, width, length) then
+				warn(`Place item error: Player {playerId} attempted to place {payload.itemId} in an occupied space.`)
+				return
+			end
+
+			local statePayload = {
 				itemId = payload.itemId,
 				placementType = "Grid",
-				itemType = resolvedItemType, -- Now correctly passes "Roof"
+				itemType = resolvedItemType,
 				startX = payload.startX,
 				startZ = payload.startZ,
 				width = width,
 				length = length,
 				rotation = payload.rotation,
-			})
+			}
+			GlobalState.placeItem(playerId, statePayload)
 		end
 
 		playersPlotString = formatValue(GlobalState:getState().Plot["MockUser"], 1)
@@ -146,62 +202,31 @@ local function story(frame: Frame)
 		playersPlotString = formatValue(GlobalState:getState().Plot["MockUser"], 1)
 	end)
 
-	-- 3. Initialize Controllers & Services
-	PlacementController.new(plot, models)
-	PlacementController:setBuildMode(false)
-
 	CafeRenderingService.initialize()
 
-	-- 4. Wire Inputs & Update Loop
-	local connection = RunService.RenderStepped:Connect(function()
-		local hitPos = InputAdapter.getCursorWorldPosition(plot)
-		PlacementController:update(hitPos)
-	end)
-
-	local inputConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
-		if gameProcessed then
-			return
-		end
-
-		if input.KeyCode == Enum.KeyCode.R then
-			PlacementController:rotateItem()
-		elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
-			if PlacementController.deleteModeActive then
-				-- EXECUTE DELETE
-				PlacementController:attemptDestroyAtCursor()
-			else
-				-- EXECUTE PLACE
-				local hitPos = InputAdapter.getCursorWorldPosition(plot)
-				local success, uuid = PlacementController:placeItem(hitPos)
-				if success then
-					print("Successfully placed item with UUID:", uuid)
-				end
-			end
-		end
-	end)
-
-	-- Render UI
+	-- 3. Render UI FIRST so React mounts the dynamic CafeBase.Part
 	local root = ReactRoblox.createRoot(frame)
 	root:render(e(Main))
 	ViewportController.initialize()
 
-	-- 5. Cleanup
+	-- 5. Initialize Controllers & Services with the dynamic plot
+	PlacementController.initialize()
+	PlacementController:setBuildMode(false)
 	return function()
-		connection:Disconnect()
-		inputConnection:Disconnect()
 		placeListener:Disconnect()
 		destroyListener:Disconnect()
+		local playerId = "MockUser"
+		GlobalState.expandPlot(playerId, { newSize = 32 })
 		local PlotTemplate = ServerStorage:FindFirstChild("PlotTemplate")
 		if PlotTemplate and playersPlotString then
 			PlotTemplate.Source = `return \{\n{playersPlotString}\n}`
 		end
 
 		PlacementController:setBuildMode(false)
+		PlacementController.cleanup()
 		root:unmount()
 		ViewportController.cleanup()
-
 		CafeRenderingService.cleanup()
-
 		GlobalState:resetState()
 		UIState:resetState()
 
