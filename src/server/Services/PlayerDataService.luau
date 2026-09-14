@@ -92,6 +92,14 @@ local PROFILE_TEMPLATE: PlayerData = {
 	Customers = {},
 	Workers = {},
 	Plot = firstPlot,
+	Inventory = {
+		-- ["Wall_Brick"] = 10,
+		-- ["Counter"] = 5,
+		-- ["Cashier"] = 1,
+		-- ["espresso_station"] = 1,
+		-- ["water_station"] = 1,
+		-- cup_station = 1,
+	},
 }
 
 -- Recursively clones a table so we don't accidentally pass memory references

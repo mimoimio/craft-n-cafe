@@ -175,6 +175,7 @@ local function Customer(props: {
 				CustomersService.ServeCustomer(player, props.Customer.id)
 			elseif actionRef.current == "queuing" then
 				CustomersService.TendCustomer(player, props.Customer.id)
+			else
 			end
 		end)
 
@@ -267,6 +268,7 @@ local function Customer(props: {
 					path:ComputeAsync(rootPart.Position, targetPos)
 				end)
 
+				warn("path.Status", path.Status)
 				local broke, moveToFinished, failedpath
 				if success and path.Status == Enum.PathStatus.Success then
 					local waypoints = path:GetWaypoints()
@@ -308,7 +310,7 @@ local function Customer(props: {
 					-- 	moveToFinished = true
 					-- end
 				else
-					warn("failed path")
+					-- warn("failed path", _)
 					failedpath = true
 				end
 				if broke then

@@ -8,7 +8,11 @@ local SmallText = function(props)
 		MaxTextSize = props.MaxTextSize or props.TextSize or 18,
 		MinTextSize = props.MinTextSize or props.TextSize or 18,
 	})
-	children._UIStroke = e("UIStroke", { Thickness = props.Thickness or 2 })
+	children._UIStroke = e("UIStroke", {
+		Thickness = props.Thickness or 2,
+		Transparency = props.TextStrokeTransparency or 0,
+		Color = props.TextStrokeColor3 or Color3.new(),
+	})
 	return e("TextLabel", {
 		AutomaticSize = props.AutomaticSize or Enum.AutomaticSize.XY,
 		BackgroundTransparency = props.BackgroundTransparency or 1,
@@ -16,8 +20,6 @@ local SmallText = function(props)
 		TextColor3 = props.TextColor3 or Color3.new(1, 1, 1),
 		TextXAlignment = props.TextXAlignment or Enum.TextXAlignment.Left,
 		TextYAlignment = props.TextYAlignment or Enum.TextYAlignment.Bottom,
-		TextStrokeTransparency = props.TextStrokeTransparency or 0,
-		TextStrokeColor3 = props.TextStrokeColor3 or Color3.new(),
 		TextTransparency = props.TextTransparency or 0,
 		TextTruncate = props.TextTruncate,
 		Text = props.Text,

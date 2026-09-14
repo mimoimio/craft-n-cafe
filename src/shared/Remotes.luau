@@ -107,4 +107,6 @@ return {
 	AddIngredient = CreateRemote("AddIngredient"),
 	PlaceItem = CreateRemote("PlaceItem"),
 	DestroyItem = CreateRemote("DestroyItem"),
+	BuyItem = CreateRemote("BuyItem"),
+	ExpandPlot = CreateRemote("ExpandPlot"),
 }

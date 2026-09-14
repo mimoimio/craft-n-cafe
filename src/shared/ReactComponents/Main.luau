@@ -21,12 +21,11 @@ local useState = React.useState
 local useBinding = React.useBinding
 local useEffect = React.useEffect
 
--- UIState actions
-
 local CafeBase = require(script.Parent.CafeBase)
 local CashOverlay = require(script.Parent.CashOverlay)
 local VStack = require(script.Parent.ui.VStack)
 local BuildPanel = require(script.Parent.BuildPanel)
+local ShopPanel = require(script.Parent.ShopPanel) -- NEW: Require the Shop
 
 local player = game:GetService("Players").LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
@@ -39,6 +38,7 @@ local function Main(props)
 	}, {
 		admin and e(require(script.Parent.ConsoleApp)),
 		e(BuildPanel),
+		e(ShopPanel), -- NEW: Mount the Shop Panel
 		e(require(script.Parent.CustomersOrder)),
 		e(require(script.Parent.PlayersCup)),
 		e(CashOverlay),
@@ -48,18 +48,46 @@ local function Main(props)
 end
 
 function SidebarButton(props)
+	local useBreakpoint = require(ReplicatedStorage.Shared.Hooks.useBreakpoint)
+
+	local xs, sm, md, lg, xl = useBreakpoint()
+	local mobile = xs or sm or md
+	local BUTTONHEIGHT = mobile and 38 or 50
+	local BUTTONWIDTH = mobile and 60 or 100
+	local TEXTSIZE = mobile and 12 or 18
 	return e(SmallButton, {
-		Size = UDim2.fromOffset(160, 40),
+		Size = UDim2.fromOffset(BUTTONWIDTH, BUTTONHEIGHT),
 		AutomaticSize = Enum.AutomaticSize.None,
 		[React.Event.Activated] = props[React.Event.Activated],
+		Padding = { All = UDim.new(0, 0) },
 	}, {
-		e(VStack, {
-			VerticalFlex = Enum.UIFlexAlignment.None,
-			HorizontalFlex = Enum.UIFlexAlignment.None,
-			VerticalAlignment = Enum.VerticalAlignment.Center,
-			HorizontalAlignment = Enum.HorizontalAlignment.Left,
-		}, {
-			e(SmallText, { Text = props.Text }),
+		-- e(VStack, {
+		-- 	VerticalFlex = Enum.UIFlexAlignment.None,
+		-- 	HorizontalFlex = Enum.UIFlexAlignment.None,
+		-- 	VerticalAlignment = Enum.VerticalAlignment.Center,
+		-- 	HorizontalAlignment = Enum.HorizontalAlignment.Left,
+		-- 	ZIndex = 2,
+		-- 	Size = UDim2.fromScale(1, 1),
+		-- }, {
+		-- }),
+
+		e(SmallText, {
+			TextSize = TEXTSIZE,
+			Text = props.Text,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			Size = UDim2.fromScale(1, 1),
+			Position = UDim2.new(0.5, 0, 1, 0),
+			AnchorPoint = Vector2.new(0.5, 0.9),
+			ZIndex = 2,
+		}),
+		e("ImageLabel", {
+			ZIndex = 1,
+			Image = props.Image,
+			-- Size = UDim2.new(0, BUTTONHEIGHT, 0, BUTTONHEIGHT),
+			ScaleType = Enum.ScaleType.Fit,
+			Size = UDim2.fromScale(1, 1),
+			BackgroundTransparency = 1,
+			-- Transparency = 1,
 		}),
 	})
 end
@@ -70,19 +98,29 @@ function Sidebar(props)
 		HorizontalFlex = Enum.UIFlexAlignment.None,
 		VerticalAlignment = Enum.VerticalAlignment.Center,
 		HorizontalAlignment = Enum.HorizontalAlignment.Left,
+		Spacing = UDim.new(0, 8),
 	}, {
+		ToggleShop = e(SidebarButton, { -- NEW: Shop Toggle Button
+			[React.Event.Activated] = function()
+				UIState.toggle("shop")
+			end,
+			Image = "rbxassetid://15403066964",
+			Text = "Shop",
+		}),
 		ToggleBuild = e(SidebarButton, {
 			[React.Event.Activated] = function()
 				UIState.toggle("build")
 			end,
-			Text = "Toggle Build",
+			Image = "rbxassetid://17368217589",
+			Text = "Build",
 		}),
-		Console = e(SidebarButton, {
+		Console = admin and e(SidebarButton, { -- Optional: Hide console button if not admin
 			[React.Event.Activated] = function()
 				UIState.toggle("admin")
 			end,
+			Image = "rbxassetid://17368118782",
 			Text = "Console",
-		}),
+		}) or nil,
 	})
 end
 

@@ -3,6 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
 local Reflex = require(ReplicatedStorage.Packages.Reflex)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
+local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local SoundController = require(ReplicatedStorage.Shared.Controllers.SoundController)
 local Types = require(ReplicatedStorage.Shared.Types)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
@@ -23,6 +24,7 @@ return function(props)
 
 	local mdTextSize, smTextSize = mobile and 16 or 44, mobile and 10 or 12
 	local cup: Types.CupEntity?, setCup: (cup: Types.CupEntity) -> nil = useState(nil)
+
 	useEffect(function()
 		local unsub = GlobalState:subscribe(function(state: GlobalState.GlobalState)
 			return state.Cups[playerId] and state.Cups[playerId].player or nil
@@ -42,6 +44,17 @@ return function(props)
 		return unsub
 	end)
 
+	local visible, setVisible = useState(nil)
+	useEffect(function()
+		local unsub = UIState:subscribe(function(state)
+			return state.panel
+		end, function(panel)
+			setVisible(panel == "none")
+		end)
+		setVisible(UIState:getState().panel == "none")
+		return unsub
+	end, {})
+
 	local config = CoffeeModule.Config[cup and cup.drinkId]
 
 	local prevCupRef = useRef(nil)
@@ -58,6 +71,7 @@ return function(props)
 	return e("Frame", {
 		Transparency = 1,
 		Size = UDim2.new(1, 0, 1, 0),
+		Visible = visible,
 	}, {
 		e(SmallText, {
 			Size = UDim2.new(1, 0, 0, 0),

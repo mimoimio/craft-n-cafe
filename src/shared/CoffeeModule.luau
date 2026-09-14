@@ -70,7 +70,7 @@ for _, config in ipairs(CoffeeConfigArray) do
 
 	config.Price = totalPrice
 
-	if #instructionNames > 1 then
+	if #instructionNames > 0 then
 		config.Instruction = table.concat(instructionNames, " + ")
 	end
 end

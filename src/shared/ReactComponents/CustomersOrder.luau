@@ -3,6 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
 local Reflex = require(ReplicatedStorage.Packages.Reflex)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
+local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local SoundController = require(ReplicatedStorage.Shared.Controllers.SoundController)
 local Types = require(ReplicatedStorage.Shared.Types)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
@@ -52,11 +53,22 @@ return function(props)
 		end
 
 		if not player then
-			setConfig(CoffeeModule.Config.frappuccino)
+			setConfig(CoffeeModule.Config.chocolatesyrup)
 		end
 
 		return unsub
 	end)
+
+	local visible, setVisible = useState(nil)
+	useEffect(function()
+		local unsub = UIState:subscribe(function(state)
+			return state.panel
+		end, function(panel)
+			setVisible(panel == "none")
+		end)
+		setVisible(UIState:getState().panel == "none")
+		return unsub
+	end, {})
 
 	useEffect(function()
 		if config then
@@ -66,6 +78,7 @@ return function(props)
 
 	return e("Frame", {
 		Transparency = 1,
+		Visible = visible,
 		Size = UDim2.new(1, 0, 1, 0),
 	}, {
 		config

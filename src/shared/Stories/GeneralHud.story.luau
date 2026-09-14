@@ -8,6 +8,7 @@ local UserInputService = game:GetService("UserInputService")
 local React = require(ReplicatedStorage.Packages.React)
 local e = React.createElement
 local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
+local ReactReflex = require(ReplicatedStorage.Packages.ReactReflex)
 
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
@@ -77,9 +78,16 @@ local function story(frame: Frame)
 	-- 1. Initialize Mock State for UI Labs
 	GlobalState.startPlayerSession("MockUser", {
 		Plot = getPlot(),
-		Stats = {
-			Level = 1,
-		} :: any,
+		Stats = { Level = 5, Cash = 5000 },
+		Inventory = {
+			["Stone Wall"] = 10,
+			["Counter"] = 5,
+			["Cashier"] = 1,
+			["espresso_station"] = 1,
+			["water_station"] = 1,
+			cup_station = 1,
+		},
+
 		Ingredients = {},
 		Customers = {},
 		Workers = {},
@@ -99,6 +107,11 @@ local function story(frame: Frame)
 		-- Fetch the dynamic plot size from Reflex State
 		local state = GlobalState:getState()
 		local plotState = state.Plot and state.Plot[playerId]
+		local playerInventory = state.Inventory and state.Inventory[playerId] or {}
+		if (playerInventory[payload.itemId] or 0) <= 0 then
+			warn(`Mock Placement failed: 0 {payload.itemId} in inventory.`)
+			return
+		end
 		if not plotState then
 			warn(`Placement failed: No plot state found for Player {playerId}.`)
 			return
@@ -200,10 +213,51 @@ local function story(frame: Frame)
 
 	local destroyListener = Remotes.DestroyItem.OnServerEvent:Connect(function(player, uuid)
 		local playerId = player and tostring(player.UserId) or "MockUser"
-		GlobalState.destroyItem(playerId, { uuid = uuid })
-		playersPlotString = formatValue(GlobalState:getState().Plot["MockUser"], 1)
-	end)
+		local state = GlobalState:getState()
+		local plotState = state.Plot and state.Plot[playerId]
 
+		if plotState then
+			local item = plotState.placedItems[uuid] or plotState.spatialItems[uuid]
+			if item then
+				-- CASCADE REFUND: Destroy children first
+				if plotState.placedItems[uuid] and plotState.spatialItems then
+					for childUuid, childItem in pairs(plotState.spatialItems) do
+						if childItem.parentUuid == uuid then
+							GlobalState.destroyItem(playerId, {
+								uuid = childUuid,
+								itemId = childItem.id,
+							})
+						end
+					end
+				end
+
+				-- Destroy the parent item
+				GlobalState.destroyItem(playerId, { uuid = uuid, itemId = item.id })
+				playersPlotString = formatValue(GlobalState:getState().Plot["MockUser"], 1)
+			end
+		end
+	end)
+	-- MOCK SHOP SERVICE
+	local buyListener = Remotes.BuyItem.OnServerEvent:Connect(function(player, payload)
+		local playerId = player and tostring(player.UserId) or "MockUser"
+		local config = require(game.ReplicatedStorage.Shared.PlaceablesModule).GetConfig(payload.itemId)
+
+		if not config then
+			return
+		end
+
+		local state = GlobalState:getState()
+		local stats = state.Stats and state.Stats[playerId]
+
+		if stats and stats.Cash >= config.Price then
+			GlobalState.buyItem(playerId, {
+				itemId = payload.itemId,
+				amount = payload.amount or 1,
+				totalCost = config.Price * (payload.amount or 1),
+			})
+			print(`[Mock Server] Purchased {payload.itemId}! Cash remaining: {stats.Cash - config.Price}`)
+		end
+	end)
 	CafeRenderingService.initialize()
 
 	-- 3. Render UI FIRST so React mounts the dynamic CafeBase.Part
@@ -217,8 +271,9 @@ local function story(frame: Frame)
 	return function()
 		placeListener:Disconnect()
 		destroyListener:Disconnect()
+		buyListener:Disconnect()
 		local playerId = "MockUser"
-		GlobalState.expandPlot(playerId, { newSize = 32 })
+		-- GlobalState.expandPlot(playerId, { newSize = 32, cost = 0 })
 		local PlotTemplate = ServerStorage:FindFirstChild("PlotTemplate")
 		if PlotTemplate and playersPlotString then
 			PlotTemplate.Source = `return \{\n{playersPlotString}\n}`

@@ -55,21 +55,28 @@ export type FreePlacementStatePayload = {
 }
 export type ExpandPlotPayload = {
 	newSize: number,
+	cost: number, -- NEW: So statsSlice can deduct the cash
 }
+export type ExpandPlotRemotePayload = {} -- Empty because the server calculates the next tier securely!
 export type FreePlacementRemotePayload = {
 	itemId: string,
 	placementType: "Free",
 	cframe: CFrame,
 	parentUuid: string,
 }
-
+export type BuyItemRemotePayload = {
+	itemId: string,
+	amount: number,
+}
 export type PlaceItemPayload = GridPlacementPayload | FreePlacementStatePayload
 export type PlaceItemRemotePayload = GridPlacementRemotePayload | FreePlacementRemotePayload
 export type DestroyItemPayload = {
 	uuid: string,
+	itemId: string,
 }
 export type PlayerData = {
 	Stats: StatsEntity,
+	Inventory: { [string]: number }, -- NEW
 	Ingredients: { [string]: number },
 	Customers: { CustomerEntity },
 	Workers: { WorkerEntity },
@@ -77,7 +84,11 @@ export type PlayerData = {
 export type PlayerId = string
 export type VariationId = string
 export type DrinkId = string
-
+export type InventoryState = {
+	[PlayerId]: {
+		[string]: number, -- e.g. ["Wall_Brick"] = 15
+	},
+}
 -- Stats
 export type StatsEntity = {
 	Cash: number,
@@ -192,8 +203,13 @@ export type CombinedActions = {
 	spawnCustomer: (playerId: PlayerId, payload: SpawnCustomerPayload) -> (),
 	removeCustomer: (playerId: PlayerId, uid: string) -> (),
 	completeTutorial: (playerId: PlayerId) -> (),
+	buyItem: (playerId: PlayerId, payload: BuyItemPayload) -> (), -- NEW
 }
-
+export type BuyItemPayload = {
+	itemId: string,
+	amount: number,
+	totalCost: number,
+}
 --Coffee Modules
 export type CoffeeModule = {
 	IngredientLookup: { [string]: IngredientConfig },

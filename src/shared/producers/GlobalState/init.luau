@@ -10,6 +10,7 @@ local customersSlice = require(script.customersSlice)
 local workersSlice = require(script.workersSlice)
 local cupsSlice = require(script.cupsSlice)
 local plotSlice = require(script.plotSlice)
+local inventorySlice = require(script.inventorySlice)
 
 export type CombinedActions = Types.CombinedActions
 
@@ -20,6 +21,7 @@ export type GlobalState = {
 	Workers: workersSlice.WorkersState,
 	Cups: cupsSlice.CupsState,
 	Plot: plotSlice.PlotState,
+	Inventory: inventorySlice.InventoryState,
 }
 
 export type Stats = statsSlice.StatsState
@@ -32,6 +34,7 @@ local producer = Reflex.combineProducers({
 	Workers = workersSlice,
 	Cups = cupsSlice,
 	Plot = plotSlice,
+	Inventory = inventorySlice,
 }) :: Reflex.Producer<GlobalState, CombinedActions>
 
 return producer

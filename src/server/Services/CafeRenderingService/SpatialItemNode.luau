@@ -91,7 +91,16 @@ local function SpatialItemNode(props: {
 				or config and `{config.DisplayName}`
 				or "???"
 
-			prompt.Parent = primary
+			local newCenterPart = Instance.new("Part")
+			newCenterPart.Size = Vector3.one
+			newCenterPart.Transparency = 1
+			newCenterPart.Anchored = true
+			newCenterPart.CanCollide = false
+			newCenterPart.CanQuery = false
+			newCenterPart.CanTouch = false
+			newCenterPart:PivotTo(CFrame.new(originalCFrame.Position))
+			newCenterPart.Parent = clone
+			prompt.Parent = newCenterPart
 
 			conn = prompt.Triggered:Connect(function(player: Player)
 				local playerId = tostring(player.UserId)
@@ -150,6 +159,12 @@ local function SpatialItemNode(props: {
 		end
 
 		part:Destroy()
+		for i, desc: BasePart in clone:GetDescendants() do
+			if desc:IsA("BasePart") then
+				desc.CollisionGroup = "Walls"
+				desc.Anchored = true
+			end
+		end
 		clone.Parent = props.BaseModel and props.BaseModel.Parent and props.BaseModel.Spatial or nil
 
 		return function()

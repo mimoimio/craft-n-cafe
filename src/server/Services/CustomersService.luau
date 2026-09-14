@@ -1,22 +1,18 @@
--- Server/Services/CustomersService.luau
+-- ServerScriptService/Server/Services/CustomersService.luau
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Promise = require(ReplicatedStorage.Packages.Promise)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 local Types = require(ReplicatedStorage.Shared.Types)
+local PlaceablesModule = require(ReplicatedStorage.Shared.PlaceablesModule)
 
-local SPAWN_INTERVAL = 30
+local SPAWN_INTERVAL = 10
 local rng = Random.new()
-
--- Dictionary to track when we last spawned a customer for a player
 local lastSpawnTimes = {}
-
-local function getPrice(): number
-	return 5
-end
 
 local CustomersService = {}
 
@@ -30,20 +26,25 @@ function CustomersService.SpawnCustomer(playerId: string)
 		return
 	end
 
-	-- 1. Find all placed Counters
+	-- 1. Find all placed Cashiers using the Category
 	local counterUuids = {}
 	for uuid, item in pairs(plotState.placedItems) do
-		-- Make sure "Counter" matches your exact Prefab ID for the counter!
-		if item.id == "Counter" then
+		local config = PlaceablesModule.GetConfig(item.id)
+		if config and config.Category == "Cashier" then
+			table.insert(counterUuids, uuid)
+		end
+	end
+	for uuid, item in pairs(plotState.spatialItems) do
+		local config = PlaceablesModule.GetConfig(item.id)
+		if config and config.Category == "Cashier" then
 			table.insert(counterUuids, uuid)
 		end
 	end
 
 	if #counterUuids == 0 then
-		return -- No counters placed, so we cannot spawn customers
+		return
 	end
 
-	-- 2. Check which Counters are already occupied by active customers
 	local occupiedCounters = {}
 	for _, customer in pairs(playersCustomers) do
 		if customer.targetCounterUuid then
@@ -51,7 +52,6 @@ function CustomersService.SpawnCustomer(playerId: string)
 		end
 	end
 
-	-- 3. Find the empty Counters
 	local availableCounters = {}
 	for _, uuid in ipairs(counterUuids) do
 		if not occupiedCounters[uuid] then
@@ -60,10 +60,9 @@ function CustomersService.SpawnCustomer(playerId: string)
 	end
 
 	if #availableCounters == 0 then
-		return -- Cafe is at max capacity (all counters full)
+		return
 	end
 
-	-- Pick a random available counter
 	local chosenCounterUuid = availableCounters[math.random(1, #availableCounters)]
 	local uid = HttpService:GenerateGUID(false)
 
@@ -87,48 +86,44 @@ function CustomersService.ServeCustomer(player: Player, uid: string, workerUid: 
 	local playersWorkers = state.Workers[playerId]
 	local playersCups = state.Cups[playerId]
 
-	local cup = playersCups[workerUid]
-	local worker = playersWorkers[workerUid]
+	local cup = playersCups and playersCups[workerUid]
+	local worker = playersWorkers and playersWorkers[workerUid]
 
-	if not (playersCustomers or worker or cup) then
-		local nils = {}
-		table.insert(nils, not playersCustomers and "playersCustomers" or nil)
-		table.insert(nils, not worker and "worker" or nil)
-		table.insert(nils, not cup and "cup" or nil)
-		warn(`Not Found: {table.concat(nils, " and ")}`)
+	if
+		not (playersCustomers and cup and cup.drinkId)
+		or (not worker and workerUid ~= "player")
+		or (cup and cup.drinkId == "none")
+	then
+		-- warn("playersCustomers", playersCustomers)
+		-- warn("worker", worker)
+		-- warn("cup", cup, cup and cup.drinkId)
 		return
 	end
 
 	local found
-	for i, customer in ipairs(playersCustomers) do
+	for _, customer in ipairs(playersCustomers) do
 		if customer.id == uid then
 			found = customer
 			break
 		end
 	end
 
-	if not (found and found.order) then
-		warn("not found", found, found and found.order)
+	if not (found and found.order and found.customerAction == "waiting" and found.servedBy == workerUid) then
+		warn(found)
 		return
 	end
-	if not (found.customerAction == "waiting") then
-		warn("customer not waiting")
-		return
-	end
-	if not (found.servedBy == workerUid) then
-		warn("not the one serving")
-		return
-	end
-	if cup and cup.drinkId == found.order then
-		print("correct order")
+
+	if cup.drinkId == found.order then
+		local drinkConfig = CoffeeModule.Config[cup.drinkId]
+		local cashReward = drinkConfig and drinkConfig.Price or 5
+
 		GlobalState.serveCustomer(playerId, {
 			customerUid = uid,
-			cash = getPrice(),
+			cash = cashReward,
 			timestamp = workspace:GetServerTimeNow(),
 			workerUid = workerUid,
 		})
-	elseif cup and cup.drinkId and cup.drinkId ~= found.order then
-		print("not the correct order")
+	elseif cup.drinkId ~= found.order then
 		GlobalState.wrongOrder(playerId, {
 			customerUid = uid,
 			timestamp = workspace:GetServerTimeNow(),
@@ -136,6 +131,53 @@ function CustomersService.ServeCustomer(player: Player, uid: string, workerUid: 
 		})
 	end
 end
+
+-- HELPER: Figures out what drinks a player can actually make based on what they OWN
+local function getValidMenu(playerId: string, state: any)
+	local playerInventory = state.Inventory and state.Inventory[playerId] or {}
+	local plotState = state.Plot and state.Plot[playerId] or { placedItems = {}, spatialItems = {} }
+
+	local ownedItems = {}
+
+	-- 1. Check Inventory
+	for itemId, count in pairs(playerInventory) do
+		if count > 0 then
+			ownedItems[itemId] = true
+		end
+	end
+
+	-- 2. Check Plot
+	for _, item in pairs(plotState.placedItems) do
+		ownedItems[item.id] = true
+	end
+	for _, item in pairs(plotState.spatialItems) do
+		ownedItems[item.id] = true
+	end
+
+	local validDrinks = {}
+
+	-- 3. Filter valid drinks
+	for _, drinkConfig in ipairs(CoffeeModule.Array) do
+		local canMake = true
+		if drinkConfig.Ingredients then
+			for _, ingId in ipairs(drinkConfig.Ingredients) do
+				-- Expects PlaceablesConfig IDs to follow the "[IngredientId]_station" pattern
+				local requiredStationId = ingId .. "_station"
+				if not ownedItems[requiredStationId] then
+					canMake = false
+					break
+				end
+			end
+		end
+
+		if canMake then
+			table.insert(validDrinks, drinkConfig)
+		end
+	end
+
+	return validDrinks
+end
+
 function CustomersService.TendCustomer(player: Player, uid: string, workerUid: string)
 	workerUid = workerUid or "player"
 	local playerId = tostring(player.UserId)
@@ -143,45 +185,34 @@ function CustomersService.TendCustomer(player: Player, uid: string, workerUid: s
 
 	local playersCustomers = state.Customers[playerId]
 	local playersWorkers = state.Workers[playerId]
-	local playersCups = state.Cups[playerId]
 
-	local cup = playersCups[workerUid]
-	local worker = playersWorkers[workerUid]
-
-	if not (playersCustomers or worker or cup) then
-		local nils = {}
-		table.insert(nils, not playersCustomers and "playersCustomers" or nil)
-		table.insert(nils, not worker and "worker" or nil)
-		table.insert(nils, not cup and "cup" or nil)
-		warn(`Not Found: {table.concat(nils, " and ")}`)
+	if not (playersCustomers and playersWorkers) then
 		return
 	end
 
-	local found, alreadyServing
-	for i, customer in ipairs(playersCustomers) do
+	local found
+	for _, customer in ipairs(playersCustomers) do
 		if customer.id == uid then
 			found = customer
 		end
 		if customer.servedBy == workerUid then
-			warn("already serving")
 			return
 		end
 	end
 
-	local order = CoffeeModule.Array[(math.random() * #CoffeeModule.Array // 1 + 1)]
-	if not order then
-		warn("what")
+	if found.servedBy or found.customerAction ~= "queuing" then
 		return
 	end
 
-	if found.servedBy then
-		warn("customer already waiting")
+	-- ONLY ORDER FROM THE VALID MENU
+	local validMenu = getValidMenu(playerId, state)
+	if #validMenu == 0 then
+		warn(`Player {playerId} owns no stations to make any drinks!`)
 		return
 	end
-	if not (found.customerAction == "queuing") then
-		warn("customer not queuing")
-		return
-	end
+
+	local order = validMenu[math.random(1, #validMenu)]
+
 	GlobalState.takeCustomerOrder(playerId, {
 		order = order.Id,
 		customerUid = uid,
@@ -194,7 +225,6 @@ function CustomersService.initialize()
 	Remotes.TendCustomer.OnServerEvent:Connect(CustomersService.TendCustomer)
 	Remotes.ServeCustomer.OnServerEvent:Connect(CustomersService.ServeCustomer)
 
-	-- The FSM Deterministic Ticker
 	task.spawn(function()
 		while task.wait(1) do
 			local now = workspace:GetServerTimeNow()
@@ -210,19 +240,16 @@ function CustomersService.initialize()
 					continue
 				end
 
-				local maxCustomersAtOnce = 100
 				local CafeCapacity = playerStats.CafeCapacity
 
-				for i, customer in playersCustomers do
+				for _, customer in playersCustomers do
 					if customer.customerAction == "paid" then
 						continue
 					end
 					table.insert(activePlayerCustomers, customer)
 				end
 
-				-- 1. Evaluate Spawning Phase
 				local lastSpawn = lastSpawnTimes[playerId] or 0
-
 				local randomInterval = (
 					SPAWN_INTERVAL - (rng:NextNumber() * rng:NextNumber() * rng:NextNumber() * 8) // 1
 				)
@@ -232,13 +259,11 @@ function CustomersService.initialize()
 					and #activePlayerCustomers < CafeCapacity
 					and playerStats.CafeOpen
 				then
-					Promise.defer(function(resolve, reject, onCancel)
-						-- local amount = math.random() * maxCustomersAtOnce // 1 + 1
+					Promise.defer(function(resolve)
 						local amount = 1
 						for i = 1, amount do
 							CustomersService.SpawnCustomer(playerId)
 							task.wait(math.random() * SPAWN_INTERVAL)
-							-- task.wait(math.random())
 						end
 						return resolve
 					end):catch(function(err)
@@ -246,16 +271,9 @@ function CustomersService.initialize()
 					end)
 				end
 
-				-- 2. Evaluate FSM Time-Delays for Existing Customers
 				for _, customer in ipairs(playersCustomers) do
 					local timeInState = now - (customer.actionStartTime or now)
-
-					if
-						-- customer.customerAction == "entering" then
-						-- elseif
-						customer.customerAction == "paid" or customer.customerAction == "emptyHanded"
-					then
-						-- Wait 2 seconds for visual cleanup before removing entity
+					if customer.customerAction == "paid" or customer.customerAction == "emptyHanded" then
 						if timeInState >= 2 then
 							GlobalState.removeCustomer(playerId, customer.id)
 						end

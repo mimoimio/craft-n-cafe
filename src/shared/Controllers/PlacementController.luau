@@ -79,18 +79,23 @@ function self:setBuildMode(isActive: boolean)
 	end
 end
 
-function self:selectItem(itemId: string)
+function self:selectItem(itemId: string?)
 	if not self.initialized or not self.buildModeActive then
 		return
 	end
 	self.currentItemId = itemId
 
-	local prefab = self.itemPrefabs:FindFirstChild(itemId)
+	-- Only attempt to find the prefab if itemId is not nil
+	local prefab = nil
+	if itemId then
+		prefab = self.itemPrefabs:FindFirstChild(itemId)
+	end
+
+	-- Pass the prefab (or nil) to the visualizer to clear the ghost
 	if self.visualizer then
 		self.visualizer:setGhostItem(prefab)
 	end
 end
-
 function self:rotateItem()
 	if not self.initialized then
 		return

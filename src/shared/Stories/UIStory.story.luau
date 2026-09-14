@@ -29,7 +29,6 @@ local function story(frame: Frame)
 
 	return function()
 		local playerId = "MockUser"
-		GlobalState.expandPlot(playerId, { newSize = 32 })
 		local PlotTemplate = ServerStorage:FindFirstChild("PlotTemplate")
 		if PlotTemplate and playersPlotString then
 			PlotTemplate.Source = `return \{\n{playersPlotString}\n}`

@@ -256,6 +256,25 @@ local actions = {
 		end
 		return Set(state, playerId, Set(playersStats, "Cash", playersStats.Cash + payload.cash))
 	end,
+	buyItem = function(state, playerId: string, payload: Types.BuyItemPayload)
+		local nextState = table.clone(state)
+		local playerStats = table.clone(nextState[playerId])
+
+		-- Deduct the cash
+		playerStats.Cash = math.max(0, playerStats.Cash - payload.totalCost)
+
+		nextState[playerId] = playerStats
+		return nextState
+	end,
+	expandPlot = function(state, playerId: string, payload: Types.ExpandPlotPayload)
+		local nextState = table.clone(state)
+		local playerStats = table.clone(nextState[playerId])
+
+		playerStats.Cash = math.max(0, playerStats.Cash - payload.cost)
+
+		nextState[playerId] = playerStats
+		return nextState
+	end,
 }
 
 return Reflex.createProducer(initialState, actions)

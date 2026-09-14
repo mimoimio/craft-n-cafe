@@ -6,6 +6,7 @@ local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local Grid = require(ReplicatedStorage.Shared.Grid)
 local Types = require(ReplicatedStorage.Shared.Types)
 local Models = ReplicatedStorage.Shared.Models
+local PlaceablesModule = require(ReplicatedStorage.Shared.PlaceablesModule) -- NEW REQUIRE
 
 local PlacementService = {}
 
@@ -18,16 +19,30 @@ function PlacementService.PlaceItem(player: Player, payload: Types.PlaceItemRemo
 		return
 	end
 
-	local placementType = prefab:GetAttribute("PlacementType") or "Grid"
-
-	-- Fetch the dynamic plot size from Reflex State
-	local state = GlobalState:getState()
-	local plotState = state.Plot and state.Plot[playerId]
-	if not plotState then
-		warn(`Placement failed: No plot state found for Player {playerId}.`)
+	-- [[ 1. INVENTORY GUARD ]]
+	local config = PlaceablesModule.GetConfig(payload.itemId)
+	if not config then
+		warn(`Exploit prevented: Player {playerId} attempted to place an unconfigured item ({payload.itemId}).`)
 		return
 	end
 
+	local state = GlobalState:getState()
+	local playerInventory = state.Inventory and state.Inventory[playerId] or {}
+	local plotState = state.Plot and state.Plot[playerId]
+
+	if not plotState then
+		return
+	end
+
+	-- Check if they actually have this item in their inventory!
+	local stock = playerInventory[payload.itemId] or 0
+	if stock <= 0 then
+		warn(`Placement failed: Player {playerId} has 0 {payload.itemId} in inventory.`)
+		return
+	end
+
+	-- [[ 2. SPATIAL & GRID GUARDS ]]
+	local placementType = prefab:GetAttribute("PlacementType") or "Grid"
 	local plotSizeNum = plotState.plotSize
 	local plotSize = Vector3.new(plotSizeNum, 1, plotSizeNum)
 
@@ -67,9 +82,9 @@ function PlacementService.PlaceItem(player: Player, payload: Types.PlaceItemRemo
 
 		-- Serialize to the State Payload
 		local statePayload: Types.PlaceItemPayload = {
-			itemId = payload.itemId, -- checked in prefab
-			placementType = "Free", -- got from prefab
-			cframe = { payload.cframe:GetComponents() }, -- Convert CFrame to {number} for Reflex/DataStore
+			itemId = payload.itemId,
+			placementType = "Free",
+			cframe = { payload.cframe:GetComponents() },
 			parentUuid = payload.parentUuid or "Plot",
 		}
 
@@ -87,13 +102,10 @@ function PlacementService.PlaceItem(player: Player, payload: Types.PlaceItemRemo
 		local width, length = Grid.getFootprint(itemSize, payload.rotation)
 
 		if typeof(payload.startX) ~= "number" or typeof(payload.startZ) ~= "number" then
-			return warn(
-				`PlaceItem failed: not a number: 1. payload.startX: {payload.startX} 2. payload.startZ: {payload.startZ}`
-			)
+			return warn(`PlaceItem failed: not a number`)
 		end
 
-		-- [[ GRID PLACEMENT SERVER GUARDS ]]
-		-- 1. Bounds Check: Verify the client's coordinates match the server's clamped coordinates
+		-- Bounds Check
 		local clampedX, clampedZ =
 			Grid.clampToGrid(resolvedItemType, payload.startX, payload.startZ, width, length, plotSize)
 
@@ -102,21 +114,21 @@ function PlacementService.PlaceItem(player: Player, payload: Types.PlaceItemRemo
 			return
 		end
 
-		-- 2. Collision Check: Verify the grid space is actually free
+		-- Collision Check
 		if not Grid.isAreaFree(plotState, resolvedItemType, payload.startX, payload.startZ, width, length) then
 			warn(`Exploit prevented: Player {playerId} attempted to place {payload.itemId} in an occupied space.`)
 			return
 		end
 
 		local statePayload: Types.PlaceItemPayload = {
-			itemId = payload.itemId, -- checked in prefab
-			placementType = "Grid", -- default to grid if not free
-			itemType = resolvedItemType, -- default to solid
-			startX = payload.startX, -- guarded
-			startZ = payload.startZ, -- guarded
-			width = width, -- got from prefab
-			length = length, -- got from prefab
-			rotation = payload.rotation, -- would've errored at modulus operator if not number
+			itemId = payload.itemId,
+			placementType = "Grid",
+			itemType = resolvedItemType,
+			startX = payload.startX,
+			startZ = payload.startZ,
+			width = width,
+			length = length,
+			rotation = payload.rotation,
 		}
 
 		GlobalState.placeItem(playerId, statePayload)
@@ -126,11 +138,36 @@ end
 function PlacementService.DestroyItem(player: Player, uuid: string)
 	local playerId = tostring(player.UserId)
 
+	local state = GlobalState:getState()
+	local plotState = state.Plot and state.Plot[playerId]
+	if not plotState then
+		return
+	end
+
+	-- 1. Find the target item
+	local item = plotState.placedItems[uuid] or plotState.spatialItems[uuid]
+	if not item then
+		return
+	end
+
+	-- 2. CASCADE REFUND: Find any child items sitting on this parent and refund them FIRST
+	if plotState.placedItems[uuid] and plotState.spatialItems then
+		for childUuid, childItem in pairs(plotState.spatialItems) do
+			if childItem.parentUuid == uuid then
+				GlobalState.destroyItem(playerId, {
+					uuid = childUuid,
+					itemId = childItem.id,
+				})
+			end
+		end
+	end
+
+	-- 3. Finally, destroy and refund the parent item itself
 	GlobalState.destroyItem(playerId, {
 		uuid = uuid,
+		itemId = item.id,
 	})
 end
-
 function PlacementService.initialize()
 	Remotes.PlaceItem.OnServerEvent:Connect(PlacementService.PlaceItem)
 	Remotes.DestroyItem.OnServerEvent:Connect(PlacementService.DestroyItem)
