@@ -14,10 +14,9 @@ local function ScreenPromptButton(props: {
 	PromptButtonHoldBegan: () -> (),
 	PromptButtonHoldEnded: () -> (),
 })
-	local proximityPrompt: ProximityPrompt, setProximityPrompt = useState(props.ProximityPrompt)
+	-- local proximityPrompt: ProximityPrompt, setProximityPrompt = useState(props.ProximityPrompt)
+	local proximityPrompt = props.ProximityPrompt
 	local shown: ProximityPrompt, setShown = useState(false)
-
-	-- local visible = props.Visible == true and true or props.Visible == false and false or true
 
 	local scale, setScale, stopScale = useSpring({
 		start = 0,
@@ -101,7 +100,7 @@ local function ScreenPromptButton(props: {
 		Size = props.Size or UDim2.new(0, 48, 0, 48),
 		Rotation = props.Rotation,
 		Visible = scale:map(function(n)
-			return n > 0.2
+			return props.Visible and n > 0.2
 		end),
 		Position = props.Position,
 		AnchorPoint = props.AnchorPoint,

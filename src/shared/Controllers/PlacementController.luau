@@ -115,7 +115,7 @@ function self:update(cursorWorldPos: Vector3)
 
 		if hoveredUuid and self.hoveredUuid ~= hoveredUuid then
 			self.hoveredUuid = hoveredUuid
-			for _, child in baseModel:GetChildren() do
+			for _, child in baseModel.Grid:GetChildren() do
 				if child:GetAttribute("Uuid") == hoveredUuid then
 					self.deleteHighlight.Parent = child
 					return

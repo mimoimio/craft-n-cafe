@@ -40,6 +40,8 @@ local function Main(props)
 		e(BuildPanel),
 		e(ShopPanel), -- NEW: Mount the Shop Panel
 		e(require(script.Parent.CustomersOrder)),
+		e(require(script.Parent.CustomerPrompts)),
+		e(require(script.Parent.StationPrompts)),
 		e(require(script.Parent.PlayersCup)),
 		e(CashOverlay),
 		e(Sidebar),

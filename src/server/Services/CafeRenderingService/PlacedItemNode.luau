@@ -1,4 +1,5 @@
 -- PlacedItemNode.luau
+local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local React = require(ReplicatedStorage.Packages.React)
@@ -81,9 +82,16 @@ local function PlacedItemNode(props: {
 		local stationName = string.match(props.ItemData.id, "^(.+)_station$")
 
 		if stationName then
+			repeat
+				local found = clone:FindFirstChildWhichIsA("ProximityPrompt")
+				if found then
+					found:Destroy()
+				end
+			until not found
 			local prompt = Instance.new("ProximityPrompt")
 			local config = CoffeeModule.IngredientLookup[stationName]
 			prompt.RequiresLineOfSight = false
+			prompt.Name = "TriggerPrompt"
 
 			prompt.ActionText = stationName == "cup" and "Get a cup"
 				or stationName == "trash" and "Trash current cup"
@@ -120,14 +128,7 @@ local function PlacedItemNode(props: {
 					DrinksService.AddIngredient(player, stationName)
 				end
 			end)
-		elseif props.ItemData.id == "EspressoMachine" then
-			local prompt = Instance.new("ProximityPrompt")
-			prompt.ActionText = "Brew Espresso"
-			prompt.Parent = primary
-
-			conn = prompt.Triggered:Connect(function(player)
-				print(player.Name .. " is brewing at " .. props.Uuid)
-			end)
+			CollectionService:AddTag(clone, "Station" .. props.PlayerId)
 		end
 
 		repeat
@@ -159,7 +160,8 @@ local function PlacedItemNode(props: {
 		clone:SetAttribute("Uuid", props.Uuid)
 		clone.PrimaryPart = part
 		clone:PivotTo(targetCFrame)
-		clone.Parent = props.BaseModel
+		clone.Name = props.Uuid
+		clone.Parent = props.BaseModel.Grid
 
 		return function()
 			if conn then

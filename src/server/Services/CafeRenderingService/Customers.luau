@@ -268,7 +268,6 @@ local function Customer(props: {
 					path:ComputeAsync(rootPart.Position, targetPos)
 				end)
 
-				warn("path.Status", path.Status)
 				local broke, moveToFinished, failedpath
 				if success and path.Status == Enum.PathStatus.Success then
 					local waypoints = path:GetWaypoints()

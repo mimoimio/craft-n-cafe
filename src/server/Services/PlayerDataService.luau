@@ -16,7 +16,7 @@ local Signal = require(game.ReplicatedStorage.Packages.Signal)
 local ShopCycle = require(game.ReplicatedStorage.Shared.ShopCycle)
 local PlotConfig = require(game.ReplicatedStorage.Shared.Configs.PlotConfig)
 
-local IS_PLAYTESTING = true
+-- local IS_PLAYTESTING = true
 --
 local DrinksBrewedLeaderboard = DataStoreService:GetOrderedDataStore("DrinksBrewed")
 
@@ -214,7 +214,10 @@ local function OnPlayerAdded(player: Player)
 		profile:Reconcile()
 
 		-- 2. Our custom deep reconcile handles the nested layers
-		profile.Data = DeepReconcile(profile.Data, PROFILE_TEMPLATE)
+		local olddata = profile.Data
+		profile.Data = DeepReconcile(DeepCopy(olddata), PROFILE_TEMPLATE)
+		-- except for plot slice.
+		profile.Data.Plot = olddata.Plot
 
 		-- Store the active profile in the cache
 		Profiles[player] = profile

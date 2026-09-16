@@ -47,6 +47,7 @@ function PlacementVisualizer:setGhostItem(modelPrefab: Model?)
 	-- 1. Grab the original bounding box center and size
 	local originalCFrame, itemSize = Grid.getModelBounds(self.ghostModel)
 	local itemTypeAttr = modelPrefab:GetAttribute("ItemType") or "Solid"
+	local placementType = modelPrefab:GetAttribute("PlacementType") or "Grid"
 
 	-- 2. Calculate the snapped footprint size
 	local rawX, rawZ = Grid.getFootprint(itemSize, 0)
@@ -61,7 +62,9 @@ function PlacementVisualizer:setGhostItem(modelPrefab: Model?)
 		pivotOffset = CFrame.new(0, -(Grid.WALL_HEIGHT / 2), 0)
 	end
 
-	local snappedSize = Vector3.new(rawX * Grid.SIZE, dummyY, rawZ * Grid.SIZE)
+	local _, prefabSize = modelPrefab:GetBoundingBox()
+	local snappedSize = placementType == "Free" and prefabSize
+		or Vector3.new(rawX * Grid.SIZE, dummyY, rawZ * Grid.SIZE)
 
 	-- Strip package links just like the renderer
 	repeat

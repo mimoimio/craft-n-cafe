@@ -69,6 +69,7 @@ local function formatValue(value, depth)
 end
 
 local function getPlot()
+	PlotConfig.FirstPlot.plotSize = 32
 	return PlotConfig.FirstPlot
 end
 
@@ -78,9 +79,9 @@ local function story(frame: Frame)
 	-- 1. Initialize Mock State for UI Labs
 	GlobalState.startPlayerSession("MockUser", {
 		Plot = getPlot(),
-		Stats = { Level = 5, Cash = 5000 },
+		Stats = { Level = 50, Cash = 500000 },
 		Inventory = {
-			["Stone Wall"] = 10,
+			["Stone Brick Wall"] = 10,
 			["Counter"] = 5,
 			["Cashier"] = 1,
 			["espresso_station"] = 1,
@@ -258,6 +259,8 @@ local function story(frame: Frame)
 			print(`[Mock Server] Purchased {payload.itemId}! Cash remaining: {stats.Cash - config.Price}`)
 		end
 	end)
+	local ShopService = require(ServerScriptService.Server.Services.ShopService)
+	local expandListener = Remotes.ExpandPlot.OnServerEvent:Connect(ShopService.BuyPlotExpansion)
 	CafeRenderingService.initialize()
 
 	-- 3. Render UI FIRST so React mounts the dynamic CafeBase.Part

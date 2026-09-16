@@ -1,17 +1,20 @@
 -- Shared/CafeTypes.luau
 
 export type CafeBase = Model & {
-	Grid: Folder,
-	Spatial: Folder,
-	Cafe: Cafe?, -- the main cafe building, rendered in Services/CafeRenderingService
 	Anchor: Part, -- NEW: The invisible Studio part that determines the plot's real-world location
-	Part: Part, -- The dynamic green plot part rendered by React at runtime
 	Entrance: Part, -- PrimaryPart. Also the part npc spawns on.
 	Mailbox: Model & {
 		Mailbox: Part & {
 			TriggerPrompt: ProximityPrompt,
 		},
 	},
+
+	Grid: Folder, -- where grid items are placed
+	Spatial: Folder, -- where spatial items are placed
+
+	Cafe: Cafe?, -- the main cafe building, rendered in Services/CafeRenderingService
+	Part: Part, -- The dynamic green plot part rendered by React at runtime
+
 	GetAttribute: (self: CafeBase, attribute: string & "OwnerId") -> string,
 }
 

@@ -37,7 +37,7 @@ local function calculateBreakpoint(viewportSize: Vector2): Breakpoint
 	-- 1. Mobile Phone Check (Landscape)
 	-- If the vertical space is highly constrained (<= 500px), it is a phone.
 	if height <= 500 then
-		if width <= 800 then
+		if width <= 1000 then
 			return "xs" -- Smaller or older phones (e.g., iPhone 7, standard Galaxy)
 		else
 			return "sm" -- Modern ultra-wide phones (e.g., iPhone 11, iPhone 16 Pro Max)

@@ -79,6 +79,7 @@ export type PlayerData = {
 	Inventory: { [string]: number }, -- NEW
 	Ingredients: { [string]: number },
 	Customers: { CustomerEntity },
+	Plots: {},
 	Workers: { WorkerEntity },
 }
 export type PlayerId = string

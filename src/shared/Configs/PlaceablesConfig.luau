@@ -2,8 +2,16 @@
 return {
 	-- [[ INFRASTRUCTURE ]]
 	{
-		Id = "Stone Wall",
+		Id = "Brick Wall",
 		DisplayName = "Brick Wall",
+		Category = "Architecture",
+		Price = 25,
+		UnlockLevel = 1,
+		MaxAllowed = math.huge,
+	},
+	{
+		Id = "Stone Brick Wall",
+		DisplayName = "Stone Brick Wall",
 		Category = "Architecture",
 		Price = 25,
 		UnlockLevel = 1,
@@ -39,7 +47,7 @@ return {
 		MaxAllowed = math.huge,
 	},
 	{
-		Id = "Floor Big",
+		Id = "Floor",
 		DisplayName = "Big Floor",
 		Price = 25,
 		UnlockLevel = 1,
@@ -196,7 +204,7 @@ return {
 		Id = "espresso_station",
 		DisplayName = "Espresso Machine",
 		Category = "Station",
-		Price = 500,
+		Price = 20,
 		UnlockLevel = 1,
 		MaxAllowed = 1,
 	},
@@ -204,7 +212,7 @@ return {
 		Id = "water_station",
 		DisplayName = "Hot Water Dispenser",
 		Category = "Station",
-		Price = 600,
+		Price = 20,
 		UnlockLevel = 1,
 		MaxAllowed = 1,
 	},
@@ -212,7 +220,7 @@ return {
 		Id = "milk_station",
 		DisplayName = "Milk Pitcher",
 		Category = "Station",
-		Price = 1200,
+		Price = 300,
 		UnlockLevel = 1, -- Unlocks at Level 2!
 		MaxAllowed = 1,
 	},
@@ -220,8 +228,8 @@ return {
 		Id = "ice_station",
 		DisplayName = "Ice Bin",
 		Category = "Station",
-		Price = 2500,
-		UnlockLevel = 2,
+		Price = 300,
+		UnlockLevel = 1,
 		MaxAllowed = 1,
 	},
 	-- Furnitures

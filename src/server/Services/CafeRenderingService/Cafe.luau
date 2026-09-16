@@ -15,6 +15,7 @@ local Customers = require(script.Parent.Customers)
 local function Cafe(props: { BaseModel: CafeTypes.CafeBase, PlayerId: string })
 	-- 1. Native Reflex Subscription Pattern
 	local plotSizeNum, setPlotSizeNum = useState(32)
+	local plotPart, setPlotPart = useState(nil)
 
 	useEffect(function()
 		local function selectPlotSize(state)
@@ -30,11 +31,41 @@ local function Cafe(props: { BaseModel: CafeTypes.CafeBase, PlayerId: string })
 		return unsub
 	end, { props.PlayerId })
 
-	local children = {}
-
-	-- 2. Render the physical dynamic plot on the server
 	local anchor = props.BaseModel:FindFirstChild("Anchor")
 	local plotCFrame = anchor and anchor.CFrame or CFrame.new(0, 0, 0)
+	useEffect(function()
+		-- pivot Entrance and mailbox in front
+
+		if not plotPart then
+			return
+		end
+		local entrance = props.BaseModel.Entrance
+		local mailbox = props.BaseModel.Mailbox
+
+		local entranceSize = entrance.Size
+		local plotSize = plotPart.Size
+
+		local originalEntranceCFrame = entrance.CFrame
+		local newEntranceCFrame = plotCFrame
+			* CFrame.new(Vector3.new(0, plotSize.Y / 2 - entranceSize.Y / 2, -(plotSize.Z / 2 + entranceSize.Z / 2)))
+
+		local _, mailboxSize = mailbox:GetBoundingBox()
+		local originalMailboxCFrame = mailbox:GetPivot()
+		local newMailboxCFrame = plotCFrame
+			* CFrame.new(Vector3.new(-6, -plotSize.Y / 2, -(plotSize.Z / 2 + mailboxSize.Z / 2 + 2)))
+
+		entrance:PivotTo(newEntranceCFrame)
+		mailbox:PivotTo(newMailboxCFrame)
+
+		return function()
+			entrance:PivotTo(originalEntranceCFrame)
+			mailbox:PivotTo(originalMailboxCFrame)
+		end
+	end, { plotPart, anchor, plotCFrame, plotSizeNum })
+
+	local children = {}
+
+	-- Render the physical dynamic plot on the server
 
 	children.DynamicPlot = props.BaseModel
 			and props.BaseModel.Parent
@@ -46,6 +77,7 @@ local function Cafe(props: { BaseModel: CafeTypes.CafeBase, PlayerId: string })
 					Color = Color3.fromRGB(120, 180, 100),
 					Material = Enum.Material.Grass,
 					Parent = props.BaseModel,
+					ref = setPlotPart,
 				}),
 			}, props.BaseModel)
 		or nil
