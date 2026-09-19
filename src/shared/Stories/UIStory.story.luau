@@ -15,6 +15,7 @@ local Grid = require(ReplicatedStorage.Shared.Grid)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local ViewportController = require(ReplicatedStorage.Shared.Controllers.ViewportController)
 local Main = require(ReplicatedStorage.Shared.ReactComponents.Main)
+local App = require(ReplicatedStorage.Shared.ReactComponents.App)
 local PlotConfig = require(ReplicatedStorage.Shared.Configs.PlotConfig:Clone())
 
 local InputAdapter = require(ReplicatedStorage.Shared.Controllers.InputAdapter)
@@ -24,7 +25,7 @@ local playersPlotString
 
 local function story(frame: Frame)
 	local root = ReactRoblox.createRoot(frame)
-	root:render(e(Main))
+	root:render(e(App))
 	ViewportController.initialize()
 
 	return function()

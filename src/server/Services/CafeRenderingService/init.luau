@@ -49,7 +49,7 @@ local function BasesManager()
 						continue
 					end
 					new[base] = playerId
-					warn("setting attribute", playerId)
+					-- warn("setting attribute", playerId)
 					base:SetAttribute("OwnerId", playerId)
 					return new
 				end

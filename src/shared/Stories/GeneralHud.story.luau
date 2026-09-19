@@ -9,6 +9,7 @@ local React = require(ReplicatedStorage.Packages.React)
 local e = React.createElement
 local ReactRoblox = require(ReplicatedStorage.Packages.ReactRoblox)
 local ReactReflex = require(ReplicatedStorage.Packages.ReactReflex)
+local PlaceablesModule = require(ReplicatedStorage.Shared.PlaceablesModule)
 
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
@@ -16,6 +17,7 @@ local Grid = require(ReplicatedStorage.Shared.Grid)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local ViewportController = require(ReplicatedStorage.Shared.Controllers.ViewportController)
 local Main = require(ReplicatedStorage.Shared.ReactComponents.Main)
+local App = require(ReplicatedStorage.Shared.ReactComponents.App)
 local PlotConfig = require(ReplicatedStorage.Shared.Configs.PlotConfig:Clone())
 
 local PlacementController = require(ReplicatedStorage.Shared.Controllers.PlacementController)
@@ -77,17 +79,14 @@ local function story(frame: Frame)
 	local models = game.ReplicatedStorage.Shared.Models
 
 	-- 1. Initialize Mock State for UI Labs
+	local inventory = {}
+	for i, config in PlaceablesModule.Array do
+		inventory[config.Id] = math.min(32, config.MaxAllowed)
+	end
 	GlobalState.startPlayerSession("MockUser", {
 		Plot = getPlot(),
 		Stats = { Level = 50, Cash = 500000 },
-		Inventory = {
-			["Stone Brick Wall"] = 10,
-			["Counter"] = 5,
-			["Cashier"] = 1,
-			["espresso_station"] = 1,
-			["water_station"] = 1,
-			cup_station = 1,
-		},
+		Inventory = inventory,
 
 		Ingredients = {},
 		Customers = {},
@@ -265,7 +264,7 @@ local function story(frame: Frame)
 
 	-- 3. Render UI FIRST so React mounts the dynamic CafeBase.Part
 	local root = ReactRoblox.createRoot(frame)
-	root:render(e(Main))
+	root:render(e(App))
 	ViewportController.initialize()
 
 	-- 5. Initialize Controllers & Services with the dynamic plot

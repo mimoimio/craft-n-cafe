@@ -94,6 +94,7 @@ function PlacementVisualizer:setGhostItem(modelPrefab: Model?)
 			desc.CanCollide = false
 			local alpha = 1 - desc.Transparency
 			desc.Transparency = 1 - alpha * 0.6
+			desc.Anchored = true
 		end
 	end
 

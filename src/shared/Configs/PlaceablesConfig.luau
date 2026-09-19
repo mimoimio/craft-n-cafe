@@ -1,6 +1,4 @@
--- Shared/Configs/PlaceablesConfig.luau
 return {
-	-- [[ INFRASTRUCTURE ]]
 	{
 		Id = "Brick Wall",
 		DisplayName = "Brick Wall",
@@ -28,6 +26,7 @@ return {
 	{
 		Id = "Fence",
 		DisplayName = "Fence",
+		Category = "nil",
 		Price = 100,
 		UnlockLevel = 1,
 		MaxAllowed = math.huge,
@@ -35,13 +34,7 @@ return {
 	{
 		Id = "Beanbag Chair",
 		DisplayName = "Beanbag Chair",
-		Price = 25,
-		UnlockLevel = 1,
-		MaxAllowed = math.huge,
-	},
-	{
-		Id = "Beanbag Chair",
-		DisplayName = "Beanbag Chair",
+		Category = "nil",
 		Price = 25,
 		UnlockLevel = 1,
 		MaxAllowed = math.huge,
@@ -49,6 +42,7 @@ return {
 	{
 		Id = "Floor",
 		DisplayName = "Big Floor",
+		Category = "nil",
 		Price = 25,
 		UnlockLevel = 1,
 		MaxAllowed = math.huge,
@@ -56,6 +50,7 @@ return {
 	{
 		Id = "Floor Small",
 		DisplayName = "Small Floor",
+		Category = "nil",
 		Price = 25,
 		UnlockLevel = 1,
 		MaxAllowed = math.huge,
@@ -63,6 +58,7 @@ return {
 	{
 		Id = "Glass Door",
 		DisplayName = "Glass Door",
+		Category = "nil",
 		Price = 25,
 		UnlockLevel = 1,
 		MaxAllowed = math.huge,
@@ -70,6 +66,7 @@ return {
 	{
 		Id = "Glass Wall",
 		DisplayName = "Glass Wall",
+		Category = "nil",
 		Price = 25,
 		UnlockLevel = 1,
 		MaxAllowed = math.huge,
@@ -77,6 +74,7 @@ return {
 	{
 		Id = "Hanged Picture Frame",
 		DisplayName = "Hanged Picture Frame",
+		Category = "nil",
 		Price = 25,
 		UnlockLevel = 1,
 		MaxAllowed = math.huge,
@@ -84,6 +82,7 @@ return {
 	{
 		Id = "Potted Plant",
 		DisplayName = "Potted Plant",
+		Category = "nil",
 		Price = 25,
 		UnlockLevel = 1,
 		MaxAllowed = math.huge,
@@ -91,6 +90,7 @@ return {
 	{
 		Id = "Roof",
 		DisplayName = "Roof",
+		Category = "nil",
 		Price = 25,
 		UnlockLevel = 1,
 		MaxAllowed = math.huge,
@@ -98,6 +98,7 @@ return {
 	{
 		Id = "Roof Corner",
 		DisplayName = "Roof Corner",
+		Category = "nil",
 		Price = 25,
 		UnlockLevel = 1,
 		MaxAllowed = math.huge,
@@ -105,13 +106,7 @@ return {
 	{
 		Id = "Roof Edge",
 		DisplayName = "Roof Edge",
-		Price = 25,
-		UnlockLevel = 1,
-		MaxAllowed = math.huge,
-	},
-	{
-		Id = "Shelf",
-		DisplayName = "Shelf",
+		Category = "Architecture",
 		Price = 25,
 		UnlockLevel = 1,
 		MaxAllowed = math.huge,
@@ -119,6 +114,7 @@ return {
 	{
 		Id = "Small Table",
 		DisplayName = "Small Table",
+		Category = "nil",
 		Price = 25,
 		UnlockLevel = 1,
 		MaxAllowed = math.huge,
@@ -126,6 +122,7 @@ return {
 	{
 		Id = "Table",
 		DisplayName = "Table",
+		Category = "nil",
 		Price = 25,
 		UnlockLevel = 1,
 		MaxAllowed = math.huge,
@@ -133,6 +130,7 @@ return {
 	{
 		Id = "Table2",
 		DisplayName = "Modern Table",
+		Category = "nil",
 		Price = 25,
 		UnlockLevel = 1,
 		MaxAllowed = math.huge,
@@ -140,6 +138,7 @@ return {
 	{
 		Id = "Thin Roof",
 		DisplayName = "Thin Roof",
+		Category = "nil",
 		Price = 25,
 		UnlockLevel = 1,
 		MaxAllowed = math.huge,
@@ -147,6 +146,7 @@ return {
 	{
 		Id = "Wall4",
 		DisplayName = "Concrete Wall",
+		Category = "nil",
 		Price = 25,
 		UnlockLevel = 1,
 		MaxAllowed = math.huge,
@@ -154,6 +154,7 @@ return {
 	{
 		Id = "Plank Wall",
 		DisplayName = "Plank Wall",
+		Category = "nil",
 		Price = 25,
 		UnlockLevel = 1,
 		MaxAllowed = math.huge,
@@ -161,6 +162,7 @@ return {
 	{
 		Id = "Wall Candle Holder",
 		DisplayName = "Wall Candle Holder",
+		Category = "nil",
 		Price = 25,
 		UnlockLevel = 1,
 		MaxAllowed = math.huge,
@@ -168,22 +170,19 @@ return {
 	{
 		Id = "Candle",
 		DisplayName = "Candle",
+		Category = "nil",
 		Price = 25,
 		UnlockLevel = 1,
 		MaxAllowed = math.huge,
 	},
-
-	-- [[ FUNCTIONAL ]]
 	{
 		Id = "Cashier",
 		DisplayName = "Basic Register",
 		Category = "Cashier",
 		Price = 250,
 		UnlockLevel = 1,
-		MaxAllowed = 1, -- Limit 1 at Level 1
+		MaxAllowed = 1,
 	},
-
-	-- [[ STATIONS ]]
 	{
 		Id = "cup_station",
 		DisplayName = "Cup Stack",
@@ -221,18 +220,17 @@ return {
 		DisplayName = "Milk Pitcher",
 		Category = "Station",
 		Price = 300,
-		UnlockLevel = 1, -- Unlocks at Level 2!
+		UnlockLevel = 1,
 		MaxAllowed = 1,
 	},
 	{
 		Id = "ice_station",
 		DisplayName = "Ice Bin",
 		Category = "Station",
-		Price = 300,
+		Price = 200,
 		UnlockLevel = 1,
 		MaxAllowed = 1,
 	},
-	-- Furnitures
 	{
 		Id = "Sofa",
 		DisplayName = "Sofa",
@@ -253,6 +251,54 @@ return {
 		Id = "Hanging Lamp",
 		DisplayName = "Hanging Lamp",
 		Category = "Furniture",
+		Price = 25,
+		UnlockLevel = 1,
+		MaxAllowed = math.huge,
+	},
+	{
+		Id = "foam_station",
+		DisplayName = "Foam",
+		Category = "Decoration",
+		Price = 100,
+		UnlockLevel = 1,
+		MaxAllowed = 1,
+	},
+	{
+		Id = "Plank Wall Window",
+		DisplayName = "Plank Wall Window",
+		Category = "Decoration",
+		Price = 100,
+		UnlockLevel = 1,
+		MaxAllowed = math.huge,
+	},
+	{
+		Id = "Shelf",
+		DisplayName = "Shelf",
+		Category = "Decoration",
+		Price = 25,
+		UnlockLevel = 1,
+		MaxAllowed = math.huge,
+	},
+	{
+		Id = "Potted Blinkroot",
+		DisplayName = "Potted Blinkroot",
+		Category = "Decoration",
+		Price = 100,
+		UnlockLevel = 1,
+		MaxAllowed = math.huge,
+	},
+	{
+		Id = "Big Wood Floor",
+		DisplayName = "Big Wood Floor",
+		Category = "Decoration",
+		Price = 25,
+		UnlockLevel = 1,
+		MaxAllowed = math.huge,
+	},
+	{
+		Id = "Small Wood Floor",
+		DisplayName = "Small Wood Floor",
+		Category = "Decoration",
 		Price = 25,
 		UnlockLevel = 1,
 		MaxAllowed = math.huge,

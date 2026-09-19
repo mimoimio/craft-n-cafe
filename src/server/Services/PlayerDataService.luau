@@ -91,7 +91,6 @@ local PROFILE_TEMPLATE: PlayerData = {
 	Ingredients = {},
 	Customers = {},
 	Workers = {},
-	Plot = firstPlot,
 	Inventory = {
 		-- ["Wall_Brick"] = 10,
 		-- ["Counter"] = 5,
@@ -100,6 +99,17 @@ local PROFILE_TEMPLATE: PlayerData = {
 		-- ["water_station"] = 1,
 		-- cup_station = 1,
 	},
+	-- Leave the template empty so Reconcile() doesn't force items back!
+	Plot = {
+		grid = {},
+		nextId = 1,
+		placedItems = {},
+		spatialItems = {},
+		plotSize = 32,
+	},
+
+	-- Add this flag so can inject first time player
+	IsNewProfile = true,
 }
 
 -- Recursively clones a table so we don't accidentally pass memory references
@@ -119,22 +129,22 @@ end
 
 -- Recursively scans the target against the template.
 -- If the target is missing a nested key, it patches it in.
-local function DeepReconcile(target: any, template: any): any
-	for k, v in pairs(template) do
-		if type(k) == "string" then
-			-- 1. The key is completely missing in the player's save
-			if target[k] == nil then
-				target[k] = DeepCopy(v)
+-- local function DeepReconcile(target: any, template: any): any
+-- 	for k, v in pairs(template) do
+-- 		if type(k) == "string" then
+-- 			-- 1. The key is completely missing in the player's save
+-- 			if target[k] == nil then
+-- 				target[k] = DeepCopy(v)
 
-			-- 2. The key exists in both, and both are tables (Time to go deeper!)
-			elseif type(target[k]) == "table" and type(v) == "table" then
-				DeepReconcile(target[k], v)
-			end
-		end
-	end
+-- 			-- 2. The key exists in both, and both are tables (Time to go deeper!)
+-- 			elseif type(target[k]) == "table" and type(v) == "table" then
+-- 				DeepReconcile(target[k], v)
+-- 			end
+-- 		end
+-- 	end
 
-	return target
-end
+-- 	return target
+-- end
 
 -- 3. Create the ProfileStore object using New()
 local PlayerProfileStore = ProfileStoreModule.New(
@@ -201,41 +211,36 @@ PlayerDataService.ProfileSessionEnded = ProfileSessionEnded
 
 -- Function to handle when a player joins the game
 local function OnPlayerAdded(player: Player)
-	local profileKey = tostring(player.UserId) -- Use UserId as the key
+	local profileKey = tostring(player.UserId)
 
-	-- Load and session-lock the profile asynchronously
 	local profile: Profile? = PlayerProfileStore:StartSessionAsync(profileKey)
-	print("profile", profileKey, profile)
 	if profile then
-		-- Add GDPR compliance UserIds
 		profile:AddUserId(player.UserId)
 
-		-- 1. ProfileStore's native reconcile handles the top layer
+		-- 1. Fills in missing stats safely (won't touch empty placedItems anymore)
 		profile:Reconcile()
 
-		-- 2. Our custom deep reconcile handles the nested layers
-		local olddata = profile.Data
-		profile.Data = DeepReconcile(DeepCopy(olddata), PROFILE_TEMPLATE)
-		-- except for plot slice.
-		profile.Data.Plot = olddata.Plot
+		-- 2. Check if this is a brand new save file
+		if profile.Data.IsNewProfile then
+			profile.Data.IsNewProfile = false -- Mark as not new so this never runs again
 
-		-- Store the active profile in the cache
+			-- Inject the starter plot manually
+			profile.Data.Plot = DeepCopy(PlotConfig.FirstPlot)
+		end
+
 		Profiles[player] = profile
-		-- ensureDrinkExist(profile.Data)
-
 		ProfileCreated:Fire()
 	else
 		warn(`Critical error: Failed to load profile for {player.Name} ({player.UserId}). Kicking.`)
 	end
 end
-
 -- Function to handle when a player leaves the game
 local function OnPlayerRemoving(player: Player)
 	local profile = Profiles[player]
 	if profile then
 		-- End the session - this saves the data and unlocks the session
 		profile.Data.LastOnline = workspace:GetServerTimeNow()
-		-- profile:EndSession()
+		profile:EndSession()
 		print(`Ending session profile for {player.Name} ({player.UserId}) on leave.`)
 	end
 end
@@ -366,8 +371,10 @@ Remotes.start.OnServerEvent:Connect(function(player)
 
 	profile.OnSessionEnd:Connect(function()
 		unsubscribe()
+		warn(Profiles[player])
 		Profiles[player] = nil
 		GlobalState.endPlayerSession(playerId)
+
 		player:Kick("Your data session has ended. Please rejoin.")
 		ProfileSessionEnded:Fire()
 	end)

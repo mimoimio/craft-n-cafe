@@ -20,6 +20,7 @@ local e = React.createElement
 local useState = React.useState
 local useBinding = React.useBinding
 local useEffect = React.useEffect
+local RedDot = require(script.Parent.RedDot).RedDot
 
 local CafeBase = require(script.Parent.CafeBase)
 local CashOverlay = require(script.Parent.CashOverlay)
@@ -49,6 +50,58 @@ local function Main(props)
 	})
 end
 
+-- local RedDot = function(props: {
+-- 	Enabled: boolean,
+-- 	SizeNum: number,
+-- 	Position: UDim2,
+-- })
+-- 	local pos, setPos = useBinding(nil)
+-- 	local size = props.SizeNum or 40
+-- 	useEffect(function()
+-- 		if props.Enabled and props.Enabled == false then
+-- 			return
+-- 		end
+-- 		local prevStep
+-- 		local conn = RunService.Heartbeat:Connect(function()
+-- 			local currentStep = (tick() * ((92 / 60) * 16) // 1) % 16
+-- 			if prevStep and currentStep == prevStep then
+-- 				return
+-- 			end
+-- 			setPos(currentStep)
+-- 			prevStep = currentStep
+-- 		end)
+-- 		return function()
+-- 			conn:Disconnect()
+-- 		end
+-- 	end, { props.Enabled })
+-- 	return e("ImageLabel", {
+-- 		ZIndex = 10,
+-- 		ScaleType = Enum.ScaleType.Fit,
+-- 		Size = UDim2.fromOffset(size, size),
+-- 		Position = props.Position,
+-- 		BackgroundTransparency = 1,
+-- 		AnchorPoint = Vector2.new(0.5, 0.5),
+-- 		ClipsDescendants = true,
+-- 	}, {
+-- 		e("ImageLabel", {
+-- 			Image = "rbxassetid://74072152836235",
+-- 			-- Size = UDim2.new(0, BUTTONHEIGHT, 0, BUTTONHEIGHT),
+-- 			ScaleType = Enum.ScaleType.Fit,
+-- 			Size = UDim2.fromOffset(4 * size, 4 * size),
+-- 			Position = pos:map(function(n)
+-- 				if not n then
+-- 					return nil
+-- 				end
+-- 				local x = n % 4
+-- 				local y = n // 4
+-- 				return UDim2.new(0, -size * x, 0, -size * y)
+-- 			end),
+-- 			BackgroundTransparency = 1,
+-- 			ImageColor3 = Color3.new(0.8, 1, 0),
+-- 		}),
+-- 	})
+-- end
+
 function SidebarButton(props)
 	local useBreakpoint = require(ReplicatedStorage.Shared.Hooks.useBreakpoint)
 
@@ -63,15 +116,6 @@ function SidebarButton(props)
 		[React.Event.Activated] = props[React.Event.Activated],
 		Padding = { All = UDim.new(0, 0) },
 	}, {
-		-- e(VStack, {
-		-- 	VerticalFlex = Enum.UIFlexAlignment.None,
-		-- 	HorizontalFlex = Enum.UIFlexAlignment.None,
-		-- 	VerticalAlignment = Enum.VerticalAlignment.Center,
-		-- 	HorizontalAlignment = Enum.HorizontalAlignment.Left,
-		-- 	ZIndex = 2,
-		-- 	Size = UDim2.fromScale(1, 1),
-		-- }, {
-		-- }),
 
 		e(SmallText, {
 			TextSize = TEXTSIZE,
@@ -85,11 +129,13 @@ function SidebarButton(props)
 		e("ImageLabel", {
 			ZIndex = 1,
 			Image = props.Image,
-			-- Size = UDim2.new(0, BUTTONHEIGHT, 0, BUTTONHEIGHT),
 			ScaleType = Enum.ScaleType.Fit,
 			Size = UDim2.fromScale(1, 1),
 			BackgroundTransparency = 1,
-			-- Transparency = 1,
+		}),
+		e(RedDot, {
+			Position = UDim2.new(1, 0, 0, 8),
+			SizeNum = 32,
 		}),
 	})
 end
