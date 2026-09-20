@@ -1,4 +1,5 @@
 -- Shared/ReactComponents/BuildPanel.luau
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
@@ -12,7 +13,6 @@ local PlacementController = require(ReplicatedStorage.Shared.Controllers.Placeme
 local PlaceablesModule = require(ReplicatedStorage.Shared.PlaceablesModule)
 local Types = require(ReplicatedStorage.Shared.Types)
 local BuildersIcon = require(ReplicatedStorage.Shared.Utils.BuildersIcon)
-local TOUCHICON = BuildersIcon["hand-half-ellipse"]
 
 local Primitives = ReplicatedStorage.Shared.ReactComponents.ui
 local VStack = require(Primitives.VStack)
@@ -27,8 +27,10 @@ local useSpring = ReactFlow.useSpring
 local createSelector = Reflex.createSelector
 local useEffect = React.useEffect
 local useBreakpoint = require(script.Parent.Parent.Hooks.useBreakpoint)
+local useInputDevice = require(ReplicatedStorage.Shared.Hooks.useInputDevice)
 
 local playerId = Players.LocalPlayer and tostring(Players.LocalPlayer.UserId) or "MockUser"
+
 local function ItemButton(props: {
 	isSelected: boolean,
 	config: Types.PlaceableConfig,
@@ -91,17 +93,13 @@ local function ItemButton(props: {
 			CurrentCamera = currentCamera,
 			Size = UDim2.new(1, 0, 1, mobile and -6 or -12),
 			LightDirection = Vector3.new(0, -1, -1),
-			-- BackgroundTransparency = 0,
-			-- BackgroundColor3 = Color3.new(1, 0, 0),
 			BackgroundTransparency = 1,
 			Active = false,
 			ImageTransparency = 0,
 		}, {
-			-- Add the WorldModel here to enable animation and physics processing
 			World = e("WorldModel", {
 				ref = setWorldModel,
 			}, {
-
 				Camera = e("Camera", {
 					ref = setCurrentCamera,
 					CFrame = CFrame.new(Vector3.new(20, 20, -20), Vector3.zero),
@@ -112,7 +110,6 @@ local function ItemButton(props: {
 		e(SmallText, {
 			TextSize = 10,
 			Text = `{props.config.DisplayName}`,
-			-- Text = `{props.config.DisplayName} {isSelected and "\n[Selected]" or ""}`,
 			HorizontalAlignment = Enum.HorizontalAlignment.Center,
 			TextWrapped = true,
 			ZIndex = 3,
@@ -130,6 +127,7 @@ local function ItemButton(props: {
 		}),
 	})
 end
+
 local function BuildPanel()
 	local visible, setVisible = useState(false)
 	local selectedItem, setSelectedItem = useState(nil)
@@ -137,6 +135,7 @@ local function BuildPanel()
 
 	local xs, sm, md, lg, xl = useBreakpoint()
 	local mobile = xs or sm or md
+	local inputDevice = useInputDevice()
 
 	-- 1. Sync with UIState
 	useEffect(function()
@@ -189,6 +188,7 @@ local function BuildPanel()
 			PlacementController:selectItem(selectedItem)
 		end
 	end, { visible, selectedItem })
+
 	local show, setShow = useState(true)
 	useEffect(function()
 		if visible then
@@ -202,10 +202,47 @@ local function BuildPanel()
 		end
 	end, { visible })
 
+	-- [[ UPDATED: Gamepad Trigger Hooks (Added L2 for Rotate) ]]
+	useEffect(function()
+		if not visible or not selectedItem then
+			return
+		end
+
+		local conn = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+			if gameProcessed then
+				return
+			end
+
+			-- R2 -> Place / Delete
+			if input.KeyCode == Enum.KeyCode.ButtonR2 then
+				if DELETEMODE then
+					PlacementController:attemptDestroyAtCursor()
+				else
+					PlacementController:placeCurrent()
+				end
+			-- L2 -> Rotate
+			elseif input.KeyCode == Enum.KeyCode.ButtonL2 then
+				PlacementController:rotateItem()
+			end
+		end)
+
+		return function()
+			conn:Disconnect()
+		end
+	end, { visible, selectedItem, DELETEMODE })
+
+	-- Helper to inject the Gamepad Icon into the rich text strings
+	local function getActionLabel(keyCode: Enum.KeyCode, actionText: string)
+		if inputDevice == "Gamepad" then
+			local iconSize = mobile and 16 or 24
+			return `<font size="{iconSize}">{BuildersIcon.GetPromptText(keyCode, inputDevice)}</font>\n{actionText}`
+		end
+		return actionText
+	end
+
 	-- 4. Generate Inventory Buttons
 	local itemButtons = {}
 
-	-- Automatically deselect if the player places their very last item of that type
 	useEffect(function()
 		if playerInventory and selectedItem and selectedItem ~= "DELETE_MODE" then
 			if (playerInventory[selectedItem] or 0) <= 0 then
@@ -218,6 +255,7 @@ local function BuildPanel()
 	local itemSelected = selectedItem and true or false
 	useEffect(function()
 		if itemSelected then
+			GuiService.SelectedObject = nil
 			setShow(false)
 		else
 			setShow(true)
@@ -230,7 +268,7 @@ local function BuildPanel()
 	if not playerInventory then
 		return
 	end
-	-- Loop through their exact inventory
+
 	for itemId, count in pairs(playerInventory) do
 		if count > 0 then
 			local config = PlaceablesModule.GetConfig(itemId)
@@ -247,9 +285,11 @@ local function BuildPanel()
 	end
 
 	return e("Frame", {
-		Size = UDim2.new(0, mobile and 260 or 300, 1, 0),
+		Size = pos:map(function(n)
+			return UDim2.new(n, (1 - n) * (mobile and 360 or 480), 1, 0)
+		end),
 		Position = pos:map(function(n)
-			return UDim2.new(1, n * (mobile and 260 or 300), 0, 0)
+			return UDim2.new((1 + n), 0, 0, 0)
 		end),
 		AnchorPoint = Vector2.new(1, 0),
 		BackgroundTransparency = 1,
@@ -265,13 +305,12 @@ local function BuildPanel()
 			Size = UDim2.new(0, 0, 1, 0),
 			ZIndex = 4,
 		}, {
-			Delete = e(SmallButton, {
+			Close = e(SmallButton, {
 				Image = "",
 				AutomaticSize = Enum.AutomaticSize.None,
 				Size = UDim2.new(0, mobile and 40 or 60, 0, mobile and 40 or 60),
 				BackgroundTransparency = not DELETEMODE and 0.9 or nil,
-				BackgroundColor3 = DELETEMODE and Color3.new(1, 0.058823, 0.058823)
-					or Color3.new(1, 0.341176, 0.341176),
+				BackgroundColor3 = Color3.new(1, 0.058823, 0.058823),
 				[React.Event.Activated] = function()
 					UIState.toggle("none")
 				end,
@@ -285,7 +324,6 @@ local function BuildPanel()
 				e("ImageLabel", {
 					ZIndex = 1,
 					Image = "rbxassetid://17368208554",
-					-- Size = UDim2.new(0, BUTTONHEIGHT, 0, BUTTONHEIGHT),
 					ScaleType = Enum.ScaleType.Fit,
 					Size = UDim2.fromScale(1, 1),
 					ImageTransparency = not DELETEMODE and 0.4 or nil,
@@ -324,7 +362,6 @@ local function BuildPanel()
 					e("ImageLabel", {
 						ZIndex = 1,
 						Image = show and "rbxassetid://15403015683" or "rbxassetid://15403018096",
-						-- Size = UDim2.new(0, BUTTONHEIGHT, 0, BUTTONHEIGHT),
 						ScaleType = Enum.ScaleType.Fit,
 						Size = UDim2.fromScale(1, 1),
 						BackgroundTransparency = 1,
@@ -349,7 +386,6 @@ local function BuildPanel()
 					e("ImageLabel", {
 						ZIndex = 1,
 						Image = "rbxassetid://17368204793",
-						-- Size = UDim2.new(0, BUTTONHEIGHT, 0, BUTTONHEIGHT),
 						ScaleType = Enum.ScaleType.Fit,
 						Size = UDim2.fromScale(1, 1),
 						ImageTransparency = not DELETEMODE and 0.4 or nil,
@@ -357,7 +393,7 @@ local function BuildPanel()
 					}),
 					e(SmallText, {
 						TextSize = mobile and 10 or 12,
-						Text = `delete mode`,
+						Text = `delete\nmode`,
 						Size = UDim2.fromScale(1, 1),
 						RichText = true,
 						AutomaticSize = Enum.AutomaticSize.XY,
@@ -381,7 +417,6 @@ local function BuildPanel()
 					e("ImageLabel", {
 						ZIndex = 1,
 						Image = "rbxassetid://9559111831",
-						-- Size = UDim2.new(0, BUTTONHEIGHT, 0, BUTTONHEIGHT),
 						ScaleType = Enum.ScaleType.Fit,
 						Size = UDim2.fromScale(1, 1),
 						BackgroundTransparency = 1,
@@ -389,7 +424,7 @@ local function BuildPanel()
 					e("UIStroke", { Thickness = 2 }),
 					e(SmallText, {
 						TextSize = mobile and 10 or 12,
-						Text = `rotate`,
+						Text = getActionLabel(Enum.KeyCode.ButtonL2, "rotate"),
 						Size = UDim2.fromScale(1, 1),
 						RichText = true,
 						AutomaticSize = Enum.AutomaticSize.XY,
@@ -397,46 +432,51 @@ local function BuildPanel()
 						TextXAlignment = Enum.TextXAlignment.Center,
 					}),
 				}),
-				Place = (
-					UserInputService.PreferredInput == Enum.PreferredInput.Touch
-					or UserInputService.PreferredInput == Enum.PreferredInput.Gamepad
-				)
-						and selectedItem
-						and e(SmallButton, {
-							Image = "",
-							OverlayTextSize = 8,
-							AutomaticSize = Enum.AutomaticSize.XY,
-							Size = UDim2.new(0, 0, 0, 0),
-							LayoutOrder = 4,
-							BackgroundColor3 = DELETEMODE and Color3.new(0.8, 0.2, 0.2) or Color3.new(0.2, 0.7, 0.2),
-							[React.Event.Activated] = function()
-								if DELETEMODE then
-									PlacementController:attemptDestroyAtCursor()
-								else
-									PlacementController:placeCurrent()
-								end
-							end,
-						}, {
-							e("UIStroke", { Thickness = 2 }),
-							e(SmallText, {
-								MinTextSize = 12,
-								MaxTextSize = 48,
-								Text = `<font size="48">{TOUCHICON}</font>\n<font size="12">{DELETEMODE and "delete\nitem" or "place\nitem"}</font>`,
-								RichText = true,
-								TextXAlignment = Enum.TextXAlignment.Center,
-								HorizontalAlignment = Enum.HorizontalAlignment.Center,
-							}),
-						})
-					or nil,
+
+				-- [[ UNIFORM STYLE FOR PLACE/DESTROY ]]
+				Place = (inputDevice == "Touch" or inputDevice == "Gamepad") and selectedItem and e(SmallButton, {
+					Image = "",
+					AutomaticSize = Enum.AutomaticSize.None,
+					Size = UDim2.new(0, mobile and 40 or 60, 0, mobile and 40 or 60),
+					LayoutOrder = 4,
+					BackgroundColor3 = DELETEMODE and Color3.new(0.8, 0.2, 0.2) or Color3.new(0.2, 0.7, 0.2),
+					[React.Event.Activated] = function()
+						if DELETEMODE then
+							PlacementController:attemptDestroyAtCursor()
+						else
+							PlacementController:placeCurrent()
+						end
+					end,
+					Padding = { All = UDim.new() },
+				}, {
+					e("UIStroke", { Thickness = 2 }),
+					e("ImageLabel", {
+						ZIndex = 1,
+						Image = DELETEMODE and "rbxassetid://17368204793" or "rbxassetid://103478691850846",
+						ScaleType = Enum.ScaleType.Fit,
+						Size = UDim2.fromScale(1, 1),
+						BackgroundTransparency = 1,
+						ImageTransparency = 0.4,
+					}),
+					e(SmallText, {
+						TextSize = mobile and 10 or 12,
+						Text = getActionLabel(Enum.KeyCode.ButtonR2, DELETEMODE and "destroy" or "place"),
+						Size = UDim2.fromScale(1, 1),
+						RichText = true,
+						AutomaticSize = Enum.AutomaticSize.XY,
+						HorizontalAlignment = Enum.HorizontalAlignment.Center,
+						TextXAlignment = Enum.TextXAlignment.Center,
+					}),
+				}) or nil,
 			}),
 		}),
 		e("ImageLabel", {
 			Image = "rbxassetid://103478691850846",
 			ScaleType = Enum.ScaleType.Slice,
 			SliceCenter = Rect.new(8, 8, 92, 92),
-			AnchorPoint = Vector2.new(1, 0),
-			Size = UDim2.new(0, mobile and 260 or 300, 1, 0),
-			Position = UDim2.new(1, 0, 0, 0),
+			AnchorPoint = Vector2.new(0, 0),
+			Size = UDim2.new(1, 0, 1, 0),
+			Position = UDim2.new(0, 0, 0, 0),
 			BackgroundTransparency = 1,
 			ImageColor3 = Color3.new(0.6, 0.6, 0.6),
 			ImageTransparency = 0.2,
@@ -444,10 +484,9 @@ local function BuildPanel()
 			ZIndex = 1,
 		}),
 		e(VStack, {
-			Size = UDim2.new(0, mobile and 260 or 300, 1, 0),
-			Position = UDim2.new(1, 0, 0, 0),
-			AnchorPoint = Vector2.new(1, 0),
-			-- BackgroundTransparency = 0.2,
+			Size = UDim2.new(0, (mobile and 360 or 480), 1, 0),
+			Position = UDim2.new(0.5, 0, 0, 0),
+			AnchorPoint = Vector2.new(0.5, 0),
 			Active = true,
 			Padding = { All = UDim.new(0, 10) },
 			Visible = visible,
@@ -462,17 +501,14 @@ local function BuildPanel()
 				ScrollBarThickness = 4,
 				LayoutOrder = 2,
 			}, {
-				-- List = e("UIListLayout", { Padding = UDim.new(0, 5) }),
 				e(HStack, {
 					Size = UDim2.new(1, 0, 0, 0),
 					AutomaticSize = Enum.AutomaticSize.XY,
-					-- BackgroundTransparency = 0,
 					Wraps = true,
 					Spacing = UDim.new(0, 8),
 					VerticalAlignment = Enum.VerticalAlignment.Center,
 					HorizontalAlignment = Enum.HorizontalAlignment.Left,
 				}, {
-
 					Items = e(React.Fragment, nil, itemButtons),
 				}),
 			}),

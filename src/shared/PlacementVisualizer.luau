@@ -63,7 +63,7 @@ function PlacementVisualizer:setGhostItem(modelPrefab: Model?)
 	end
 
 	local _, prefabSize = modelPrefab:GetBoundingBox()
-	local snappedSize = placementType == "Free" and prefabSize
+	local snappedSize = (placementType == "Free" or itemTypeAttr == "Wall") and prefabSize
 		or Vector3.new(rawX * Grid.SIZE, dummyY, rawZ * Grid.SIZE)
 
 	-- Strip package links just like the renderer
@@ -77,10 +77,11 @@ function PlacementVisualizer:setGhostItem(modelPrefab: Model?)
 	-- 3. Create the dummy PrimaryPart
 	local part = Instance.new("Part")
 	part.Anchored = true
-	part.Size = snappedSize
+	part.Size = snappedSize + Vector3.one * 0.5
 	part:PivotTo(originalCFrame * pivotOffset) -- Align to internal center + downward offset
 	part.CanCollide = false
 	part.Transparency = 0.5
+	part.Material = "Neon"
 	part.Color = Color3.new(0, 1, 0)
 	part.Parent = self.ghostModel
 
@@ -93,7 +94,7 @@ function PlacementVisualizer:setGhostItem(modelPrefab: Model?)
 		if desc:IsA("BasePart") and desc ~= part then
 			desc.CanCollide = false
 			local alpha = 1 - desc.Transparency
-			desc.Transparency = 1 - alpha * 0.6
+			desc.Transparency = 1 - alpha * 0.8
 			desc.Anchored = true
 		end
 	end
@@ -109,6 +110,7 @@ function PlacementVisualizer:updateGhost(targetCFrame: CFrame, isValid: boolean)
 	-- Update Hitbox Color
 	local targetColor = isValid and Color3.new(0, 1, 0) or Color3.new(1, 0, 0)
 	self.primaryPart.Color = targetColor
+	self.primaryPart.Transparency = isValid and 1 or 0.5
 
 	-- Lerp to position
 	local currentPivot = self.ghostModel:GetPivot()

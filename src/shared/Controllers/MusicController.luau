@@ -10,8 +10,8 @@ local MusicController = {}
 -- ──────────────────────────────────────────────────────────
 local _tracks: { Sound } = {}
 local _index = 1
-local _volume = 0.2 -- 0..1
--- local _volume = 0
+-- local _volume = 0.2 -- 0..1
+local _volume = 0
 local _playingSound: Sound? = nil
 local _endedConn: RBXScriptConnection? = nil
 local _listeners: { (state: any) -> () } = {}

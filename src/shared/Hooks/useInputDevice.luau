@@ -1,3 +1,4 @@
+-- Shared/Hooks/useInputDevice.luau
 local UserInputService = game:GetService("UserInputService")
 local React = require(game:GetService("ReplicatedStorage").Packages.React)
 local useEffect, useState = React.useEffect, React.useState

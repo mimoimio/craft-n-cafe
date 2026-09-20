@@ -16,7 +16,7 @@ local Signal = require(game.ReplicatedStorage.Packages.Signal)
 local ShopCycle = require(game.ReplicatedStorage.Shared.ShopCycle)
 local PlotConfig = require(game.ReplicatedStorage.Shared.Configs.PlotConfig)
 
--- local IS_PLAYTESTING = true
+local IS_PLAYTESTING = true
 --
 local DrinksBrewedLeaderboard = DataStoreService:GetOrderedDataStore("DrinksBrewed")
 
@@ -78,6 +78,7 @@ local PROFILE_TEMPLATE: PlayerData = {
 		MusicOn = true,
 		Cash = 30,
 		Level = 1,
+		EXP = 0,
 		CafeOpen = true,
 		TutorialCompleted = false,
 		CafeCapacity = 3,

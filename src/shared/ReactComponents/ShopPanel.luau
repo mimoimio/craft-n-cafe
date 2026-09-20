@@ -263,9 +263,9 @@ local function ShopPanel()
 	end
 
 	return e("Frame", {
-		Size = UDim2.new(0, mobile and 260 or 300, 1, 0),
+		Size = UDim2.new(0, mobile and 260 or 600, 1, 0),
 		Position = pos:map(function(n)
-			return UDim2.new(1, n * (mobile and 260 or 300), 0, 0)
+			return UDim2.new(1, n * (mobile and 260 or 600), 0, 0)
 		end),
 		AnchorPoint = Vector2.new(1, 0),
 		BackgroundTransparency = 1,
@@ -302,7 +302,7 @@ local function ShopPanel()
 		-- 	}),
 		-- }),
 		e(VStack, {
-			Size = UDim2.new(0, mobile and 260 or 300, 1, 0),
+			Size = UDim2.new(0, mobile and 260 or 600, 1, 0),
 			Position = UDim2.new(1, 0, 0, 0),
 			AnchorPoint = Vector2.new(1, 0),
 			BackgroundTransparency = 0.2,

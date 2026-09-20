@@ -24,6 +24,7 @@ local RedDot = require(script.Parent.RedDot).RedDot
 
 local CafeBase = require(script.Parent.CafeBase)
 local CashOverlay = require(script.Parent.CashOverlay)
+local EXPOverlay = require(script.Parent.EXPOverlay)
 local VStack = require(script.Parent.ui.VStack)
 local BuildPanel = require(script.Parent.BuildPanel)
 local ShopPanel = require(script.Parent.ShopPanel) -- NEW: Require the Shop
@@ -43,8 +44,36 @@ local function Main(props)
 		e(require(script.Parent.CustomersOrder)),
 		e(require(script.Parent.CustomerPrompts)),
 		e(require(script.Parent.StationPrompts)),
-		e(require(script.Parent.PlayersCup)),
-		e(CashOverlay),
+		e("Frame", {
+			Size = UDim2.new(1, 0, 1, 0),
+			BackgroundTransparency = 1,
+			AutomaticSize = Enum.AutomaticSize.XY,
+		}, {
+			layout = e("UIListLayout", {
+				FillDirection = Enum.FillDirection.Vertical,
+				HorizontalAlignment = Enum.HorizontalAlignment.Center,
+				SortOrder = Enum.SortOrder.LayoutOrder,
+				Padding = UDim.new(0, 5),
+			}),
+			e("Frame", {
+				-- Size = UDim2.new(1, 0, 1, 0),
+				BackgroundTransparency = 1,
+				LayoutOrder = 1,
+				AutomaticSize = Enum.AutomaticSize.XY,
+			}, {
+				layout = e("UIListLayout", {
+					FillDirection = Enum.FillDirection.Horizontal,
+					HorizontalAlignment = Enum.HorizontalAlignment.Center,
+					SortOrder = Enum.SortOrder.LayoutOrder,
+					Padding = UDim.new(0, 5),
+				}),
+				e(EXPOverlay),
+				e(CashOverlay),
+			}),
+			e(require(script.Parent.PlayersCup), {
+				LayoutOrder = 2,
+			}),
+		}),
 		e(Sidebar),
 		e(CafeBase),
 	})
@@ -115,6 +144,7 @@ function SidebarButton(props)
 		AutomaticSize = Enum.AutomaticSize.None,
 		[React.Event.Activated] = props[React.Event.Activated],
 		Padding = { All = UDim.new(0, 0) },
+		LayoutOrder = props.LayoutOrder,
 	}, {
 
 		e(SmallText, {
@@ -154,13 +184,24 @@ function Sidebar(props)
 			end,
 			Image = "rbxassetid://15403066964",
 			Text = "Shop",
+			LayoutOrder = 1,
+		}),
+		ToggleIndex = e(SidebarButton, { -- NEW: Shop Toggle Button
+			[React.Event.Activated] = function()
+				UIState.toggle("index")
+			end,
+			Image = "rbxassetid://127110909372919",
+			Text = "Index",
+			LayoutOrder = 2,
 		}),
 		ToggleBuild = e(SidebarButton, {
 			[React.Event.Activated] = function()
 				UIState.toggle("build")
 			end,
-			Image = "rbxassetid://17368217589",
+			-- Image = "rbxassetid://17368217589",
+			Image = "rbxassetid://17368183719",
 			Text = "Build",
+			LayoutOrder = 3,
 		}),
 		Console = admin and e(SidebarButton, { -- Optional: Hide console button if not admin
 			[React.Event.Activated] = function()
@@ -168,6 +209,7 @@ function Sidebar(props)
 			end,
 			Image = "rbxassetid://17368118782",
 			Text = "Console",
+			LayoutOrder = 4,
 		}) or nil,
 	})
 end

@@ -70,7 +70,7 @@ local function SpatialItemNode(props: {
 			else warn("ERROR: SpatialItem NOR CFRAME OR TABLE") or CFrame.new(0, 0, 0)
 
 		local targetCFrame = Grid.spatialToWorld(spatialCFrame, plotCFrame, plotSize)
-		local conn = nil
+		local conn, conn2
 
 		-- [[ FUNCTIONAL ROUTING ]]
 		-- Enables tabletop ingredients and mini appliances!
@@ -109,6 +109,11 @@ local function SpatialItemNode(props: {
 			newCenterPart.Parent = clone
 			prompt.Parent = newCenterPart
 
+			conn2 = prompt.PromptShown:Connect(function(...)
+				for i, v in { ... } do
+					warn(`{i})`, v)
+				end
+			end)
 			conn = prompt.Triggered:Connect(function(player: Player)
 				local playerId = tostring(player.UserId)
 				if playerId ~= props.PlayerId then
@@ -167,6 +172,9 @@ local function SpatialItemNode(props: {
 		return function()
 			if conn then
 				conn:Disconnect()
+			end
+			if conn2 then
+				conn2:Disconnect()
 			end
 			if clone and clone.Parent then
 				clone:Destroy()

@@ -1,3 +1,4 @@
+-- ReplicatedStorage/Shared/Utils/BuildersIcon.luau
 local UserInputService = game:GetService("UserInputService")
 
 local FONT = `rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json`
@@ -15,6 +16,12 @@ local Icons = {
 	["ps-triagle"] = `<font family="{FONT}">ps-triagle</font>`,
 	["xbox-x"] = `<font family="{FONT}">xbox-x</font>`,
 	["ps-square"] = `<font family="{FONT}">ps-square</font>`,
+
+	-- [FIXED] Corrected Ligatures & added Left Triggers
+	["xbox-rt"] = `<font family="{FONT}">xbox-rt</font>`,
+	["ps-r2"] = `<font family="{FONT}">ps-r2</font>`,
+	["xbox-lt"] = `<font family="{FONT}">xbox-lt</font>`,
+	["ps-l2"] = `<font family="{FONT}">ps-l2</font>`,
 }
 
 -- Maps a Roblox KeyCode to our Dictionary keys based on Console Type
@@ -23,6 +30,8 @@ local GamepadMap = {
 	[Enum.KeyCode.ButtonB] = { Xbox = "xbox-b", PS = "ps-circle" },
 	[Enum.KeyCode.ButtonX] = { Xbox = "xbox-x", PS = "ps-square" },
 	[Enum.KeyCode.ButtonY] = { Xbox = "xbox-y", PS = "ps-triagle" },
+	[Enum.KeyCode.ButtonR2] = { Xbox = "xbox-rt", PS = "ps-r2" },
+	[Enum.KeyCode.ButtonL2] = { Xbox = "xbox-lt", PS = "ps-l2" },
 }
 
 -- The master abstraction function
@@ -40,6 +49,8 @@ Icons.GetPromptText = function(keyCode: Enum.KeyCode, inputType: string): string
 			or string.find(hardwareString, "Square")
 			or string.find(hardwareString, "Circle")
 			or string.find(hardwareString, "Triangle")
+			or string.find(hardwareString, "R2")
+			or string.find(hardwareString, "L2")
 
 		local iconKey = isPlayStation and GamepadMap[keyCode].PS or GamepadMap[keyCode].Xbox
 		return Icons[iconKey] or ""

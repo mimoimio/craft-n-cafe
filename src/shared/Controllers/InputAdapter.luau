@@ -14,6 +14,10 @@ function InputAdapter.getCursorWorldPosition(targetPlot: Part, targetElevation: 
 	local lastInput = UserInputService:GetLastInputType()
 	local isMobileOrConsole = lastInput == Enum.UserInputType.Touch or lastInput.Name:find("Gamepad")
 
+	-- if math.random() < 0.1 and isMobileOrConsole then
+	-- 	warn("isMobileOrConsole", isMobileOrConsole)
+	-- end
+
 	local pointX, pointY
 	if isMobileOrConsole then
 		-- Use the exact center of the screen for Touch/Gamepad

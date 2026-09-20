@@ -14,7 +14,6 @@ local SoundController = require(ReplicatedStorage.Shared.Controllers.SoundContro
 local player = Players.LocalPlayer
 local playerId = player and tostring(player.UserId) or "MockUser"
 
-
 local function CashOverlay(props)
 	local textRef = React.useRef(nil)
 
@@ -80,7 +79,9 @@ local function CashOverlay(props)
 
 	return e("Frame", {
 		Transparency = 1,
-		Size = UDim2.new(1, 0, 1, 0),
+		Size = UDim2.new(0, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.XY,
+		LayoutOrder = 1,
 	}, {
 		Cash = e(CashHud, {
 			OnMount = function(rbx)

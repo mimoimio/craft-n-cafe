@@ -127,7 +127,14 @@ local actions = {
 		if not playersStats then
 			return state
 		end
-		return Set(state, playerId, Set(playersStats, "Cash", playersStats.Cash + payload.cash))
+		return Set(
+			state,
+			playerId,
+			Merge(playersStats, {
+				Cash = playersStats.Cash + payload.cash,
+				EXP = playersStats.EXP + payload.EXP,
+			})
+		)
 	end,
 	buyItem = function(state, playerId: string, payload: Types.BuyItemPayload)
 		local nextState = table.clone(state)

@@ -120,6 +120,7 @@ function CustomersService.ServeCustomer(player: Player, uid: string, workerUid: 
 		GlobalState.serveCustomer(playerId, {
 			customerUid = uid,
 			cash = cashReward,
+			EXP = 1,
 			timestamp = workspace:GetServerTimeNow(),
 			workerUid = workerUid,
 		})

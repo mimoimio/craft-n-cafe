@@ -364,6 +364,23 @@ function self:attemptDestroyAtCursor()
 end
 
 function self.initialize()
+	--[[
+  00:56:41.270  Error waiting cafeBase: -- Promise.Error(TimedOut) --
+Timed out
+Timeout of 10 seconds exceeded.
+:timeout() called at:
+
+ReplicatedStorage.Shared.Controllers.PlacementController:381
+ReplicatedStorage.Packages._Index.evaera_promise@4.0.0.promise:172 function runExecutor
+ReplicatedStorage.Packages._Index.evaera_promise@4.0.0.promise:382
+  -  Client - PlacementController:383
+
+  
+
+  Player could error here. and placement controller fails to initialize
+  
+	
+	]]
 	self.initializePromise = Promise.defer(function(resolve, reject, onCancel)
 		local playersPlot = UIState:getState().cafeBase or nil
 		if playersPlot then
@@ -378,7 +395,7 @@ function self.initialize()
 			end
 			return found
 		end)
-			:timeout(10)
+			:timeout(30)
 			:catch(function(err)
 				warn("Error waiting cafeBase:", err)
 			end)

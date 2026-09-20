@@ -72,6 +72,7 @@ return function(props)
 		Transparency = 1,
 		Size = UDim2.new(1, 0, 1, 0),
 		Visible = visible,
+		LayoutOrder = props.LayoutOrder,
 	}, {
 		e(SmallText, {
 			Size = UDim2.new(1, 0, 0, 0),

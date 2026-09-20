@@ -122,7 +122,7 @@ local function CustomerPromptNode(props: {
 		ServingBillboard = isServing and e("BillboardGui", {
 			Adornee = props.Model and props.Model.Parent and props.Model.PrimaryPart or nil,
 			Size = UDim2.fromOffset(200, 40),
-			ExtentsOffsetWorldSpace = Vector3.new(0, 3.5, 0), -- Floats safely above the customer model
+			ExtentsOffsetWorldSpace = Vector3.new(0, 0, 0), -- Floats safely above the customer model
 			AlwaysOnTop = true,
 			ref = function() end,
 		}, {

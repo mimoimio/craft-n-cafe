@@ -24,6 +24,7 @@ local useSpring = ReactFlow.useSpring
 local useEffect = React.useEffect
 local useCallback = React.useCallback
 local useRef = React.useRef
+local useBreakpoint = require(ReplicatedStorage.Shared.Hooks.useBreakpoint)
 
 local function getCount(discoveredDrinks)
 	local count = 0
@@ -224,6 +225,11 @@ local function CashHud(props: {
 		end
 		return unsub
 	end, {})
+	local xs, sm, md, lg, xl = useBreakpoint()
+	local mobile = xs or sm or md
+	local height = mobile and 30 or 50
+	local width = mobile and 120 or 200
+	local textSize = mobile and 24 or 32
 
 	-- Main HUD Frame is now a vertical list to stack the SmallText and Toast Container
 	return e("Frame", {
@@ -243,26 +249,33 @@ local function CashHud(props: {
 
 		text = e("ImageLabel", {
 			-- AutomaticSize = Enum.AutomaticSize.XY,
-			Image = "rbxassetid://15402844695",
-			ScaleType = Enum.ScaleType.Fit,
-			Size = UDim2.new(0, 200, 0, 50),
+			-- Image = "rbxassetid://15402844695",
+			Size = UDim2.new(0, width, 0, height),
 			BackgroundTransparency = 1,
+			Image = "rbxassetid://103478691850846",
+			ScaleType = Enum.ScaleType.Slice,
+			SliceCenter = Rect.new(8, 8, 92, 92),
 		}, {
+			e("ImageLabel", {
+				ZIndex = 1,
+				Image = "rbxassetid://15402844695",
+				ScaleType = Enum.ScaleType.Fit,
+				Size = UDim2.fromOffset(height - 8, height - 8),
+				-- AnchorPoint = Vector2.new(0, 0.5),
+				-- Position = UDim2.new(0, 0, 0.5, 0),
+				SizeConstraint = Enum.SizeConstraint.RelativeYY,
+				BackgroundTransparency = 1,
+			}),
 			e(SmallText, {
-				-- Text = (
-				-- 	([[<font family="rbxasset://LuaPackages/Packages/_Index/BuilderIcons/BuilderIcons/BuilderIcons.json">%s</font>]]):format(
-				-- 		COINICON
-				-- 	) .. [[%s]]
-				-- ):format(coins or 0),
 				Text = Mionum.new(coins or 0):toString(),
 				RichText = true,
-				TextSize = 32,
+				TextSize = textSize,
 				TextColor3 = Color3.new(1, 1, 1),
 				OnMount = props.OnMount,
-				Size = UDim2.new(0, 200, 0, 50),
+				Size = UDim2.new(0, width, 0, height),
 				AutomaticSize = Enum.AutomaticSize.None,
 				TextXAlignment = Enum.TextXAlignment.Center,
-				TextYAlignment = Enum.TextYAlignment.Center,
+				TextYAlignment = Enum.TextYAlignment.Top,
 				Rotation = hudRot,
 				LayoutOrder = 1, -- Force it to stay on top
 			}, {}),
