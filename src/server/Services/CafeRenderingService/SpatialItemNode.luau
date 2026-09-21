@@ -108,24 +108,36 @@ local function SpatialItemNode(props: {
 			newCenterPart:PivotTo(CFrame.new(originalCFrame.Position))
 			newCenterPart.Parent = clone
 			prompt.Parent = newCenterPart
+			-- prompt.HoldDuration = 3
 
-			conn2 = prompt.PromptShown:Connect(function(...)
-				for i, v in { ... } do
-					warn(`{i})`, v)
-				end
-			end)
+			local starttime = nil
+			local isIngredient = stationName ~= "cup" and stationName ~= "trash"
+			conn2 = isIngredient
+					and prompt.TriggerEnded:Connect(function(player)
+						if not starttime then
+							warn("Trigger Ended but no starttime")
+							return
+						end
+
+						local elapsed = workspace:GetServerTimeNow() - starttime
+						-- warn("elapsed:", elapsed)
+						starttime = nil
+
+						-- DrinksService.AddIngredient(player, stationName, nil)
+					end)
+				or nil
+
 			conn = prompt.Triggered:Connect(function(player: Player)
 				local playerId = tostring(player.UserId)
 				if playerId ~= props.PlayerId then
 					return
 				end
+				starttime = workspace:GetServerTimeNow()
 
 				if stationName == "cup" then
 					DrinksService.GetCup(player)
 				elseif stationName == "trash" then
 					DrinksService.TrashCup(player)
-				else
-					DrinksService.AddIngredient(player, stationName)
 				end
 			end)
 			CollectionService:AddTag(clone, "Station" .. props.PlayerId)

@@ -13,11 +13,13 @@ export type PlacedItem = {
 	r: number,
 }
 export type PlotState = {
-	grid: { [string]: string }, -- The Half-Grid matrix for structural stuff
-	placedItems: { [string]: PlacedItem }, -- Grid-based items (Tables, Walls)
-	spatialItems: { [string]: SpatialItem }, -- NEW: Free-placed items (Decorations, Cups)
-	nextId: number,
-	plotSize: number,
+	[PlayerId]: {
+		grid: { [string]: string }, -- The Half-Grid matrix for structural stuff
+		placedItems: { [string]: PlacedItem }, -- Grid-based items (Tables, Walls)
+		spatialItems: { [string]: SpatialItem }, -- NEW: Free-placed items (Decorations, Cups)
+		nextId: number,
+		plotSize: number,
+	},
 }
 
 export type SpatialItem = {

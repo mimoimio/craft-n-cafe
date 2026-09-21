@@ -45,6 +45,34 @@ local function CreateMockRemote(name: string)
 	}
 end
 
+local function CreateMockRemoteFunction(name: string)
+	return {
+		Name = name,
+
+		-- Assigned by the server logic (e.g., Remote.OnServerInvoke = function(player, ...) return end)
+		OnServerInvoke = nil :: any,
+
+		-- Client calls this in UI Labs
+		InvokeServer = function(self, ...)
+			-- Server logic expects a Player object as the first argument
+			local dummyPlayer = Players.LocalPlayer or { Name = "MockUser", UserId = "MockUser" }
+
+			if type(self.OnServerInvoke) == "function" then
+				-- RemoteFunctions yield and return a value, so we call it directly (no task.spawn)
+				return self.OnServerInvoke(dummyPlayer, ...)
+			else
+				warn(`[MockRemoteFunction] {name} was invoked but has no OnServerInvoke callback.`)
+				return nil
+			end
+		end,
+
+		-- Secret method to prevent duplicate connections on UI Labs hot-reloads
+		_clearListeners = function(self)
+			self.OnServerInvoke = nil
+		end,
+	}
+end
+
 -- /// Standard Roblox Network ///
 local function CreateRemote(name: string)
 	-- If we are in Studio Edit Mode (UI Labs), use the local mock
@@ -70,11 +98,35 @@ local function CreateRemote(name: string)
 	end
 end
 
+local function CreateRemoteFunction(name: string)
+	-- If we are in Studio Edit Mode (UI Labs), use the local mock
+	if not isRunning then
+		return CreateMockRemoteFunction(name)
+	end
+
+	-- Otherwise, standard game behavior
+	local eventsFolder = ReplicatedStorage.Shared:FindFirstChild("Events")
+	if not eventsFolder then
+		eventsFolder = Instance.new("Folder")
+		eventsFolder.Name = "Events"
+		eventsFolder.Parent = ReplicatedStorage.Shared
+	end
+
+	if isServer then
+		-- Fixed: Now correctly creates a RemoteFunction instead of a RemoteEvent
+		local remote = eventsFolder:FindFirstChild(name) or Instance.new("RemoteFunction")
+		remote.Name = name
+		remote.Parent = eventsFolder
+		return remote
+	else
+		return eventsFolder:WaitForChild(name)
+	end
+end
+
 return {
 	dispatch = CreateRemote("dispatch"),
 	start = CreateRemote("start"),
 
-	-- AddIngredient = CreateRemote("AddIngredient"),
 	MixDrink = CreateRemote("MixDrink"),
 	PickUpDrink = CreateRemote("PickUpDrink"),
 	PlaceDrink = CreateRemote("PlaceDrink"),
@@ -104,9 +156,12 @@ return {
 	Place = CreateRemote("Place"),
 	ServeCustomer = CreateRemote("ServeCustomer"),
 	GetCup = CreateRemote("GetCup"),
-	AddIngredient = CreateRemote("AddIngredient"),
+	UseStation = CreateRemoteFunction("UseStation"),
 	PlaceItem = CreateRemote("PlaceItem"),
 	DestroyItem = CreateRemote("DestroyItem"),
 	BuyItem = CreateRemote("BuyItem"),
 	ExpandPlot = CreateRemote("ExpandPlot"),
+
+	-- Example usage for RemoteFunction:
+	-- GetServerData = CreateRemoteFunction("GetServerData"),
 }

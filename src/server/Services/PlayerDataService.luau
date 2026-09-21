@@ -16,7 +16,7 @@ local Signal = require(game.ReplicatedStorage.Packages.Signal)
 local ShopCycle = require(game.ReplicatedStorage.Shared.ShopCycle)
 local PlotConfig = require(game.ReplicatedStorage.Shared.Configs.PlotConfig)
 
-local IS_PLAYTESTING = true
+-- local IS_PLAYTESTING = true
 --
 local DrinksBrewedLeaderboard = DataStoreService:GetOrderedDataStore("DrinksBrewed")
 
@@ -28,6 +28,7 @@ local function SyncLeaderboards(player, profile)
 	local success, err = pcall(function()
 		-- math.floor is used as a safety net since OrderedDataStore ONLY accepts integers
 		DrinksBrewedLeaderboard:SetAsync(userId, math.floor(profile.Data.CupsServed))
+
 		warn("Saved profile.Data.CupsServed", profile.Data.CupsServed)
 		-- RebirthsLeaderboard:SetAsync(userId, math.floor(profile.Data.Rebirths))
 	end)

@@ -69,7 +69,35 @@ function DrinksService.AddIngredient(player: Player, ingredient: string, workerU
 end
 function DrinksService.initialize()
 	Remotes.GetCup.OnServerEvent:Connect(DrinksService.GetCup)
-	-- Remotes.AddIngredient.OnServerEvent:Connect(DrinksService.AddIngredient)
+	Remotes.UseStation.OnServerInvoke = function(player, itemId, score)
+		local playerId = tostring(player.UserId)
+		local playersPlot = GlobalState:getState().Plot[playerId]
+		local placedItems = playersPlot.placedItems
+		local spatialItems = playersPlot.spatialItems
+
+		local item = placedItems[itemId] or spatialItems[itemId]
+		local itemName = item.id
+		local station = string.match(itemName, "^(.+)_station$")
+		if not station then
+			print("not station")
+			return
+		end
+
+		if station == "cup" or station == "trash" then
+			print("cup/trash")
+			return
+		end
+
+		local found = CoffeeModule.IngredientLookup[station]
+		if not found then
+			print(station, "is not an ingredient")
+			return
+		end
+
+		DrinksService.AddIngredient(player, station, nil, score)
+
+		return
+	end
 end
 
 return DrinksService
