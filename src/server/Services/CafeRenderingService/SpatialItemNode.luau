@@ -112,20 +112,17 @@ local function SpatialItemNode(props: {
 
 			local starttime = nil
 			local isIngredient = stationName ~= "cup" and stationName ~= "trash"
-			conn2 = isIngredient
-					and prompt.TriggerEnded:Connect(function(player)
-						if not starttime then
-							warn("Trigger Ended but no starttime")
-							return
-						end
+			-- conn2 = isIngredient
+			-- 		and prompt.TriggerEnded:Connect(function(player)
+			-- 			if not starttime then
+			-- 				warn("Trigger Ended but no starttime")
+			-- 				return
+			-- 			end
 
-						local elapsed = workspace:GetServerTimeNow() - starttime
-						-- warn("elapsed:", elapsed)
-						starttime = nil
-
-						-- DrinksService.AddIngredient(player, stationName, nil)
-					end)
-				or nil
+			-- 			local elapsed = workspace:GetServerTimeNow() - starttime
+			-- 			starttime = nil
+			-- 		end)
+			-- 	or nil
 
 			conn = prompt.Triggered:Connect(function(player: Player)
 				local playerId = tostring(player.UserId)

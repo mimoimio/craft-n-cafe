@@ -83,12 +83,15 @@ local actions = {
 		end
 
 		local workerUid = payload.workerUid or "player"
+		local workerCup = playersCups[workerUid]
+
 		return Set(
 			state,
 			playerId,
 			Set(playersCups, workerUid, {
 				drinkId = payload.newDrinkId,
-				score = 3,
+				score = workerCup.score + payload.score,
+				status = math.min(workerCup.status or 3, payload.score),
 			})
 		)
 	end,

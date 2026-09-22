@@ -132,7 +132,8 @@ local actions = {
 			playerId,
 			Merge(playersStats, {
 				Cash = playersStats.Cash + payload.cash,
-				EXP = playersStats.EXP + payload.EXP,
+				EXP = payload.EXP,
+				Level = payload.level,
 			})
 		)
 	end,

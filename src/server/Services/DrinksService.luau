@@ -35,7 +35,7 @@ function DrinksService.TrashCup(player: Player, workerUid: string?)
 
 	GlobalState.trashCup(playerId, { workerUid = workerUid })
 end
-function DrinksService.AddIngredient(player: Player, ingredient: string, workerUid: string?)
+function DrinksService.AddIngredient(player: Player, ingredient: string, workerUid: string?, score: number): number?
 	workerUid = workerUid or "player"
 	if not ingredient then
 		return
@@ -49,7 +49,7 @@ function DrinksService.AddIngredient(player: Player, ingredient: string, workerU
 
 	if not cup then
 		print("not cup")
-		return
+		return "no cup"
 	end
 	local drinkId = cup.drinkId
 
@@ -58,23 +58,48 @@ function DrinksService.AddIngredient(player: Player, ingredient: string, workerU
 	table.insert(ingredients, ingredient)
 	local result = CoffeeModule.Craft(ingredients)
 	if not result then
-		warn("invalid drink:", table.concat(ingredients, ","))
-		return
+		print("invalid drink:", table.concat(ingredients, ","))
+		return "invalid"
+	end
+
+	if score < 1 then
+		print("failed")
+		return "failed"
 	end
 
 	GlobalState.addIngredient(playerId, {
 		ingredientId = ingredient,
 		newDrinkId = result.Id,
-	}) --, score = score
+		score = score,
+	})
+	return score
+end
+local function calculateScore(ratio): number
+	if ratio <= 0.1 then
+		return 0
+	elseif ratio <= 0.25 then
+		return 1
+	elseif ratio <= 0.425 then
+		return 2
+	elseif ratio <= 0.575 then
+		return 3
+	elseif ratio <= 0.75 then
+		return 2
+	elseif ratio <= 0.9 then
+		return 1
+	else
+		return 0
+	end
 end
 function DrinksService.initialize()
 	Remotes.GetCup.OnServerEvent:Connect(DrinksService.GetCup)
-	Remotes.UseStation.OnServerInvoke = function(player, itemId, score)
+	Remotes.UseStation.OnServerInvoke = function(player, itemId, ratio)
 		local playerId = tostring(player.UserId)
 		local playersPlot = GlobalState:getState().Plot[playerId]
 		local placedItems = playersPlot.placedItems
 		local spatialItems = playersPlot.spatialItems
 
+		local score = calculateScore(ratio)
 		local item = placedItems[itemId] or spatialItems[itemId]
 		local itemName = item.id
 		local station = string.match(itemName, "^(.+)_station$")
@@ -94,9 +119,7 @@ function DrinksService.initialize()
 			return
 		end
 
-		DrinksService.AddIngredient(player, station, nil, score)
-
-		return
+		return DrinksService.AddIngredient(player, station, nil, score) :: (number | "invalid:")?
 	end
 end
 

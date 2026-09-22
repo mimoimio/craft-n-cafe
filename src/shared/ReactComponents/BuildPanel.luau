@@ -309,7 +309,7 @@ local function BuildPanel()
 				Image = "",
 				AutomaticSize = Enum.AutomaticSize.None,
 				Size = UDim2.new(0, mobile and 40 or 60, 0, mobile and 40 or 60),
-				BackgroundTransparency = not DELETEMODE and 0.9 or nil,
+				-- BackgroundTransparency = not DELETEMODE and 0.9 or nil,
 				BackgroundColor3 = Color3.new(1, 0.058823, 0.058823),
 				[React.Event.Activated] = function()
 					UIState.toggle("none")

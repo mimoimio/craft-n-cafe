@@ -2,6 +2,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
 local Reflex = require(ReplicatedStorage.Packages.Reflex)
+local ReactFlow = require(ReplicatedStorage.Packages.ReactFlow)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local SoundController = require(ReplicatedStorage.Shared.Controllers.SoundController)
@@ -11,6 +12,7 @@ local e = React.createElement
 local createSelector = Reflex.createSelector
 local useEffect = React.useEffect
 local useState = React.useState
+local useSpring = ReactFlow.useSpring
 local SmallText = require(ReplicatedStorage.Shared.ReactComponents.ui.SmallText)
 local useBreakpoint = require(ReplicatedStorage.Shared.Hooks.useBreakpoint)
 
@@ -70,21 +72,54 @@ return function(props)
 		return unsub
 	end, {})
 
+	local position, setPosition = useSpring({
+		start = -1,
+		target = -1,
+		speed = 1,
+		damper = 1,
+	})
+
 	useEffect(function()
 		if config then
 			SoundController.Sound("talk player")
+			setPosition({
+				target = 0,
+				speed = 10,
+				damper = 1,
+			})
+			return
 		end
+		setPosition({
+			target = -1,
+			speed = 10,
+			damper = 1,
+		})
 	end, { config })
 
-	return e("Frame", {
+	return e("ImageLabel", {
 		Transparency = 1,
 		Visible = visible,
-		Size = UDim2.new(1, 0, 1, 0),
+		Size = UDim2.new(0, mobile and 200 or 400, 0, mobile and 60 or 100),
+		Image = "rbxassetid://82823552269615",
+		ScaleType = Enum.ScaleType.Crop,
+		Position = position:map(function(n)
+			return UDim2.new(0.5, 0, n, 30)
+		end),
+		ZIndex = -1,
 	}, {
+		-- e(SmallText, {
+		-- 	Size = UDim2.new(1, 0, 1, 0),
+		-- 	Text = `Customer Order:`,
+		-- 	TextXAlignment = Enum.TextXAlignment.Center,
+		-- 	TextYAlignment = Enum.TextYAlignment.Top,
+		-- 	RichText = true,
+		-- 	MinTextSize = smTextSize,
+		-- 	MaxTextSize = mdTextSize,
+		-- }),
 		config
 				and e(SmallText, {
 					Size = UDim2.new(1, 0, 1, 0),
-					Text = `<font size="{mdTextSize}">{config and config.DisplayName or ""}</font>\n<font size="{smTextSize}">{config and `({config.Instruction})` or ""}</font>`,
+					Text = `<font size="{smTextSize}">{config and `Customer order:` or ""}</font>\n<font size="{mdTextSize}">{config and config.DisplayName or ""}</font>\n<font size="{smTextSize}">{config and `({config.Instruction})` or ""}</font>`,
 					TextXAlignment = Enum.TextXAlignment.Center,
 					TextYAlignment = Enum.TextYAlignment.Center,
 					RichText = true,

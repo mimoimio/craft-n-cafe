@@ -69,17 +69,21 @@ local function TimingBar(props: {
 		info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
 	})
 
-	useEffect(function()
-		setScale({
-			start = 0,
-			target = 1,
-			speed = 22,
-			damper = 0.5,
-		})
-	end, {})
+	-- useEffect(function()
+	-- 	setScale({
+	-- 		start = 0,
+	-- 		target = 1,
+	-- 		speed = 22,
+	-- 		damper = 0.5,
+	-- 	})
+	-- end, {})
 
 	local frameRef = React.useRef(nil)
 	useEffect(function()
+		setProgress({
+			target = 0,
+			info = TweenInfo.new(0, Enum.EasingStyle.Linear, Enum.EasingDirection.Out),
+		})
 		if not props.isClosing then
 			setScale({
 				start = 0,
@@ -87,11 +91,12 @@ local function TimingBar(props: {
 				speed = 22,
 				damper = 0.5,
 			})
+
 			return
 		end
 
 		setScale({
-			start = 1,
+			-- start = 1,
 			target = 0,
 			speed = 22,
 			damper = 0.5,
@@ -171,6 +176,75 @@ local function TimingBar(props: {
 						speed = 20,
 					})
 					setScoreText("Perfect!")
+					setTextY({
+						start = 0,
+						target = -80,
+						info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
+					})
+					setTextScale({
+						start = 0.5,
+						target = 1.3,
+						info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
+					})
+					setTextTransparency({
+						start = 0,
+						target = 1,
+						info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.In),
+					})
+				elseif validatedScore == "invalid" then
+					setRot({
+						start = 8,
+						target = 0,
+						damper = 0.1,
+						speed = 20,
+					})
+					setScoreText("Invalid Drink!")
+					setTextY({
+						start = 0,
+						target = -80,
+						info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
+					})
+					setTextScale({
+						start = 0.5,
+						target = 1.3,
+						info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
+					})
+					setTextTransparency({
+						start = 0,
+						target = 1,
+						info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.In),
+					})
+				elseif validatedScore == "no cup" then
+					setRot({
+						start = 8,
+						target = 0,
+						damper = 0.1,
+						speed = 20,
+					})
+					setScoreText("Grab a Cup First!")
+					setTextY({
+						start = 0,
+						target = -80,
+						info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
+					})
+					setTextScale({
+						start = 0.5,
+						target = 1.3,
+						info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
+					})
+					setTextTransparency({
+						start = 0,
+						target = 1,
+						info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.In),
+					})
+				elseif validatedScore == "failed" then
+					setRot({
+						start = 8,
+						target = 0,
+						damper = 0.1,
+						speed = 20,
+					})
+					setScoreText("...")
 					setTextY({
 						start = 0,
 						target = -80,
@@ -273,7 +347,13 @@ local function TimingBar(props: {
 			TextSize = 32,
 			Font = "FredokaOne",
 			TextStrokeTransparency = 0,
-			TextColor3 = scoreText == "Perfect!" and Color3.fromRGB(0, 255, 150) or Color3.fromRGB(255, 255, 100),
+			TextColor3 = scoreText == "Perfect!" and Color3.fromRGB(0, 255, 150)
+				or (scoreText == "Invalid Drink!" or scoreText == "Grab a Cup First!" or scoreText == "...") and Color3.new(
+					0.6,
+					0.6,
+					0.6
+				)
+				or Color3.fromRGB(255, 255, 100),
 			Size = UDim2.new(1, 0, 1, 0),
 			Position = textY:map(function(y)
 				return UDim2.new(0.5, 0, 0.5, y)

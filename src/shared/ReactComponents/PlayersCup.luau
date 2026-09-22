@@ -18,6 +18,12 @@ local useBreakpoint = require(ReplicatedStorage.Shared.Hooks.useBreakpoint)
 local player = Players.LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
 
+local statuses = {
+	[1] = "Good Enough",
+	[2] = "Nice",
+	[3] = "Perfect",
+}
+
 return function(props)
 	local xs, sm, md, lg, xl = useBreakpoint()
 	local mobile = xs or sm or md
@@ -76,7 +82,10 @@ return function(props)
 	}, {
 		e(SmallText, {
 			Size = UDim2.new(1, 0, 0, 0),
-			Text = config and `<font size="{mdTextSize}">Drink in hand: {config and config.DisplayName or ""}</font>`
+			Position = UDim2.new(0.5, 0, 0.5, 0),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Text = config
+					and `<font size="{mdTextSize}">Drink in hand: {config and config.DisplayName or ""}\n${cup.score} ({statuses[cup.status]})</font>`
 				or "",
 			TextXAlignment = Enum.TextXAlignment.Center,
 			TextYAlignment = Enum.TextYAlignment.Center,

@@ -124,6 +124,7 @@ export type CupsState = {
 export type CupEntity = {
 	drinkId: string,
 	score: number,
+	status: string,
 }
 
 export type IngredientsState = {
@@ -174,6 +175,8 @@ export type ServeCustomerPayload = {
 	workerUid: string,
 	customerId: string,
 	timestamp: number,
+	level: number,
+	exp: number,
 }
 export type TrashCupPayload = {
 	workerUid: string,

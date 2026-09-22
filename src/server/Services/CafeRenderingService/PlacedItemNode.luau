@@ -43,7 +43,7 @@ local function PlacedItemNode(props: {
 	useEffect(function()
 		local prefab = Models:FindFirstChild(props.ItemData.id)
 		if not prefab then
-			warn("prefab not found")
+			warn("prefab not found", props.ItemData.id)
 			return
 		end
 
@@ -113,19 +113,33 @@ local function PlacedItemNode(props: {
 			newCenterPart:PivotTo(CFrame.new(originalCFrame.Position))
 			newCenterPart.Parent = clone
 			prompt.Parent = newCenterPart
+			-- prompt.HoldDuration = 3
+
+			local starttime = nil
+			local isIngredient = stationName ~= "cup" and stationName ~= "trash"
+			-- conn2 = isIngredient
+			-- 		and prompt.TriggerEnded:Connect(function(player)
+			-- 			if not starttime then
+			-- 				warn("Trigger Ended but no starttime")
+			-- 				return
+			-- 			end
+
+			-- 			local elapsed = workspace:GetServerTimeNow() - starttime
+			-- 			starttime = nil
+			-- 		end)
+			-- 	or nil
 
 			conn = prompt.Triggered:Connect(function(player: Player)
 				local playerId = tostring(player.UserId)
 				if playerId ~= props.PlayerId then
 					return
 				end
+				starttime = workspace:GetServerTimeNow()
 
 				if stationName == "cup" then
 					DrinksService.GetCup(player)
 				elseif stationName == "trash" then
 					DrinksService.TrashCup(player)
-				else
-					DrinksService.AddIngredient(player, stationName)
 				end
 			end)
 			CollectionService:AddTag(clone, "Station" .. props.PlayerId)

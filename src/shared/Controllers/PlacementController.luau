@@ -364,55 +364,42 @@ function self:attemptDestroyAtCursor()
 end
 
 function self.initialize()
-	--[[
-  00:56:41.270  Error waiting cafeBase: -- Promise.Error(TimedOut) --
-Timed out
-Timeout of 10 seconds exceeded.
-:timeout() called at:
-
-ReplicatedStorage.Shared.Controllers.PlacementController:381
-ReplicatedStorage.Packages._Index.evaera_promise@4.0.0.promise:172 function runExecutor
-ReplicatedStorage.Packages._Index.evaera_promise@4.0.0.promise:382
-  -  Client - PlacementController:383
-
-  
-
-  Player could error here. and placement controller fails to initialize
-  
-	
-	]]
-	self.initializePromise = Promise.defer(function(resolve, reject, onCancel)
-		local playersPlot = UIState:getState().cafeBase or nil
-		if playersPlot then
-			resolve(playersPlot)
+	self.initializePromise = Promise.new(function(resolve, reject, onCancel)
+		-- 1. Check if it's already there
+		local currentState = UIState:getState()
+		if currentState.cafeBase then
+			return resolve(currentState.cafeBase) -- Explicit return!
 		end
+
+		-- 2. Wait for it to exist without yielding the thread
 		local waitPromise = UIState:wait(function(state: UIState.UIState)
 			return state.cafeBase
 		end, function(cafeBase)
-			local found = cafeBase and true or false
-			if found then
+			if cafeBase then
 				resolve(cafeBase)
+				return true
 			end
-			return found
+			return false
 		end)
-			:timeout(30)
-			:catch(function(err)
-				warn("Error waiting cafeBase:", err)
-			end)
-			:await()
+
+		-- 3. If PlacementController.cleanup() is called while we are still waiting,
+		-- this ensures we don't cause a memory leak.
+		onCancel(function()
+			if waitPromise.cancel then
+				waitPromise:cancel()
+			end
+		end)
 	end)
 		:andThen(function(cafeBase)
 			-- Ensure we actually have the part before initializing
 			local initialPart = cafeBase:FindFirstChild("Part") or cafeBase:WaitForChild("Part", 10)
 			self.new(initialPart, ReplicatedStorage.Shared.Models)
 
-			-- FIX: Listen directly to the Model's children!
-			-- When the Server's React tree resizes the plot, it destroys the old Part and adds a new one.
+			-- Listen directly to the Model's children for plot expansions
 			self.partAddedConn = cafeBase.ChildAdded:Connect(function(child)
 				if child.Name == "Part" and child:IsA("BasePart") then
 					self.plot = child
 
-					-- If the visualizer is currently active, ensure it updates its bounds reference too!
 					if self.visualizer then
 						self.visualizer.plot = child
 					end
@@ -463,7 +450,8 @@ ReplicatedStorage.Packages._Index.evaera_promise@4.0.0.promise:382
 			end)
 		end)
 		:catch(function(err)
-			warn("PlacementController error:", err)
+			-- This will now only fire if the Promise is explicitly rejected or cancelled
+			warn("PlacementController initialization failed or cancelled:", err)
 		end)
 end
 

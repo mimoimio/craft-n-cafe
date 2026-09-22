@@ -7,6 +7,7 @@ local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Promise = require(ReplicatedStorage.Packages.Promise)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
+local LevelConfig = require(ReplicatedStorage.Shared.Configs.LevelConfig)
 local Types = require(ReplicatedStorage.Shared.Types)
 local PlaceablesModule = require(ReplicatedStorage.Shared.PlaceablesModule)
 
@@ -83,6 +84,7 @@ function CustomersService.ServeCustomer(player: Player, uid: string, workerUid: 
 	local state = GlobalState:getState()
 
 	local playersCustomers = state.Customers[playerId]
+	local playersStats = state.Stats[playerId]
 	local playersWorkers = state.Workers[playerId]
 	local playersCups = state.Cups[playerId]
 
@@ -109,18 +111,20 @@ function CustomersService.ServeCustomer(player: Player, uid: string, workerUid: 
 	end
 
 	if not (found and found.order and found.customerAction == "waiting" and found.servedBy == workerUid) then
-		warn(found)
+		print("customer servedBy other")
 		return
 	end
 
 	if cup.drinkId == found.order then
 		local drinkConfig = CoffeeModule.Config[cup.drinkId]
-		local cashReward = drinkConfig and drinkConfig.Price or 5
-
+		local cashReward = drinkConfig and (drinkConfig.Price * cup.score // #drinkConfig.Ingredients)
+		local exp = playersStats.EXP + 1
+		local level = LevelConfig.GetLevel(exp)
 		GlobalState.serveCustomer(playerId, {
 			customerUid = uid,
 			cash = cashReward,
-			EXP = 1,
+			EXP = exp,
+			level = level,
 			timestamp = workspace:GetServerTimeNow(),
 			workerUid = workerUid,
 		})
