@@ -392,8 +392,8 @@ local function BuildPanel()
 						BackgroundTransparency = 1,
 					}),
 					e(SmallText, {
-						TextSize = mobile and 10 or 12,
-						Text = `delete\nmode`,
+						TextSize = mobile and 12 or 24,
+						Text = `delete`,
 						Size = UDim2.fromScale(1, 1),
 						RichText = true,
 						AutomaticSize = Enum.AutomaticSize.XY,
@@ -423,7 +423,7 @@ local function BuildPanel()
 					}),
 					e("UIStroke", { Thickness = 2 }),
 					e(SmallText, {
-						TextSize = mobile and 10 or 12,
+						TextSize = mobile and 12 or 24,
 						Text = getActionLabel(Enum.KeyCode.ButtonL2, "rotate"),
 						Size = UDim2.fromScale(1, 1),
 						RichText = true,
@@ -459,7 +459,7 @@ local function BuildPanel()
 						ImageTransparency = 0.4,
 					}),
 					e(SmallText, {
-						TextSize = mobile and 10 or 12,
+						TextSize = mobile and 12 or 24,
 						Text = getActionLabel(Enum.KeyCode.ButtonR2, DELETEMODE and "destroy" or "place"),
 						Size = UDim2.fromScale(1, 1),
 						RichText = true,

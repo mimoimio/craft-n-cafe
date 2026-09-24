@@ -104,18 +104,20 @@ local function EXPOverlay(props)
 			setEXP(playersStats.EXP)
 		end
 		local t
-		if not player then
-			t = task.defer(function()
-				while task.wait(0.1) do
-					setEXP(function(prev)
-						return prev + 1
-					end)
-				end
-			end)
-		end
+		-- if not player then
+		-- 	t = task.defer(function()
+		-- 		while task.wait(0.1) do
+		-- 			setEXP(function(prev)
+		-- 				return prev + 1
+		-- 			end)
+		-- 		end
+		-- 	end)
+		-- end
 		return function()
 			unsub()
-			task.cancel(t)
+			if t then
+				task.cancel(t)
+			end
 		end
 	end, {})
 

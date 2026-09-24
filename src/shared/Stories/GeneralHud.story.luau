@@ -15,6 +15,7 @@ local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local Grid = require(ReplicatedStorage.Shared.Grid)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local LevelConfig = require(ReplicatedStorage.Shared.Configs.LevelConfig)
 local ViewportController = require(ReplicatedStorage.Shared.Controllers.ViewportController)
 local Main = require(ReplicatedStorage.Shared.ReactComponents.Main)
 local App = require(ReplicatedStorage.Shared.ReactComponents.App)
@@ -85,7 +86,7 @@ local function story(frame: Frame)
 	end
 	GlobalState.startPlayerSession("MockUser", {
 		Plot = getPlot(),
-		Stats = { EXP = 10, Level = 50, Cash = 500000 },
+		Stats = { EXP = 0, Level = 1, Cash = 500000 },
 		Inventory = inventory,
 
 		Ingredients = {},
@@ -93,6 +94,18 @@ local function story(frame: Frame)
 		Workers = {},
 		Cups = {},
 	})
+
+	local t = task.defer(function()
+		local playerId = "MockUser"
+		while task.wait(1) do
+			local state = GlobalState:getState()
+			local playersStats = state.Stats[playerId]
+
+			local exp = playersStats.EXP + 1
+			local level = LevelConfig.GetLevel(exp)
+			GlobalState._addExp("MockUser", exp, level)
+		end
+	end)
 
 	-- 2. Mock Server: Listen for Mock Remote Events
 	local placeListener = Remotes.PlaceItem.OnServerEvent:Connect(function(player, payload)
@@ -291,6 +304,9 @@ local function story(frame: Frame)
 
 		Remotes.PlaceItem._clearListeners()
 		Remotes.DestroyItem._clearListeners()
+		if t then
+			task.cancel(t)
+		end
 	end
 end
 

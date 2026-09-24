@@ -12,6 +12,9 @@ local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local ScreenPromptButton = require(script.Parent.ui.ScreenPromptButton)
 local SmallText = require(script.Parent.ui.SmallText)
 
+local BuildersIcon = require(ReplicatedStorage.Shared.Utils.BuildersIcon)
+local useInputDevice = require(ReplicatedStorage.Shared.Hooks.useInputDevice)
+
 local e = React.createElement
 local useState = React.useState
 local useEffect = React.useEffect
@@ -89,6 +92,7 @@ local function CustomerPromptNode(props: {
 
 	-- 4. Check if the player is currently serving this specific customer
 	local isServing = props.CustomerData and props.CustomerData.servedBy == "player"
+	local currentInput = useInputDevice()
 
 	return e(React.Fragment, {}, {
 		-- The Interactive Custom UI (Only shows when hovered and panels are closed)
@@ -99,10 +103,20 @@ local function CustomerPromptNode(props: {
 			Size = UDim2.fromOffset(200, 50),
 			Visible = visible and shown,
 		}, {
+			-- e(SmallText, {
+			-- 	Size = UDim2.new(1, 0, 1, 0),
+			-- 	TextXAlignment = Enum.TextXAlignment.Center,
+			-- 	Text = prompt and prompt.ActionText or "",
+			-- }),
+
 			e(SmallText, {
 				Size = UDim2.new(1, 0, 1, 0),
 				TextXAlignment = Enum.TextXAlignment.Center,
-				Text = prompt and prompt.ActionText or "",
+				Text = prompt and (BuildersIcon.GetPromptText(
+					currentInput == "Gamepad" and prompt.GamepadKeyCode or prompt.KeyboardKeyCode,
+					currentInput
+				) .. " " .. prompt.ActionText) or "",
+				RichText = true,
 			}),
 		}),
 

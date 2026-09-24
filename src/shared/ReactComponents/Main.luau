@@ -70,9 +70,9 @@ local function Main(props)
 				e(EXPOverlay),
 				e(CashOverlay),
 			}),
-			e(require(script.Parent.PlayersCup), {
-				LayoutOrder = 2,
-			}),
+		}),
+		e(require(script.Parent.PlayersCup), {
+			LayoutOrder = 2,
 		}),
 		e(Sidebar),
 		e(CafeBase),

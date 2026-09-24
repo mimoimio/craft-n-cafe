@@ -156,6 +156,21 @@ local actions = {
 		nextState[playerId] = playerStats
 		return nextState
 	end,
+	_addExp = function(state: StatsState, playerId: string, exp, lvl)
+		local playersStats = state[playerId]
+		if not playersStats then
+			return state
+		end
+
+		return Set(
+			state,
+			playerId,
+			Merge(playersStats, {
+				EXP = exp,
+				Level = lvl,
+			})
+		)
+	end,
 }
 
 return Reflex.createProducer(initialState, actions)

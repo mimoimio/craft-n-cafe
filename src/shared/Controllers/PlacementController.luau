@@ -364,49 +364,78 @@ function self:attemptDestroyAtCursor()
 end
 
 function self.initialize()
+	print("[PlacementController] initialize() called.")
+
 	self.initializePromise = Promise.new(function(resolve, reject, onCancel)
+		print("[PlacementController] Promise executor started.")
+
 		-- 1. Check if it's already there
 		local currentState = UIState:getState()
 		if currentState.cafeBase then
-			return resolve(currentState.cafeBase) -- Explicit return!
+			print("[PlacementController] cafeBase found immediately in UIState. Resolving.")
+			resolve(currentState.cafeBase)
+			return
 		end
 
+		print("[PlacementController] cafeBase not found in UIState. Starting UIState:wait()...")
 		-- 2. Wait for it to exist without yielding the thread
 		local waitPromise = UIState:wait(function(state: UIState.UIState)
 			return state.cafeBase
 		end, function(cafeBase)
+			print("[PlacementController] UIState:wait triggered. cafeBase present:", cafeBase ~= nil)
 			if cafeBase then
+				print("[PlacementController] Resolving from UIState:wait.")
 				resolve(cafeBase)
 				return true
 			end
 			return false
 		end)
 
-		-- 3. If PlacementController.cleanup() is called while we are still waiting,
-		-- this ensures we don't cause a memory leak.
+		-- 3. If PlacementController.cleanup() is called while we are still waiting
 		onCancel(function()
+			print("[PlacementController] initializePromise cancelled! Aborting waitPromise.")
 			if waitPromise.cancel then
 				waitPromise:cancel()
 			end
 		end)
 	end)
 		:andThen(function(cafeBase)
+			print("[PlacementController] .andThen reached. cafeBase:", cafeBase.Name)
+
 			-- Ensure we actually have the part before initializing
-			local initialPart = cafeBase:FindFirstChild("Part") or cafeBase:WaitForChild("Part", 10)
+			print("[PlacementController] Looking for 'Part' inside cafeBase...")
+			local initialPart = cafeBase:FindFirstChild("Part")
+
+			if not initialPart then
+				print("[PlacementController] 'Part' not found immediately, starting WaitForChild(10s)...")
+				initialPart = cafeBase:WaitForChild("Part", 10)
+			end
+
+			if not initialPart then
+				warn(
+					"[PlacementController] FATAL: 'Part' never loaded inside cafeBase after 10 seconds. Controller will fail."
+				)
+				return -- Prevent self.new(nil) from silently breaking the thread
+			end
+
+			print("[PlacementController] 'Part' found. Calling self.new()...")
 			self.new(initialPart, ReplicatedStorage.Shared.Models)
+			print("[PlacementController] self.new() completed successfully.")
 
 			-- Listen directly to the Model's children for plot expansions
 			self.partAddedConn = cafeBase.ChildAdded:Connect(function(child)
 				if child.Name == "Part" and child:IsA("BasePart") then
+					print("[PlacementController] ChildAdded detected new 'Part'. Updating plot reference.")
 					self.plot = child
 
 					if self.visualizer then
 						self.visualizer.plot = child
 					end
-					print("PlacementController: Plot expanded and synced!")
+					print("[PlacementController] Plot expanded and synced!")
 				end
 			end)
 
+			print("[PlacementController] Binding RenderStepped and InputBegan...")
 			self.connection = RunService.RenderStepped:Connect(function()
 				if not self.plot then
 					return
@@ -448,15 +477,21 @@ function self.initialize()
 					end
 				end
 			end)
+
+			print("[PlacementController] Initialization sequence fully complete.")
 		end)
 		:catch(function(err)
-			-- This will now only fire if the Promise is explicitly rejected or cancelled
-			warn("PlacementController initialization failed or cancelled:", err)
+			-- This will now only fire if the Promise is explicitly rejected, errored, or cancelled
+			warn("[PlacementController] Initialization failed, errored, or was cancelled:", err)
 		end)
 end
 
 function self.cleanup()
-	self.initializePromise:cancel()
+	print("[PlacementController] cleanup() called.")
+
+	if self.initializePromise then
+		self.initializePromise:cancel()
+	end
 	if self.connection then
 		self.connection:Disconnect()
 	end
@@ -466,9 +501,11 @@ function self.cleanup()
 	if self.highlightConn then
 		self.highlightConn:Disconnect()
 	end
-	-- Clean up our instance listener
 	if self.partAddedConn then
 		self.partAddedConn:Disconnect()
 	end
+
+	print("[PlacementController] cleanup() finished.")
 end
+
 return self

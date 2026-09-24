@@ -11,6 +11,9 @@ local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Types = require(ReplicatedStorage.Shared.Types)
+local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
+local BuildersIcon = require(ReplicatedStorage.Shared.Utils.BuildersIcon)
+local useInputDevice = require(edStorage.Shared.Hooks.useInputDevice)
 
 local ScreenPromptButton = require(script.Parent.ui.ScreenPromptButton)
 local SmallText = require(script.Parent.ui.SmallText)
@@ -373,6 +376,7 @@ end
 
 local function StationPromptNode(props: { Model: Model, stationId: string })
 	local prompt, setPrompt = useState(nil)
+	local currentInput = useInputDevice()
 
 	local visible, setVisible = useState(nil)
 	useEffect(function()
@@ -435,6 +439,15 @@ local function StationPromptNode(props: { Model: Model, stationId: string })
 		end
 	end, { prompt, prompt and prompt.Parent })
 
+	local station = string.match(props.stationId or "", "^(.+)_station$")
+	local ingconfig = CoffeeModule.IngredientLookup[station]
+	local label = ingconfig and ingconfig.DisplayName or station or ""
+
+	local cf, s
+	if props.Model then
+		cf, s = props.Model:GetBoundingBox()
+	end
+	local part, setPart = useState(nil)
 	return e(React.Fragment, {}, {
 		TimingBar = prompt and e(TimingBar, {
 			prompt = prompt,
@@ -452,7 +465,11 @@ local function StationPromptNode(props: { Model: Model, stationId: string })
 			e(SmallText, {
 				Size = UDim2.new(1, 0, 1, 0),
 				TextXAlignment = Enum.TextXAlignment.Center,
-				Text = prompt and prompt.ActionText or "",
+				Text = prompt and (BuildersIcon.GetPromptText(
+					currentInput == "Gamepad" and prompt.GamepadKeyCode or prompt.KeyboardKeyCode,
+					currentInput
+				) .. " " .. prompt.ActionText) or "",
+				RichText = true,
 			}),
 		}),
 		hi = props.Model and ReactRoblox.createPortal({
@@ -460,8 +477,41 @@ local function StationPromptNode(props: { Model: Model, stationId: string })
 				Adornee = props.Model,
 				Enabled = visible and shown,
 				FillColor = Color3.new(1, 1, 1),
-				FillTransparency = 0.4,
+				FillTransparency = 0.8,
 				OutlineColor = Color3.new(),
+			}),
+		}, props.Model) or nil,
+
+		-- The Serving Indicator (Stays visible even if panels are open)
+		Label = props.Model and visible and shown and ReactRoblox.createPortal({
+			e("Part", {
+				Transparency = 1,
+				Size = s,
+				CFrame = cf,
+				CanCollide = false,
+				ref = setPart,
+				Anchored = true,
+			}, {
+				e("BillboardGui", {
+					-- Adornee = props.Model
+					-- 		and props.Model.Parent
+					-- 		and (props.Model.PrimaryPart or props.Model:FindFirstChildWhichIsA("BasePart"))
+					-- 	or nil,
+					Adornee = part,
+					Size = UDim2.fromOffset(200, 40),
+					ExtentsOffsetWorldSpace = Vector3.new(0, 0, 0), -- Floats safely above the customer model
+					AlwaysOnTop = true,
+				}, {
+					e(SmallText, {
+						Size = UDim2.new(1, 0, 1, 0),
+						Text = label,
+						TextXAlignment = Enum.TextXAlignment.Center,
+						TextYAlignment = Enum.TextYAlignment.Center,
+						TextColor3 = Color3.new(0.4, 1, 1), -- Matching green text
+						TextStrokeTransparency = 0,
+						TextSize = 20,
+					}),
+				}),
 			}),
 		}, props.Model) or nil,
 	})

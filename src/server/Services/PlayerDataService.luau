@@ -16,7 +16,7 @@ local Signal = require(game.ReplicatedStorage.Packages.Signal)
 local ShopCycle = require(game.ReplicatedStorage.Shared.ShopCycle)
 local PlotConfig = require(game.ReplicatedStorage.Shared.Configs.PlotConfig)
 
--- local IS_PLAYTESTING = true
+local IS_PLAYTESTING = true
 --
 local DrinksBrewedLeaderboard = DataStoreService:GetOrderedDataStore("DrinksBrewed")
 

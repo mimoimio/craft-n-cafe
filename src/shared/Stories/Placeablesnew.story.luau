@@ -76,6 +76,23 @@ local Placeable = function(props)
 		Size = props.Size,
 		Transparency = 1,
 		ref = setPart,
+	}, {
+		props.firstOflevel and e("BillboardGui", {
+			Adornee = part,
+			Size = UDim2.fromOffset(200, 40),
+			ExtentsOffsetWorldSpace = Vector3.new(0, 0, 0), -- Floats safely above the customer model
+			AlwaysOnTop = true,
+		}, {
+			e(SmallText, {
+				Size = UDim2.new(1, 0, 1, 0),
+				Text = props.Config.UnlockLevel,
+				TextXAlignment = Enum.TextXAlignment.Center,
+				TextYAlignment = Enum.TextYAlignment.Center,
+				TextColor3 = Color3.new(0.4, 1, 1), -- Matching green text
+				TextStrokeTransparency = 0,
+				TextSize = 20,
+			}),
+		}),
 	})
 end
 
@@ -139,6 +156,12 @@ local App = function()
 			local updated = table.clone(nextConfigs[selectedIndex])
 			updated[field] = value
 			nextConfigs[selectedIndex] = updated
+
+			-- Sort by UnlockLevel after every edit
+			table.sort(nextConfigs, function(a, b)
+				return a.UnlockLevel < b.UnlockLevel
+			end)
+
 			return nextConfigs
 		end)
 	end
@@ -149,6 +172,8 @@ local App = function()
 	local furthestRow = 0
 	local furthesCol = 0
 	local currentRowsLength = 0
+	local totalRowsLength, maxColWidth = 0, 0
+	local prevLevel
 
 	for i, config in ipairs(localConfigs) do
 		local prefab = ReplicatedStorage.Shared.Models:FindFirstChild(config.Id)
@@ -158,6 +183,7 @@ local App = function()
 			furthesCol += s.X / 2
 			local newCF = origin + Vector3.new(furthesCol, s.Y / 2, furthestRow + s.Z / 2)
 			furthesCol += s.X / 2 + 5
+			local currentLevel = config.UnlockLevel
 			children[config.Id] = e(Placeable, {
 				PrefabCFrame = cf,
 				Prefab = prefab,
@@ -165,15 +191,19 @@ local App = function()
 				CFrame = newCF,
 				Size = s,
 				OnMount = OnMount,
+				firstOflevel = prevLevel ~= currentLevel and config.UnlockLevel or false,
 			})
+			prevLevel = currentLevel
 		end
 
-		if (i % 5) == 0 then
+		if (i % 10) == 0 then
 			furthestRow += currentRowsLength + 5
 			furthesCol = 0
 			currentRowsLength = 0
 		end
+		maxColWidth = math.max(maxColWidth, furthesCol)
 	end
+	totalRowsLength = furthestRow + currentRowsLength
 
 	-- Helper for text inputs
 	local function createInput(label, value, isNum, onFocusLost)
@@ -224,6 +254,8 @@ local App = function()
 		})
 	end
 
+	local size = Vector3.new(maxColWidth, 1, totalRowsLength)
+	local cframe = origin + Vector3.new(maxColWidth / 2, -0.5, totalRowsLength / 2)
 	return e("Frame", {
 		Size = UDim2.new(1, 0, 1, 0),
 		BackgroundTransparency = 1,
@@ -292,6 +324,12 @@ local App = function()
 							UnlockLevel = 1,
 							MaxAllowed = math.huge,
 						})
+
+						-- Sort by UnlockLevel
+						table.sort(nextConfigs, function(a, b)
+							return a.UnlockLevel < b.UnlockLevel
+						end)
+
 						return nextConfigs
 					end)
 				end,
@@ -380,7 +418,15 @@ local App = function()
 		}),
 
 		-- 3D Workspace Portal
-		ReactRoblox.createPortal({ e("Folder", { Name = "Placeables Folder" }, children) }, workspace),
+		ReactRoblox.createPortal({
+			e("Folder", { Name = "Placeables Folder" }, children),
+			e("Part", {
+				Size = size,
+				CFrame = cframe,
+				Locked = true,
+				Transparency = 0.8,
+			}),
+		}, workspace),
 	})
 end
 

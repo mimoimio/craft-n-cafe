@@ -82,8 +82,10 @@ return function(props)
 	}, {
 		e(SmallText, {
 			Size = UDim2.new(1, 0, 0, 0),
-			Position = UDim2.new(0.5, 0, 0.5, 0),
-			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(0.5, 0, 1, -100),
+			AnchorPoint = Vector2.new(0.5, 1),
+			-- BackgroundTransparency = 0.4,
+
 			Text = config
 					and `<font size="{mdTextSize}">Drink in hand: {config and config.DisplayName or ""}\n${cup.score} ({statuses[cup.status]})</font>`
 				or "",
