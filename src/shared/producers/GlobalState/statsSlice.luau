@@ -134,6 +134,7 @@ local actions = {
 				Cash = playersStats.Cash + payload.cash,
 				EXP = payload.EXP,
 				Level = payload.level,
+				CustomersServed = (playersStats.CustomersServed or 0) + 1,
 			})
 		)
 	end,

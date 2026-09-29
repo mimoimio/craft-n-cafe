@@ -9,6 +9,7 @@ local Promise = require(ReplicatedStorage.Packages.Promise)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Types = require(ReplicatedStorage.Shared.Types)
 
 local SoundController = require(ReplicatedStorage.Shared.Controllers.SoundController)
 local Primitives = ReplicatedStorage.Shared.ReactComponents.ui
@@ -31,7 +32,7 @@ local ShopPanel = require(script.Parent.ShopPanel)
 local Sidebar = require(script.Parent.Sidebar)
 
 local player = game:GetService("Players").LocalPlayer
-local playerId = player and tostring(player.UserId) or ""
+local playerId = player and tostring(player.UserId) or "MockUser"
 local admin = not player or playerId == "5470482596"
 
 local function MainMenu()
@@ -135,7 +136,22 @@ local function MainMenu()
 		}),
 	})
 end
+local function Tutorial(props)
+	local TutorialCompleted, setTutorialCompleted = useState(nil)
+	useEffect(function()
+		local unsub = GlobalState:subscribe(function(s: GlobalState.GlobalState)
+			return s.Stats[playerId] and s.Stats[playerId].TutorialCompleted or nil
+		end, setTutorialCompleted)
+		local s = GlobalState:getState()
+		setTutorialCompleted(s.Stats[playerId] and s.Stats[playerId].TutorialCompleted)
 
+		return unsub
+	end, {})
+	if TutorialCompleted == true or TutorialCompleted == nil then
+		return
+	end
+	return e(require(script.Parent.Tutorial))
+end
 local function Main(props)
 	local playerPhase: "mainMenu" | "playing", setPlayerPhase = useState("mainMenu")
 
@@ -163,9 +179,11 @@ local function Main(props)
 			admin and e(require(script.Parent.ConsoleApp)),
 			e(BuildPanel),
 			e(ShopPanel),
+			e(Tutorial),
 			e(require(script.Parent.CustomersOrder)),
 			e(require(script.Parent.CustomerPrompts)),
 			e(require(script.Parent.StationPrompts)),
+			e(require(script.Parent.SettingsPanel)),
 			e("Frame", {
 				Size = UDim2.new(1, 0, 1, 0),
 				BackgroundTransparency = 1,

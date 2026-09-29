@@ -14,6 +14,10 @@ function DrinksService.GetCup(player: Player)
 	local cup = playersCups.player
 
 	if cup then
+		-- local character = player.Character
+		-- if character then
+		-- 	character:FindFirstChildWhichIsA("Tool")
+		-- end
 		print("cup already")
 		return
 	end

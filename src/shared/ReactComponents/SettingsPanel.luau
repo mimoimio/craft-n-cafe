@@ -42,7 +42,7 @@ local function IngredientShopPanel(props: {
 })
 	local toast = useToast()
 	--listen to active panel
-	local panelOpen, setPanelOpen = useState((not player) or false)
+	local panelOpen, setPanelOpen = useState(false)
 	useEffect(function()
 		local unsub = UIState:subscribe(function(state: UIState.UIState)
 			setPanelOpen(state.panel == "settings")
@@ -113,19 +113,19 @@ local function IngredientShopPanel(props: {
 		end
 	end, { panelOpen })
 
-	return e(DefaultPanel, {
-		Title = "Settings",
-		Size = UDim2.new(0.5, 0, 1, 0),
+	return e("Frame", {
+		-- Title = "Settings",
+		Size = UDim2.new(0.5, 0, 0.5, 0),
 		-- MinSize = Vector2.new(500, 320),
-		MaxSize = Vector2.new(500, 500),
+		-- MaxSize = Vector2.new(500, 500),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = position:map(function(n)
 			return UDim2.new(0.5, 0, 0.5 - 2 * n, 0)
 		end),
-		OnClose = function()
-			UIState.toggle("none")
-		end,
-		BackgroundImageTransparency = 0,
+		-- OnClose = function()
+		-- 	UIState.toggle("none")
+		-- end,
+		-- BackgroundImageTransparency = 0,
 		-- Open = panelOpen,
 	}, {
 		DefaultScrollFrame = e(DefaultScrollFrame, {

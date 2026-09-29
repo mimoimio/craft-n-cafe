@@ -69,7 +69,8 @@ function Sidebar(props)
 		HorizontalAlignment = Enum.HorizontalAlignment.Left,
 		Spacing = UDim.new(0, 8),
 	}, {
-		ToggleShop = e(SidebarButton, { -- NEW: Shop Toggle Button
+
+		ToggleShop = e(SidebarButton, {
 			[React.Event.Activated] = function()
 				UIState.toggle("shop")
 			end,
@@ -77,9 +78,9 @@ function Sidebar(props)
 			Text = "Shop",
 			LayoutOrder = 1,
 		}),
-		ToggleIndex = e(SidebarButton, { -- NEW: Shop Toggle Button
+		ToggleIndex = e(SidebarButton, {
 			[React.Event.Activated] = function()
-				UIState.toggle("index")
+				UIState.toggle("recipe")
 			end,
 			Image = "rbxassetid://127110909372919",
 			Text = "Index",
@@ -89,12 +90,12 @@ function Sidebar(props)
 			[React.Event.Activated] = function()
 				UIState.toggle("build")
 			end,
-			-- Image = "rbxassetid://17368217589",
+
 			Image = "rbxassetid://17368183719",
 			Text = "Build",
 			LayoutOrder = 3,
 		}),
-		Console = admin and e(SidebarButton, { -- Optional: Hide console button if not admin
+		Console = admin and e(SidebarButton, {
 			[React.Event.Activated] = function()
 				UIState.toggle("admin")
 			end,
@@ -102,6 +103,14 @@ function Sidebar(props)
 			Text = "Console",
 			LayoutOrder = 4,
 		}) or nil,
+		Settings = e(SidebarButton, {
+			[React.Event.Activated] = function()
+				UIState.toggle("settings")
+			end,
+			Image = "rbxassetid://17368089841",
+			Text = "Settings",
+			LayoutOrder = 5,
+		}),
 	})
 end
 

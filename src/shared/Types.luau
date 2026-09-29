@@ -103,7 +103,7 @@ export type StatsEntity = {
 	ParticleOn: boolean,
 	CafeOpen: boolean,
 	TutorialCompleted: boolean,
-
+	CustomersServed: number,
 	Level: number,
 	RollCooldown: number,
 

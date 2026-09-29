@@ -229,6 +229,19 @@ local function CategoryRow(props: {
 			end,
 		}, {})
 	end
+	children["All"] = e(SmallButton, {
+		Size = UDim2.new(1, 0, 0, props.mobile and 20 or 40),
+		AutomaticSize = Enum.AutomaticSize.None,
+		Text = "All",
+		RichText = true,
+		TextXAlignment = "Left",
+		BackgroundTransparency = 0.2,
+		Rounded = false,
+		[React.Event.Activated] = function()
+			setSelecting(false)
+			setSelectedCategory(nil)
+		end,
+	}, {})
 	return e("Frame", {
 		LayoutOrder = 2,
 		Size = UDim2.new(1, 0, 0, props.mobile and 40 or 60),
@@ -241,7 +254,7 @@ local function CategoryRow(props: {
 		DropdownButton = e(SmallButton, {
 			Size = UDim2.new(1, 0, 1, 0),
 			AutomaticSize = Enum.AutomaticSize.None,
-			Text = `Category: {selectedCategory} {DOWN_ICON}`,
+			Text = `Category: {selectedCategory == nil and "All" or selectedCategory} {DOWN_ICON}`,
 			RichText = true,
 			[React.Event.Activated] = function()
 				setSelecting(function(prev)

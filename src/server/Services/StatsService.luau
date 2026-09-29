@@ -34,10 +34,6 @@ function StatsService.initialize()
 		GlobalState.setMusicVolume(tostring(player.UserId), volume)
 	end)
 
-	Remotes.CompleteTutorial.OnServerEvent:Connect(function(player)
-		GlobalState.completeTutorial(tostring(player.UserId))
-	end)
-
 	local maxStep = 17 -- The total number of steps in your tutorial
 
 	Remotes.LogTutorialStep.OnServerEvent:Connect(function(player: Player, stepLevel: number, stepName: string)

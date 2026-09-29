@@ -247,7 +247,7 @@ local function TimingBar(props: {
 						damper = 0.1,
 						speed = 20,
 					})
-					setScoreText("...")
+					setScoreText("Release On Green Area!")
 					setTextY({
 						start = 0,
 						target = -80,
@@ -345,32 +345,33 @@ local function TimingBar(props: {
 		}, {
 			UICorner = e("UICorner", { CornerRadius = UDim.new(0, 4) }),
 		}),
-		ScoreText = scoreText ~= "" and e("TextLabel", {
-			Text = scoreText,
-			TextSize = 32,
-			Font = "FredokaOne",
-			TextStrokeTransparency = 0,
-			TextColor3 = scoreText == "Perfect!" and Color3.fromRGB(0, 255, 150)
-				or (scoreText == "Invalid Drink!" or scoreText == "Grab a Cup First!" or scoreText == "...") and Color3.new(
-					0.6,
-					0.6,
-					0.6
-				)
-				or Color3.fromRGB(255, 255, 100),
-			Size = UDim2.new(1, 0, 1, 0),
-			Position = textY:map(function(y)
-				return UDim2.new(0.5, 0, 0.5, y)
-			end),
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			BackgroundTransparency = 1,
-			TextTransparency = textTransparency,
-			TextStrokeColor3 = Color3.new(0, 0, 0),
-			ZIndex = 10,
-		}, {
-			UIScale = e("UIScale", {
-				Scale = textScale,
+		ScoreText = scoreText ~= ""
+			and e("TextLabel", {
+				Text = scoreText,
+				TextSize = 32,
+				Font = "FredokaOne",
+				TextStrokeTransparency = 0,
+				TextColor3 = scoreText == "Perfect!" and Color3.fromRGB(0, 255, 150)
+					or (scoreText == "Invalid Drink!" or scoreText == "Grab a Cup First!" or scoreText == "Release On Green Area!") and Color3.new(
+						0.6,
+						0.6,
+						0.6
+					)
+					or Color3.fromRGB(255, 255, 100),
+				Size = UDim2.new(1, 0, 1, 0),
+				Position = textY:map(function(y)
+					return UDim2.new(0.5, 0, 0.5, y)
+				end),
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				BackgroundTransparency = 1,
+				TextTransparency = textTransparency,
+				TextStrokeColor3 = Color3.new(0, 0, 0),
+				ZIndex = 10,
+			}, {
+				UIScale = e("UIScale", {
+					Scale = textScale,
+				}),
 			}),
-		}),
 	})
 end
 
