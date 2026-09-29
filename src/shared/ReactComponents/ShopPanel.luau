@@ -4,6 +4,7 @@ local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
+local Mionum = require(ReplicatedStorage.Packages.Mionum)
 local ReactFlow = require(ReplicatedStorage.Packages.ReactFlow)
 local Reflex = require(ReplicatedStorage.Packages.Reflex)
 
@@ -25,6 +26,20 @@ local useState = React.useState
 local useEffect = React.useEffect
 local useSpring = ReactFlow.useSpring
 local useBreakpoint = require(script.Parent.Parent.Hooks.useBreakpoint)
+local BuildersIcon = require(script.Parent.Parent.Utils.BuildersIcon)
+
+local DOWN_ICON = BuildersIcon["chevron-large-down"]
+local function Padding(props: {
+	All: UDim,
+})
+	local All = props.All or UDim.new(0, 4)
+	return e("UIPadding", {
+		PaddingTop = All,
+		PaddingBottom = All,
+		PaddingLeft = All,
+		PaddingRight = All,
+	})
+end
 
 local playerId = Players.LocalPlayer and tostring(Players.LocalPlayer.UserId) or "MockUser"
 
@@ -72,7 +87,7 @@ local function ItemModelViewport(props: {
 
 	local onMount = React.useCallback(function(rbx)
 		setViewportFrame(rbx)
-		warn(rbx)
+		-- warn(rbx)
 	end, {})
 	return e("ViewportFrame", {
 		ZIndex = 1,
@@ -142,8 +157,12 @@ local function ItemButton(
 		BackgroundColor3 = isSelected and Color3.new(0.2, 0.6, 0.2) or nil,
 		LayoutOrder = props.config.UnlockLevel,
 		Padding = { All = UDim.new() },
+		Image = "",
+		Visible = props.Visible,
 	}, {
 		-- Locked Overlay Tint
+		stroke = e("UIStroke", { Thickness = isSelected and 2 or 0 }),
+
 		isLocked and e("Frame", {
 			Size = UDim2.fromScale(1, 1),
 			BackgroundColor3 = Color3.new(0, 0, 0),
@@ -181,6 +200,67 @@ local function ItemButton(
 	})
 end
 
+local function CategoryRow(props: {
+	mobile: boolean,
+	setCategory: (category: string) -> (),
+})
+	local selectedCategory, setSelectedCategory = useState(nil)
+	local categories = PlaceablesModule.Categories
+	local selecting, setSelecting = useState(false)
+	useEffect(function()
+		if props.setCategory then
+			props.setCategory(selectedCategory)
+		end
+	end, { selectedCategory })
+
+	local children = {}
+	for i, category in categories do
+		children[category] = e(SmallButton, {
+			Size = UDim2.new(1, 0, 0, props.mobile and 20 or 40),
+			AutomaticSize = Enum.AutomaticSize.None,
+			Text = category,
+			RichText = true,
+			TextXAlignment = "Left",
+			BackgroundTransparency = 0.2,
+			Rounded = false,
+			[React.Event.Activated] = function()
+				setSelecting(false)
+				setSelectedCategory(category)
+			end,
+		}, {})
+	end
+	return e("Frame", {
+		LayoutOrder = 2,
+		Size = UDim2.new(1, 0, 0, props.mobile and 40 or 60),
+		AutomaticSize = Enum.AutomaticSize.None,
+		BackgroundTransparency = 1,
+		ClipsDescendants = false,
+		ZIndex = 20,
+	}, {
+		e(Padding),
+		DropdownButton = e(SmallButton, {
+			Size = UDim2.new(1, 0, 1, 0),
+			AutomaticSize = Enum.AutomaticSize.None,
+			Text = `Category: {selectedCategory} {DOWN_ICON}`,
+			RichText = true,
+			[React.Event.Activated] = function()
+				setSelecting(function(prev)
+					return not prev
+				end)
+			end,
+			TextXAlignment = "Left",
+		}, {}),
+		Dropdown = e(VStack, {
+			Visible = selecting,
+			AutomaticSize = Enum.AutomaticSize.XY,
+			VerticalFlex = Enum.UIFlexAlignment.None,
+			ClipsDescendants = false,
+			Size = UDim2.new(1, 0, 0, 0),
+			Position = UDim2.new(0, 0, 1, 0),
+		}, children),
+	})
+end
+
 local function ShopPanel()
 	local visible, setVisible = useState(false)
 	local selectedItem, setSelectedItem = useState(nil) -- Local state for Shop detail view
@@ -191,6 +271,7 @@ local function ShopPanel()
 
 	local xs, sm, md, lg, xl = useBreakpoint()
 	local mobile = xs or sm or md
+	local category, setCategory = useState(nil)
 
 	-- 1. Sync with UIState for panel visibility
 	useEffect(function()
@@ -262,9 +343,9 @@ local function ShopPanel()
 		local btnText = `Buy ( ${selectedConfig.Price})`
 		local btnColor = Color3.new(0.2, 0.7, 0.2)
 		local canBuy = true
-
+		local btnTextSize = mobile and 14 or 20
 		if isLocked then
-			btnText = `Locked (Requires Lvl {selectedConfig.UnlockLevel})`
+			btnText = `Unlock at Lvl {selectedConfig.UnlockLevel}`
 			btnColor = Color3.new(0.4, 0.4, 0.4)
 			canBuy = false
 		elseif isMaxed then
@@ -283,7 +364,7 @@ local function ShopPanel()
 			Size = UDim2.new(0, mobile and 240 or 400, 0, 0),
 			BackgroundColor3 = Color3.new(0.1, 0.1, 0.1),
 			AutomaticSize = Enum.AutomaticSize.XY,
-			BackgroundTransparency = 0.1,
+			BackgroundTransparency = 0.6,
 			VerticalFlex = Enum.UIFlexAlignment.None,
 			Padding = {
 				All = UDim.new(0, 10),
@@ -297,6 +378,7 @@ local function ShopPanel()
 			Spacing = UDim.new(0, 8),
 			ZIndex = 5,
 		}, {
+			e("UICorner", { CornerRadius = UDim.new(0, 8) }),
 			Header = e(SmallText, {
 				Text = `<font size="20"><b>{selectedConfig.DisplayName}</b></font>\n<font color="rgb(180,180,180)">{selectedConfig.Category}</font>`,
 				RichText = true,
@@ -306,7 +388,7 @@ local function ShopPanel()
 				-- TextWrapped = true,
 				-- BackgroundTransparency = 0.1,
 				-- Size = UDim2.new(1, 0, 0, 40),
-			}),
+			}, {}),
 			image = e("Frame", {
 				BackgroundTransparency = 0.2,
 				BackgroundColor3 = Color3.new(1, 1, 1),
@@ -325,12 +407,7 @@ local function ShopPanel()
 				-- BackgroundTransparency = 0.1,
 				LayoutOrder = 3,
 			}, {
-				padding = e("UIPadding", {
-					PaddingTop = UDim.new(0, 4),
-					PaddingBottom = UDim.new(0, 4),
-					PaddingLeft = UDim.new(0, 4),
-					PaddingRight = UDim.new(0, 4),
-				}),
+				padding = e(Padding),
 			}),
 			e(HStack, {
 				Size = UDim2.new(1, 0, 0, 0),
@@ -353,8 +430,12 @@ local function ShopPanel()
 					e("UIStroke", { Thickness = 2 }),
 					e(SmallText, {
 						Text = btnText,
-						HorizontalAlignment = Enum.HorizontalAlignment.Center,
-						VerticalAlignment = Enum.VerticalAlignment.Center,
+						Size = UDim2.new(1, 0, 1, 0),
+						AutomaticSize = Enum.AutomaticSize.None,
+						TextWrapped = true,
+						TextXAlignment = Enum.TextXAlignment.Center,
+						TextYAlignment = Enum.TextYAlignment.Center,
+						TextSize = btnTextSize,
 					}),
 				}),
 
@@ -368,11 +449,25 @@ local function ShopPanel()
 						setSelectedItem(nil)
 					end,
 				}, {
-					e(SmallText, {
-						Text = "Cancel",
-						HorizontalAlignment = Enum.HorizontalAlignment.Center,
-						VerticalAlignment = Enum.VerticalAlignment.Center,
+
+					e(Padding),
+					e("ImageLabel", {
+						Image = "rbxassetid://17368177673",
+						Size = UDim2.new(1, 0, 1, 0),
+						SizeConstraint = Enum.SizeConstraint.RelativeYY,
+						BackgroundTransparency = 1,
+						Position = UDim2.new(0.5, 0, 0.5, 0),
+						AnchorPoint = Vector2.new(0.5, 0.5),
 					}),
+					-- e(SmallText, {
+					-- 	Text = "Cancel",
+					-- 	Size = UDim2.new(1, 0, 1, 0),
+					-- 	AutomaticSize = Enum.AutomaticSize.None,
+					-- 	TextWrapped = true,
+					-- 	TextXAlignment = Enum.TextXAlignment.Center,
+					-- 	TextYAlignment = Enum.TextYAlignment.Center,
+					-- 	TextSize = btnTextSize,
+					-- }),
 				}),
 			}),
 		})
@@ -391,44 +486,45 @@ local function ShopPanel()
 		end
 	end
 
-	if nextTier then
-		local canAfford = playerStats.Cash >= nextTier.Cost
-		local levelMet = playerStats.Level >= nextTier.UnlockLevel
-		local statusText = `(💲{nextTier.Cost})`
-		local bgColor = Color3.new(0.8, 0.6, 0.1)
+	-- if nextTier then
+	-- 	local canAfford = playerStats.Cash >= nextTier.Cost
+	-- 	local levelMet = playerStats.Level >= nextTier.UnlockLevel
+	-- 	local statusText = `(💲{nextTier.Cost})`
+	-- 	local bgColor = Color3.new(0.8, 0.6, 0.1)
 
-		if not levelMet then
-			statusText = `(Unlocks Lvl {nextTier.UnlockLevel})`
-			bgColor = Color3.new(0.4, 0.4, 0.4)
-		elseif not canAfford then
-			statusText = `(TOO EXPENSIVE)`
-			bgColor = Color3.new(0.6, 0.2, 0.2)
-		end
+	-- 	if not levelMet then
+	-- 		statusText = `(Unlocks Lvl {nextTier.UnlockLevel})`
+	-- 		bgColor = Color3.new(0.4, 0.4, 0.4)
+	-- 	elseif not canAfford then
+	-- 		statusText = `(TOO EXPENSIVE)`
+	-- 		bgColor = Color3.new(0.6, 0.2, 0.2)
+	-- 	end
 
-		itemButtons["PLOT_EXPANSION"] = e(SmallButton, {
-			Size = UDim2.new(1, -8, 0, 60),
-			BackgroundColor3 = bgColor,
-			LayoutOrder = -1,
-			[React.Event.Activated] = function()
-				if canAfford and levelMet then
-					Remotes.ExpandPlot:FireServer()
-				end
-			end,
-		}, {
-			e("UIStroke", { Thickness = 2, Color = Color3.new(1, 0.8, 0) }),
-			e(SmallText, {
-				Text = `⭐️ Expand Cafe to {nextTier.Size}x{nextTier.Size} ⭐️\n{statusText}`,
-				HorizontalAlignment = Enum.HorizontalAlignment.Center,
-			}),
-		})
-	end
+	-- 	itemButtons["PLOT_EXPANSION"] = e(SmallButton, {
+	-- 		Size = UDim2.new(1, -8, 0, 60),
+	-- 		BackgroundColor3 = bgColor,
+	-- 		LayoutOrder = -1,
+	-- 		[React.Event.Activated] = function()
+	-- 			if canAfford and levelMet then
+	-- 				Remotes.ExpandPlot:FireServer()
+	-- 			end
+	-- 		end,
+	-- 	}, {
+	-- 		e("UIStroke", { Thickness = 2, Color = Color3.new(1, 0.8, 0) }),
+	-- 		e(SmallText, {
+	-- 			Text = `⭐️ Expand Cafe to {nextTier.Size}x{nextTier.Size} ⭐️\n{statusText}`,
+	-- 			HorizontalAlignment = Enum.HorizontalAlignment.Center,
+	-- 		}),
+	-- 	})
+	-- end
 
 	-- Regular Catalog Items
 	for _, config in ipairs(PlaceablesModule.Array) do
 		local isLocked = playerStats.Level < config.UnlockLevel
-
+		-- warn(`(category ({category}) == nil) or (category({category}) == config.Category({config.Category})) or false`)
 		itemButtons[config.Id] = e(ItemButton, {
 			config = config,
+			Visible = (category == nil) or (category == config.Category) or false,
 			isSelected = selectedItem == config.Id,
 			isLocked = isLocked,
 			mobile = mobile,
@@ -521,19 +617,34 @@ local function ShopPanel()
 			ZIndex = 2,
 		}, {
 			Header = e(SmallText, {
-				Text = `Shop <font size="14" color="rgb(100,255,100)">[Cash: 💲{playerStats.Cash}]</font>`,
+				Text = `Shop `,
+				-- Text = `Shop <font size="14" color="rgb(100,255,100)">[Cash: ${Mionum.new(
+				-- 	playerStats and playerStats.Cash or 0
+				-- )
+				-- 	:toString()}]</font>`,
 				RichText = true,
-				Size = UDim2.new(1, 0, 0, 30),
+				-- Size = UDim2.new(1, 0, 0, 30),
+				AutomaticSize = Enum.AutomaticSize.XY,
+				-- BackgroundTransparency = 0,
 				LayoutOrder = 1,
+			}, {
+				padding = e(Padding),
+			}),
+			Categories = e(CategoryRow, {
+				mobile = mobile,
+				setCategory = setCategory,
 			}),
 			ScrollingFrame = e("ScrollingFrame", {
-				Size = UDim2.new(1, 0, 1, -40),
-				AutomaticCanvasSize = Enum.AutomaticSize.Y,
+				Size = UDim2.new(1, 0, 1, 0),
+				AutomaticCanvasSize = Enum.AutomaticSize.XY,
 				CanvasSize = UDim2.new(1, 0, 0, 0),
+				-- BackgroundTransparency = 0.8,
 				BackgroundTransparency = 1,
 				ScrollBarThickness = 4,
-				LayoutOrder = 2,
+				ScrollingDirection = Enum.ScrollingDirection.Y,
+				LayoutOrder = 3,
 			}, {
+				e(Padding),
 				e(HStack, {
 					Size = UDim2.new(1, 0, 0, 0),
 					AutomaticSize = Enum.AutomaticSize.XY,

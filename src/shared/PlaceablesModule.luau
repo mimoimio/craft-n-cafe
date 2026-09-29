@@ -7,6 +7,7 @@ local PlaceablesConfigArray: { Types.PlaceableConfig } =
 
 local PlaceablesModule = {}
 local PlaceableLookup: { [string]: Types.PlaceableConfig } = {}
+local Categories = {}
 
 -- 1. Initialize Lookup & Assign Images
 for _, config in ipairs(PlaceablesConfigArray) do
@@ -14,6 +15,10 @@ for _, config in ipairs(PlaceablesConfigArray) do
 	config.MaxAllowed = config.MaxAllowed or math.huge
 	config.UnlockLevel = config.UnlockLevel or 1
 	config.Price = config.Price or 0
+	local category = config.Category
+	if category then
+		Categories[category] = category
+	end
 
 	PlaceableLookup[config.Id] = config
 
@@ -35,6 +40,7 @@ end
 -- 2. Export Data
 PlaceablesModule.Config = PlaceableLookup
 PlaceablesModule.Array = PlaceablesConfigArray
+PlaceablesModule.Categories = Categories
 
 -- 3. Methods
 function PlaceablesModule.GetConfig(id: string): Types.PlaceableConfig?

@@ -23,11 +23,33 @@ local SmallButton = require(Primitives.SmallButton)
 local VStack = require(Primitives.VStack)
 local HStack = require(Primitives.HStack)
 
+local BuildersIcon = require(ReplicatedStorage.Shared.Utils.BuildersIcon)
+local DOWN_ICON = BuildersIcon["chevron-large-down"]
+
 local e = React.createElement
 local useEffect = React.useEffect
 local useState = React.useState
+local useRef = React.useRef
 
-local CATEGORIES = { "Architecture", "Surface", "Cashier", "Station", "Furniture", "Decoration" }
+local CATEGORIES = {
+	"Wall",
+	"Architecture",
+	"Surface",
+	"Cashier",
+	"Station",
+	"Furniture",
+	"Decoration",
+}
+
+local function Padding(props)
+	local All = props.All or UDim.new(0, 4)
+	return e("UIPadding", {
+		PaddingTop = All,
+		PaddingBottom = All,
+		PaddingLeft = All,
+		PaddingRight = All,
+	})
+end
 
 -- Serialize the configs back into valid Lua code
 local function serializeConfigs(configs)
@@ -49,27 +71,42 @@ end
 
 local Placeable = function(props)
 	local part, setPart = useState(nil)
+	local cloneRef = useRef(nil)
+
+	-- 1. Create & destroy the physical model
 	useEffect(function()
-		if not (props.Config and part) then
+		if not (props.Prefab and part) then
 			return
 		end
-		local prefab = props.Prefab
-		local clone: Model = prefab:Clone()
-		part:PivotTo(props.PrefabCFrame)
+		local clone = props.Prefab:Clone()
+		cloneRef.current = clone
+
 		local originalParent = part.Parent
 		part.Parent = clone
+		clone.Parent = originalParent
+
+		props.OnMount(clone)
+		part.Size = Vector3.zero
+
+		return function()
+			clone:Destroy()
+			cloneRef.current = nil
+		end
+	end, { props.Prefab, part })
+
+	-- 2. Update the CFrame dynamically when the layout sorts
+	useEffect(function()
+		local clone = cloneRef.current
+		if not (clone and part and props.CFrame) then
+			return
+		end
+
+		part:PivotTo(props.PrefabCFrame)
 		local originalPrimaryPart = clone.PrimaryPart
 		clone.PrimaryPart = part
 		clone:PivotTo(props.CFrame)
 		clone.PrimaryPart = originalPrimaryPart
-		part.Parent = originalParent
-		clone.Parent = originalParent
-		props.OnMount(clone)
-		part.Size = Vector3.zero
-		return function()
-			clone:Destroy()
-		end
-	end, { props.Config, part })
+	end, { props.CFrame, props.PrefabCFrame, part })
 
 	return e("Part", {
 		CFrame = props.CFrame,
@@ -80,7 +117,7 @@ local Placeable = function(props)
 		props.firstOflevel and e("BillboardGui", {
 			Adornee = part,
 			Size = UDim2.fromOffset(200, 40),
-			ExtentsOffsetWorldSpace = Vector3.new(0, 0, 0), -- Floats safely above the customer model
+			ExtentsOffsetWorldSpace = Vector3.new(0, 0, 0),
 			AlwaysOnTop = true,
 		}, {
 			e(SmallText, {
@@ -88,7 +125,7 @@ local Placeable = function(props)
 				Text = props.Config.UnlockLevel,
 				TextXAlignment = Enum.TextXAlignment.Center,
 				TextYAlignment = Enum.TextYAlignment.Center,
-				TextColor3 = Color3.new(0.4, 1, 1), -- Matching green text
+				TextColor3 = Color3.new(0.4, 1, 1),
 				TextStrokeTransparency = 0,
 				TextSize = 20,
 			}),
@@ -105,6 +142,9 @@ local App = function()
 	local itemTypeAttr, setItemTypeAttr = useState("Solid")
 	local placementTypeAttr, setPlacementTypeAttr = useState("Grid")
 
+	-- Dropdown State
+	local selectingCategory, setSelectingCategory = useState(false)
+
 	-- Selection Listener
 	useEffect(function()
 		local setSelected = function()
@@ -112,11 +152,12 @@ local App = function()
 			if #selecteds == 1 and selecteds[1]:IsA("Model") then
 				local sel = selecteds[1]
 				Select(sel)
-				-- Load attributes when selection changes
 				setItemTypeAttr(sel:GetAttribute("ItemType") or "Solid")
 				setPlacementTypeAttr(sel:GetAttribute("PlacementType") or "Grid")
+				setSelectingCategory(false) -- Close dropdown if it was open
 			else
 				Select(nil)
+				setSelectingCategory(false)
 			end
 		end
 		local conn = Selection.SelectionChanged:Connect(setSelected)
@@ -157,7 +198,6 @@ local App = function()
 			updated[field] = value
 			nextConfigs[selectedIndex] = updated
 
-			-- Sort by UnlockLevel after every edit
 			table.sort(nextConfigs, function(a, b)
 				return a.UnlockLevel < b.UnlockLevel
 			end)
@@ -166,44 +206,81 @@ local App = function()
 		end)
 	end
 
-	-- 3D Rendering Calculations
+	-- ==============================================
+	-- Cached 3D Rendering Calculations
+	-- ==============================================
 	local children = {}
 	local origin = CFrame.new(0, 100, 0)
-	local furthestRow = 0
-	local furthesCol = 0
-	local currentRowsLength = 0
-	local totalRowsLength, maxColWidth = 0, 0
-	local prevLevel
+	local layoutState = useRef(nil)
+	if not layoutState.current then
+		layoutState.current = {
+			cache = {},
+			furthestRow = 0,
+			furthesCol = 0,
+			currentRowsLength = 0,
+			maxColWidth = 0,
+			count = 0,
+			prevLevel = nil,
+		}
+	end
+
+	local state = layoutState.current
 
 	for i, config in ipairs(localConfigs) do
-		local prefab = ReplicatedStorage.Shared.Models:FindFirstChild(config.Id)
-		if prefab then
-			local cf, s = Grid.getModelBounds(prefab)
-			currentRowsLength = math.max(currentRowsLength, s.Z)
-			furthesCol += s.X / 2
-			local newCF = origin + Vector3.new(furthesCol, s.Y / 2, furthestRow + s.Z / 2)
-			furthesCol += s.X / 2 + 5
-			local currentLevel = config.UnlockLevel
-			children[config.Id] = e(Placeable, {
-				PrefabCFrame = cf,
-				Prefab = prefab,
-				Config = config,
-				CFrame = newCF,
-				Size = s,
-				OnMount = OnMount,
-				firstOflevel = prevLevel ~= currentLevel and config.UnlockLevel or false,
-			})
-			prevLevel = currentLevel
+		local cached = state.cache[config.Id]
+
+		if not cached then
+			local prefab = ReplicatedStorage.Shared.Models:FindFirstChild(config.Id)
+			if prefab then
+				local cf, s = Grid.getModelBounds(prefab)
+				state.currentRowsLength = math.max(state.currentRowsLength, s.Z)
+				state.furthesCol += s.X / 2
+				local newCF = origin + Vector3.new(state.furthesCol, s.Y / 2, state.furthestRow + s.Z / 2)
+				state.furthesCol += s.X / 2 + 5
+
+				local currentLevel = config.UnlockLevel
+				local isFirstOfLevel = false
+				if state.prevLevel ~= currentLevel then
+					isFirstOfLevel = currentLevel
+				end
+
+				cached = {
+					PrefabCFrame = cf,
+					CFrame = newCF,
+					Size = s,
+					firstOflevel = isFirstOfLevel,
+				}
+
+				state.cache[config.Id] = cached
+				state.prevLevel = currentLevel
+				state.count += 1
+
+				if (state.count % 10) == 0 then
+					state.furthestRow += state.currentRowsLength + 5
+					state.furthesCol = 0
+					state.currentRowsLength = 0
+				end
+				state.maxColWidth = math.max(state.maxColWidth, state.furthesCol)
+			end
 		end
 
-		if (i % 10) == 0 then
-			furthestRow += currentRowsLength + 5
-			furthesCol = 0
-			currentRowsLength = 0
+		local prefab = ReplicatedStorage.Shared.Models:FindFirstChild(config.Id)
+		if cached and prefab then
+			children[config.Id] = e(Placeable, {
+				PrefabCFrame = cached.PrefabCFrame,
+				Prefab = prefab,
+				Config = config,
+				CFrame = cached.CFrame,
+				Size = cached.Size,
+				OnMount = OnMount,
+				firstOflevel = cached.firstOflevel,
+			})
 		end
-		maxColWidth = math.max(maxColWidth, furthesCol)
 	end
-	totalRowsLength = furthestRow + currentRowsLength
+
+	local totalRowsLength = state.furthestRow + state.currentRowsLength
+	local maxColWidth = state.maxColWidth
+	-- ==============================================
 
 	-- Helper for text inputs
 	local function createInput(label, value, isNum, onFocusLost)
@@ -227,7 +304,7 @@ local App = function()
 		})
 	end
 
-	-- Evaluate Action Buttons dynamically based on selection state
+	-- Evaluate Action Buttons dynamically
 	local modelInShared = selected and ReplicatedStorage.Shared.Models:FindFirstChild(selected.Name)
 	local isSelectedAlreadyInFolder = selected and selected.Parent == ReplicatedStorage.Shared.Models
 
@@ -235,16 +312,14 @@ local App = function()
 	if selected and not isSelectedAlreadyInFolder then
 		ModelActionButton = e(SmallButton, {
 			Size = UDim2.new(1, 0, 0, 40),
-			-- Orange if replacing, Blue if adding new
 			BackgroundColor3 = modelInShared and Color3.new(0.8, 0.5, 0.2) or Color3.new(0.2, 0.4, 0.8),
 			[React.Event.Activated] = function()
 				local clone = selected:Clone()
-				-- If it exists in Shared.Models, safely remove it first
 				if modelInShared then
 					modelInShared:Destroy()
 				end
 				clone.Parent = ReplicatedStorage.Shared.Models
-				Selection:Set({ clone }) -- Selects the new version inside Shared.Models
+				Selection:Set({ clone })
 			end,
 		}, {
 			e(SmallText, {
@@ -254,8 +329,27 @@ local App = function()
 		})
 	end
 
+	-- Category Dropdown Options
+	local categoryOptions = {}
+	for _, cat in ipairs(CATEGORIES) do
+		categoryOptions[cat] = e(SmallButton, {
+			Size = UDim2.new(1, 0, 0, 24),
+			AutomaticSize = Enum.AutomaticSize.None,
+			Text = cat,
+			RichText = true,
+			TextXAlignment = "Left",
+			BackgroundTransparency = 0.2,
+			Rounded = false,
+			[React.Event.Activated] = function()
+				updateConfig("Category", cat)
+				setSelectingCategory(false)
+			end,
+		})
+	end
+
 	local size = Vector3.new(maxColWidth, 1, totalRowsLength)
 	local cframe = origin + Vector3.new(maxColWidth / 2, -0.5, totalRowsLength / 2)
+
 	return e("Frame", {
 		Size = UDim2.new(1, 0, 1, 0),
 		BackgroundTransparency = 1,
@@ -281,7 +375,7 @@ local App = function()
 				Size = UDim2.new(1, 0, 0, 20),
 			}),
 
-			-- Prefab Attributes Fields (Edits the physical model's attributes)
+			-- Prefab Attributes Fields
 			AttributesFields = selected and e(VStack, {
 				Size = UDim2.new(1, 0, 0, 90),
 				Spacing = UDim.new(0, 5),
@@ -325,7 +419,6 @@ local App = function()
 							MaxAllowed = math.huge,
 						})
 
-						-- Sort by UnlockLevel
 						table.sort(nextConfigs, function(a, b)
 							return a.UnlockLevel < b.UnlockLevel
 						end)
@@ -342,6 +435,7 @@ local App = function()
 				Size = UDim2.new(1, 0, 0, 200),
 				Spacing = UDim.new(0, 5),
 				BackgroundTransparency = 1,
+				ZIndex = 30,
 			}, {
 				NameInput = createInput("Display Name", currentConfig.DisplayName, false, function(v)
 					updateConfig("DisplayName", v)
@@ -361,21 +455,34 @@ local App = function()
 					end
 				),
 
-				CategoryCycler = e(HStack, { Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 1 }, {
-					e(SmallText, { Text = "Category", Size = UDim2.new(0.4, 0, 1, 0) }),
-					e(SmallButton, {
-						Size = UDim2.new(0.6, 0, 1, 0),
-						[React.Event.Activated] = function()
-							local currentIndex = table.find(CATEGORIES, currentConfig.Category) or 1
-							local nextIndex = (currentIndex % #CATEGORIES) + 1
-							updateConfig("Category", CATEGORIES[nextIndex])
-						end,
-					}, {
-						e(
-							SmallText,
-							{ Text = currentConfig.Category, HorizontalAlignment = Enum.HorizontalAlignment.Center }
-						),
+				-- NEW: Category Dropdown
+				CategoryDropdown = e("Frame", {
+					Size = UDim2.new(1, 0, 0, 30),
+					BackgroundTransparency = 1,
+					ClipsDescendants = false,
+					ZIndex = 200,
+				}, {
+					e(HStack, { Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1 }, {
+						e(SmallText, { Text = "Category", Size = UDim2.new(0.4, 0, 1, 0) }),
+						e(SmallButton, {
+							Size = UDim2.new(0.6, 0, 1, 0),
+							Text = `{currentConfig.Category} {DOWN_ICON}`,
+							RichText = true,
+							[React.Event.Activated] = function()
+								setSelectingCategory(not selectingCategory)
+							end,
+							TextXAlignment = "Left",
+						}),
 					}),
+					DropdownList = e(VStack, {
+						Visible = selectingCategory,
+						AutomaticSize = Enum.AutomaticSize.XY,
+						VerticalFlex = Enum.UIFlexAlignment.None,
+						ClipsDescendants = false,
+						Size = UDim2.new(0.6, 0, 0, 0),
+						Position = UDim2.new(0.4, 0, 1, 0),
+						BackgroundColor3 = Color3.new(0.15, 0.15, 0.15),
+					}, categoryOptions),
 				}),
 
 				RemoveBtn = e(SmallButton, {
@@ -403,7 +510,7 @@ local App = function()
 				TextColor3 = Color3.new(1, 1, 0),
 			}),
 			OutputString = e("TextBox", {
-				Size = UDim2.new(0, 200, 0, 200), -- Fills remaining space
+				Size = UDim2.new(0, 200, 0, 200),
 				Text = serializeConfigs(localConfigs),
 				TextXAlignment = Enum.TextXAlignment.Left,
 				TextYAlignment = Enum.TextYAlignment.Top,

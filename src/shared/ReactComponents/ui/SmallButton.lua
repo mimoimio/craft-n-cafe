@@ -7,7 +7,7 @@ local useSpring = ReactFlow.useSpring
 local useEffect = React.useEffect
 
 local function SmallButton(props)
-	local visible = props.Visible == true and true or props.Visible == false and false or true
+	local visible = (props.Visible == true) or (props.Visible == nil)
 	-- only not visible when expicitly stated so
 
 	local scale, setScale = useSpring({
