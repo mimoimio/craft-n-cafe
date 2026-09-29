@@ -17,18 +17,22 @@ export type UIState = {
 	viewportSize: Vector2,
 	buildItemId: string?, -- Tracks the selected item
 	cafeBase: CafeTypes.CafeBase,
+	playerPhase: PlayerPhase,
 }
 
+export type PlayerPhase = "mainMenu" | "playing"
 export type UIActions = {
 	toggle: (panel: string) -> (),
 	setViewportSize: (viewportSize: Vector2) -> (),
 	selectBuildItem: (itemId: string) -> (),
 	setCafeBase: (cafeBase: CafeTypes.CafeBase) -> (),
+	setPlayerPhase: (phase: PlayerPhase) -> (),
 }
 
 local initialState: UIState = {
 	panel = "none",
-	buildItemId = "crate", -- Default item when opening build mode
+	buildItemId = nil,
+	playerPhase = "mainMenu",
 }
 
 local function calculateBreakpoint(viewportSize: Vector2): Breakpoint
@@ -85,6 +89,9 @@ local producer = Reflex.createProducer(initialState, {
 	end,
 	setCafeBase = function(state: UIState, cafeBase: CafeTypes.CafeBase)
 		return Set(state, "cafeBase", cafeBase)
+	end,
+	setPlayerPhase = function(state: UIState, playerPhase: PlayerPhase)
+		return Set(state, "playerPhase", playerPhase)
 	end,
 }) :: Reflex.Producer<UIState, UIActions>
 

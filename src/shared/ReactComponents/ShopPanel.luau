@@ -1,5 +1,6 @@
 -- Shared/ReactComponents/ShopPanel.luau
 local GuiService = game:GetService("GuiService")
+
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
@@ -31,6 +32,65 @@ local playerId = Players.LocalPlayer and tostring(Players.LocalPlayer.UserId) or
 local DEFAULT_STATS = { Level = 1, Cash = 0 }
 local DEFAULT_PLOT = { placedItems = {}, spatialItems = {} }
 local DEFAULT_INV = {}
+local function ItemModelViewport(props: {
+	config: Types.PlaceableConfig,
+})
+	local itemId = props.config.Id
+	local currentCamera: Camera, setCurrentCamera = useState(nil)
+	local modelClone, setModelClone = useState(nil)
+	local mobile = props.mobile
+	local viewportFrame: ViewportFrame, setViewportFrame = useState(nil)
+
+	useEffect(function()
+		if not (viewportFrame and props.config) then
+			return
+		end
+		local prefab = ReplicatedStorage.Shared.Models:FindFirstChild(itemId)
+		if not prefab then
+			return
+		end
+
+		local clone = prefab:Clone()
+		clone:PivotTo(CFrame.new(Vector3.zero))
+		clone.Parent = viewportFrame
+		setModelClone(clone)
+
+		return function()
+			clone:Destroy()
+			setModelClone(nil)
+		end
+	end, { viewportFrame, props.config })
+
+	useEffect(function()
+		if not (viewportFrame and currentCamera and modelClone) then
+			return
+		end
+
+		currentCamera:ZoomToExtents(modelClone:GetBoundingBox())
+		viewportFrame.CurrentCamera = currentCamera
+	end, { viewportFrame, currentCamera, modelClone })
+
+	local onMount = React.useCallback(function(rbx)
+		setViewportFrame(rbx)
+		warn(rbx)
+	end, {})
+	return e("ViewportFrame", {
+		ZIndex = 1,
+		CurrentCamera = currentCamera,
+		Size = UDim2.new(1, 0, 1, 0),
+		LightDirection = Vector3.new(0, -1, -1),
+		BackgroundTransparency = 1,
+		Active = false,
+		ImageTransparency = props.ImageTransparency,
+		ref = onMount,
+	}, {
+		Camera = e("Camera", {
+			ref = setCurrentCamera,
+			CFrame = CFrame.new(Vector3.new(20, 20, -20), Vector3.zero),
+			FieldOfView = 45,
+		}),
+	})
+end
 local function ItemButton(
 	props: {
 		isSelected: boolean,
@@ -199,7 +259,7 @@ local function ShopPanel()
 		local canAfford = playerStats.Cash >= selectedConfig.Price
 		local isLocked = playerStats.Level < selectedConfig.UnlockLevel
 
-		local btnText = `Buy (💲{selectedConfig.Price})`
+		local btnText = `Buy ( ${selectedConfig.Price})`
 		local btnColor = Color3.new(0.2, 0.7, 0.2)
 		local canBuy = true
 
@@ -218,15 +278,22 @@ local function ShopPanel()
 		end
 
 		detailsOverlay = e(VStack, {
-			Position = UDim2.new(0, -10, 0.5, 0),
+			Position = UDim2.new(0, 0, 0.5, 0),
 			AnchorPoint = Vector2.new(1, 0.5),
 			Size = UDim2.new(0, mobile and 240 or 400, 0, 0),
-			AutomaticSize = Enum.AutomaticSize.Y,
 			BackgroundColor3 = Color3.new(0.1, 0.1, 0.1),
+			AutomaticSize = Enum.AutomaticSize.XY,
 			BackgroundTransparency = 0.1,
+			VerticalFlex = Enum.UIFlexAlignment.None,
 			Padding = {
 				All = UDim.new(0, 10),
 			},
+			OnMount = function(rbx)
+				if not rbx then
+					return
+				end
+				-- warn(rbx.AbsoluteSize)
+			end,
 			Spacing = UDim.new(0, 8),
 			ZIndex = 5,
 		}, {
@@ -234,54 +301,80 @@ local function ShopPanel()
 				Text = `<font size="20"><b>{selectedConfig.DisplayName}</b></font>\n<font color="rgb(180,180,180)">{selectedConfig.Category}</font>`,
 				RichText = true,
 				TextXAlignment = Enum.TextXAlignment.Center,
-				Size = UDim2.new(1, 0, 0, 40),
+				TextYAlignment = Enum.TextYAlignment.Center,
+				AutomaticSize = Enum.AutomaticSize.XY,
+				-- TextWrapped = true,
+				-- BackgroundTransparency = 0.1,
+				-- Size = UDim2.new(1, 0, 0, 40),
 			}),
-
-			ItemImage = selectedConfig.Image and e("ImageLabel", {
-				Size = UDim2.new(1, 0, 0, 100),
-				BackgroundTransparency = 1,
-				Image = selectedConfig.Image,
-				ScaleType = Enum.ScaleType.Fit,
-				LayoutOrder = 1,
-			}) or nil,
-
-			Divider = e("Frame", {
-				Size = UDim2.new(1, 0, 0, 2),
-				BackgroundColor3 = Color3.new(0.3, 0.3, 0.3),
-				BorderSizePixel = 0,
-				LayoutOrder = 2,
+			image = e("Frame", {
+				BackgroundTransparency = 0.2,
+				BackgroundColor3 = Color3.new(1, 1, 1),
+				Size = UDim2.new(1, 0, 0, mobile and 100 or 200),
+			}, {
+				itemmodelviewport = e(ItemModelViewport, { config = selectedConfig }),
 			}),
 
 			Stats = e(SmallText, {
-				Text = `<b>Price:</b> 💲{selectedConfig.Price}\n<b>Unlock Level:</b> {selectedConfig.UnlockLevel}\n<b>Owned:</b> {totalOwned} / {selectedConfig.MaxAllowed == math.huge and "∞" or selectedConfig.MaxAllowed}`,
+				Text = `<b>Price:</b> ${selectedConfig.Price}\n<b>Unlock Level:</b> {selectedConfig.UnlockLevel}\n<b>Owned:</b> {totalOwned} / {selectedConfig.MaxAllowed == math.huge and "∞" or selectedConfig.MaxAllowed}`,
 				RichText = true,
-				Size = UDim2.new(1, 0, 0, 60),
+				TextWrapped = false,
+				Size = UDim2.new(1, 0, 0, 0),
+				BackgroundColor3 = Color3.new(0.3, 0.3, 0.3),
+				AutomaticSize = Enum.AutomaticSize.XY,
+				-- BackgroundTransparency = 0.1,
 				LayoutOrder = 3,
-			}),
-
-			BuyButton = e(SmallButton, {
-				Size = UDim2.new(1, 0, 0, 45),
-				BackgroundColor3 = btnColor,
-				LayoutOrder = 4,
-				[React.Event.Activated] = function()
-					if canBuy then
-						Remotes.BuyItem:FireServer({ itemId = selectedConfig.Id, amount = 1 })
-					end
-				end,
 			}, {
-				e("UIStroke", { Thickness = 2 }),
-				e(SmallText, { Text = btnText, HorizontalAlignment = Enum.HorizontalAlignment.Center }),
+				padding = e("UIPadding", {
+					PaddingTop = UDim.new(0, 4),
+					PaddingBottom = UDim.new(0, 4),
+					PaddingLeft = UDim.new(0, 4),
+					PaddingRight = UDim.new(0, 4),
+				}),
 			}),
+			e(HStack, {
+				Size = UDim2.new(1, 0, 0, 0),
+				AutomaticSize = Enum.AutomaticSize.XY,
+				LayoutOrder = 4,
+				HorizontalFlex = "Fill",
+				Spacing = UDim.new(0, 8),
+			}, {
+				BuyButton = e(SmallButton, {
+					Size = UDim2.new(1, 0, 0, mobile and 40 or 60),
+					AutomaticSize = Enum.AutomaticSize.None,
+					BackgroundColor3 = btnColor,
+					LayoutOrder = 4,
+					[React.Event.Activated] = function()
+						if canBuy then
+							Remotes.BuyItem:FireServer({ itemId = selectedConfig.Id, amount = 1 })
+						end
+					end,
+				}, {
+					e("UIStroke", { Thickness = 2 }),
+					e(SmallText, {
+						Text = btnText,
+						HorizontalAlignment = Enum.HorizontalAlignment.Center,
+						VerticalAlignment = Enum.VerticalAlignment.Center,
+					}),
+				}),
 
-			CloseButton = e(SmallButton, {
-				Size = UDim2.new(1, 0, 0, 30),
-				BackgroundColor3 = Color3.new(0.8, 0.2, 0.2),
-				BackgroundTransparency = 0.5,
-				LayoutOrder = 5,
-				[React.Event.Activated] = function()
-					setSelectedItem(nil)
-				end,
-			}, { e(SmallText, { Text = "Cancel", HorizontalAlignment = Enum.HorizontalAlignment.Center }) }),
+				CloseButton = e(SmallButton, {
+					Size = UDim2.new(1, 0, 0, mobile and 40 or 60),
+					AutomaticSize = Enum.AutomaticSize.None,
+					BackgroundColor3 = Color3.new(0.8, 0.2, 0.2),
+					BackgroundTransparency = 0.5,
+					LayoutOrder = 5,
+					[React.Event.Activated] = function()
+						setSelectedItem(nil)
+					end,
+				}, {
+					e(SmallText, {
+						Text = "Cancel",
+						HorizontalAlignment = Enum.HorizontalAlignment.Center,
+						VerticalAlignment = Enum.VerticalAlignment.Center,
+					}),
+				}),
+			}),
 		})
 	end
 

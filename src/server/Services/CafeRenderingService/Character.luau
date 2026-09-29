@@ -147,7 +147,7 @@ local function Character(props: {
 				d.CollisionGroup = "Players"
 			end
 		end
-		character:PivotTo(props.BaseModel:GetPivot())
+		character:PivotTo(props.BaseModel:GetPivot() + Vector3.new(0, 5, 0))
 	end, { character, props.BaseModel })
 
 	return e(React.Fragment, nil, children) -- Ensure children are rendered in a Fragment

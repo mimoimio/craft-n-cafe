@@ -11,21 +11,12 @@ local CafeTypes = require(ReplicatedStorage.Shared.CafeTypes)
 
 local player = Players.LocalPlayer
 local playerId = player and tostring(player.UserId) or "MockUser"
-local TIMEOUT = 1
+
+-- FIX: Increased to 30 seconds. Network replication varies heavily per player.
+local TIMEOUT = 30
 
 local CafeBase = function(props: {})
 	useEffect(function()
-		-- if not player then
-		-- 	-- UI Labs (Story) environment
-		-- 	task.spawn(function()
-		-- 		local part = workspace.CafeBase:WaitForChild("Part", TIMEOUT)
-		-- 		if part then
-		-- 			UIState.setCafeBase(workspace.CafeBase)
-		-- 		end
-		-- 	end)
-		-- 	return
-		-- end
-
 		local promise = Promise.defer(function(resolve, reject)
 			local basesModel = workspace:WaitForChild("Bases")
 			local bases = basesModel:GetChildren()

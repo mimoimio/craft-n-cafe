@@ -81,7 +81,7 @@ return function(props)
 
 	useEffect(function()
 		if config then
-			SoundController.Sound("talk player")
+			-- SoundController.Sound("talk player")
 			setPosition({
 				target = 0,
 				speed = 10,

@@ -36,7 +36,7 @@ local function ScreenGuiCircle(
 
 	return e("ScreenGui", {
 		ResetOnSpawn = false,
-		DisplayOrder = 1010, -- Ensures it renders above standard UI panels
+		DisplayOrder = 102, -- Ensures it renders above standard UI panels
 	}, {
 		Wrapper = e("Frame", {
 			BackgroundTransparency = 1,

@@ -72,7 +72,7 @@ local function ScreenGuiCircle(props: { TargetButton: GuiButton?, Color: Color3?
 
 	return e("ScreenGui", {
 		ResetOnSpawn = false,
-		DisplayOrder = 1010,
+		DisplayOrder = 101,
 	}, {
 		Wrapper = e("Frame", {
 			BackgroundTransparency = 1,

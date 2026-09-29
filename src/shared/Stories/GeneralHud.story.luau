@@ -86,7 +86,7 @@ local function story(frame: Frame)
 	end
 	GlobalState.startPlayerSession("MockUser", {
 		Plot = getPlot(),
-		Stats = { EXP = 0, Level = 1, Cash = 500000 },
+		Stats = { EXP = 100, Level = 1, Cash = 500000 },
 		Inventory = inventory,
 
 		Ingredients = {},

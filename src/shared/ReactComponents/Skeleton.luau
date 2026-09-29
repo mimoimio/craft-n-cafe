@@ -95,7 +95,7 @@ local function Skeleton()
 	return e("ScreenGui", {
 		IgnoreGuiInset = true,
 		ResetOnSpawn = false,
-		DisplayOrder = 1010,
+		DisplayOrder = 103,
 		ScreenInsets = Enum.ScreenInsets.None,
 		ClipToDeviceSafeArea = false,
 		SafeAreaCompatibility = Enum.SafeAreaCompatibility.None,

@@ -13,7 +13,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Types = require(ReplicatedStorage.Shared.Types)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 local BuildersIcon = require(ReplicatedStorage.Shared.Utils.BuildersIcon)
-local useInputDevice = require(edStorage.Shared.Hooks.useInputDevice)
+local useInputDevice = require(ReplicatedStorage.Shared.Hooks.useInputDevice)
 
 local ScreenPromptButton = require(script.Parent.ui.ScreenPromptButton)
 local SmallText = require(script.Parent.ui.SmallText)

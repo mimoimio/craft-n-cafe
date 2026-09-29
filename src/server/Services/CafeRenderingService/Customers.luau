@@ -1,11 +1,12 @@
 -- CafeRenderingService/Customers.luau -- server
-
 local PathfindingService = game:GetService("PathfindingService")
 local Players = game:GetService("Players")
+local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local React = require(ReplicatedStorage.Packages.React)
+local Promise = require(ReplicatedStorage.Packages.Promise)
 local Mionum = require(ReplicatedStorage.Packages.Mionum)
 local Reflex = require(ReplicatedStorage.Packages.Reflex)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
@@ -15,8 +16,6 @@ local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 local CustomersService = require(ServerScriptService.Server.Services.CustomersService)
 local VariationsConfig = require(ReplicatedStorage.Shared.Configs.VariationsConfig)
 local DrinkModelUtil = require(ReplicatedStorage.Shared.Utils.DrinkModelUtil)
-
--- NEW: Require Grid and Models to calculate dynamic CFrames
 local Grid = require(ReplicatedStorage.Shared.Grid)
 local Models = ReplicatedStorage.Shared.Models
 
@@ -29,7 +28,6 @@ local disappointed = {
 	"Where are the drinks?",
 	"I'm thirsty...",
 	"I thought this place sell drinks",
-	-- "KILL YOURSELF",
 }
 
 local function getPlayer(playerId: string): Player?
@@ -42,15 +40,12 @@ end
 
 local observeRigClone = function(clone: Model): (() -> ())?
 	if not clone then
-		-- warn("NO CLONE TO OBSERVE")
 		return nil
 	end
 	local conn = clone:GetPropertyChangedSignal("Parent"):Connect(function()
-		-- warn(`Parent changed: {clone.Parent}`)
 		return
 	end)
 	local conn2 = clone.Destroying:Connect(function()
-		-- warn(`Clone destroying: {clone}`)
 		return
 	end)
 	return function()
@@ -63,41 +58,38 @@ local observeRigClone = function(clone: Model): (() -> ())?
 	end
 end
 
-local function getCounterTargetCFrame(playerId: string, baseModel: CafeTypes.CafeBase, counterUuid: string?): CFrame?
-	if not counterUuid then
-		warn("not counterUuid")
+-- PURE FUNCTION: Calculates CFrame dynamically based on Cashier Grid/Spatial data
+local function getCounterTargetCFrame(baseModel: CafeTypes.CafeBase, cashierData: any?): CFrame?
+	if not cashierData then
 		return nil
 	end
 
-	local state = GlobalState:getState()
-	local plotState = state.Plot and state.Plot[playerId]
-	if not plotState then
-		warn("not plotState")
-		return nil
-	end
-
-	-- Directly fetch the exact counter the server assigned them!
-	local item = plotState.placedItems[counterUuid]
-	if not item then
-		warn("not item")
-		return nil
-	end
+	local item = cashierData.itemData
+	local placementType = cashierData.type
 
 	local prefab = Models:FindFirstChild(item.id)
 	if not prefab then
-		warn("not prefab")
 		return nil
 	end
 
-	-- Ensure you use the updated getModelBounds we made earlier
 	local _, itemSize = Grid.getModelBounds(prefab)
-	local plotCFrame, plotSize = baseModel.Part.CFrame, baseModel.Part.Size
+	local plotCFrame = baseModel.Part.CFrame
+	local plotSize = baseModel.Part.Size
 
-	local rawX, rawZ = Grid.getFootprint(itemSize, 0)
-	local snappedSize = Vector3.new(rawX * Grid.SIZE, itemSize.Y, rawZ * Grid.SIZE)
-
-	local counterCF =
-		Grid.gridToWorld(item.itemType or "Solid", item.x, item.z, plotCFrame, plotSize, snappedSize, item.r)
+	local counterCF
+	if placementType == "Grid" then
+		local rawX, rawZ = Grid.getFootprint(itemSize, 0)
+		local snappedSize = Vector3.new(rawX * Grid.SIZE, itemSize.Y, rawZ * Grid.SIZE)
+		counterCF =
+			Grid.gridToWorld(item.itemType or "Solid", item.x, item.z, plotCFrame, plotSize, snappedSize, item.r)
+	else
+		-- Ensure spatial rotation is accurately parsed
+		local spatialCFrame = if typeof(item.cframe) == "table"
+			then CFrame.new(table.unpack(item.cframe))
+			elseif typeof(item.cframe) == "CFrame" then item.cframe
+			else CFrame.new(0, 0, 0)
+		counterCF = Grid.spatialToWorld(spatialCFrame, plotCFrame, plotSize)
+	end
 
 	-- Offset by half the counter's depth + 1 stud so they stand perfectly in front of it
 	local finalcf = counterCF * CFrame.new(0, 0, -(itemSize.Z / 2 + 1))
@@ -105,15 +97,17 @@ local function getCounterTargetCFrame(playerId: string, baseModel: CafeTypes.Caf
 end
 
 local original = workspace.Rig:Clone()
--- workspace.Rig:Destroy()
 
-local function Customer(props: {
-	PlayerId: string,
-	CafeModel: CafeTypes.Cafe,
-	Customer: Types.CustomerEntity,
-	BaseModel: CafeTypes.CafeBase,
-	numberInLine: number?,
-})
+local function Customer(
+	props: {
+		PlayerId: string,
+		CafeModel: CafeTypes.Cafe,
+		Customer: Types.CustomerEntity,
+		BaseModel: CafeTypes.CafeBase,
+		CashierData: any?, -- NEW
+		numberInLine: number?,
+	}
+)
 	local rig: CafeTypes.CustomerRig, setRig = useState(nil)
 	local prompt: ProximityPrompt, setPrompt = useState(nil)
 
@@ -123,7 +117,7 @@ local function Customer(props: {
 		actionRef.current = props.Customer.customerAction
 	end, { props.Customer })
 
-	-- 1. Mounting: Clone the rig and Pivot to the deterministic start state
+	-- 1. Mounting
 	useEffect(function()
 		local clone = original:Clone() :: CafeTypes.CustomerRig
 		local unsub = observeRigClone(clone)
@@ -149,9 +143,8 @@ local function Customer(props: {
 		local entranceCF = props.BaseModel.Entrance:GetPivot()
 		local action = props.Customer.customerAction
 
-		-- FIX: Fetch dynamic spot CF, fallback to entrance if counter is missing
-		local spotCF = getCounterTargetCFrame(props.PlayerId, props.BaseModel, props.Customer.targetCounterUuid)
-			or entranceCF
+		-- FIX: Determine spot cleanly from props data
+		local spotCF = getCounterTargetCFrame(props.BaseModel, props.CashierData) or entranceCF
 
 		local targetCF = entranceCF + Vector3.new(0, 4, 0)
 
@@ -175,7 +168,6 @@ local function Customer(props: {
 				CustomersService.ServeCustomer(player, props.Customer.id)
 			elseif actionRef.current == "queuing" then
 				CustomersService.TendCustomer(player, props.Customer.id)
-			else
 			end
 		end)
 
@@ -194,7 +186,16 @@ local function Customer(props: {
 		end
 	end, { props.Customer.id, props.BaseModel, props.CafeModel })
 
-	-- 2. State Transition: Handle walking targets using PathfindingService
+	-- 2. State Transition & Pathfinding
+	-- Extract variables for the dependency array so they re-pathfind if the cashier is moved!
+	local cashierX = props.CashierData and props.CashierData.itemData.x or nil
+	local cashierZ = props.CashierData and props.CashierData.itemData.z or nil
+	local spatialCFStr = props.CashierData
+			and props.CashierData.type == "Spatial"
+			and typeof(props.CashierData.itemData.cframe) == "table"
+			and tostring(props.CashierData.itemData.cframe[1])
+		or nil
+
 	useEffect(function()
 		if not (rig and prompt) then
 			return
@@ -203,13 +204,10 @@ local function Customer(props: {
 		local humanoid = rig:FindFirstChildOfClass("Humanoid")
 		local rootPart = rig:FindFirstChild("HumanoidRootPart")
 		local action = props.Customer.customerAction
-
 		local entranceCF = props.BaseModel.Entrance:GetPivot()
 
-		-- FIX: Fetch dynamic spot CF, fallback to entrance
-		local spotCF = getCounterTargetCFrame(props.PlayerId, props.BaseModel, props.Customer.targetCounterUuid)
-			or entranceCF
-
+		-- Determine target
+		local spotCF = getCounterTargetCFrame(props.BaseModel, props.CashierData) or entranceCF
 		local targetPos = nil
 
 		local holdingAnimation: AnimationTrack?
@@ -225,29 +223,20 @@ local function Customer(props: {
 			prompt.Enabled = false
 			targetPos = entranceCF.Position
 		end
+
 		if action == "paid" then
-			-- or action == "walking" or action == "queuing"
 			local animation = ReplicatedStorage.Shared.Animations:FindFirstChild("HoldCup")
-			-- local animation = ReplicatedStorage.Shared.Animations:FindFirstChild("_idle2")
-			-- if not animation then
-			-- 	animation = Instance.new("Animation", ReplicatedStorage.Shared.Animations)
-			-- 	animation.Name = "_idle2"
-			-- 	animation.AnimationId = "rbxassetid://92168447891089"
-			-- end
 			if rig and rig.Parent and animation then
 				local animator: Animator = rig.Humanoid:FindFirstChildOfClass("Animator")
-
 				if animator then
 					holdingAnimation = animator:LoadAnimation(animation)
 					holdingAnimation.Looped = true
-					-- Priority ensures it plays OVER the default idle/walk animations
 					holdingAnimation.Priority = Enum.AnimationPriority.Action
 					holdingAnimation:Play(0.1, 1, 2)
 				end
 			end
 		end
 
-		-- A flag to safely cancel the pathfinding loop if the component unmounts or state changes
 		local isNavigating = true
 
 		if humanoid then
@@ -256,12 +245,11 @@ local function Customer(props: {
 
 		if humanoid and rootPart and targetPos then
 			task.spawn(function()
-				-- Create a custom pathfinding agent that cannot jump or climb
 				local path = PathfindingService:CreatePath({
 					AgentRadius = 2,
 					AgentHeight = 5,
 					AgentCanJump = false,
-					AgentCanClimb = true, -- This prevents them from scaling objects!
+					AgentCanClimb = true,
 				})
 
 				local success, _ = pcall(function()
@@ -273,48 +261,32 @@ local function Customer(props: {
 					local waypoints = path:GetWaypoints()
 
 					for _, waypoint in ipairs(waypoints) do
-						-- Break out of the loop if the state changed while walking
 						if not isNavigating then
 							break
 						end
 
 						humanoid:MoveTo(waypoint.Position)
-
-						-- Wait for the humanoid to reach the waypoint before continuing
-						local start = tick()
 						local moveSuccess = humanoid.MoveToFinished:Wait()
-						local elapsed = tick()
+
 						if not moveSuccess then
 							if action == "walking" then
 								warn("failed to move, queuing customer")
 							end
-							-- If they get stuck for longer than 8 seconds, break the loop
 							broke = true
 							break
 						end
 						if _ == #waypoints then
 							moveToFinished = true
-							-- put this here so it doesnt queueCustomer when they havent arrived to cashier yet
 						end
 					end
-					-- humanoid:MoveTo(targetPos)
-					-- local moveSuccess = humanoid.MoveToFinished:Wait()
-					-- if not moveSuccess then
-					-- 	if action == "walking" then
-					-- 		warn("failed to move, queuing customer")
-					-- 	end
-					-- 	-- If they get stuck for longer than 8 seconds, break the loop
-					-- 	broke = true
-					-- else
-					-- 	moveToFinished = true
-					-- end
 				else
-					-- warn("failed path", _)
 					failedpath = true
 				end
+
 				if broke then
 					rig:PivotTo(CFrame.new(targetPos))
 				end
+
 				if action == "walking" and (failedpath or moveToFinished) then
 					GlobalState.queueCustomer(props.PlayerId, {
 						customerUid = props.Customer.id,
@@ -324,7 +296,6 @@ local function Customer(props: {
 			end)
 		end
 
-		-- Cleanup function to stop the current pathfinding loop when state updates
 		return function()
 			isNavigating = false
 			if holdingAnimation then
@@ -334,9 +305,19 @@ local function Customer(props: {
 				task.cancel(holdingAnimationThread)
 			end
 		end
-	end, { rig, prompt, props.Customer.customerAction, props.numberInLine, props.BaseModel, props.CafeModel })
+	end, {
+		rig,
+		prompt,
+		props.Customer.customerAction,
+		props.numberInLine,
+		props.BaseModel,
+		props.CafeModel,
+		cashierX,
+		cashierZ,
+		spatialCFStr,
+	})
 
-	-- 3. drink models
+	-- 3. Drink Models
 	local paid = props.Customer.customerAction and props.Customer.customerAction == "paid"
 	useEffect(function()
 		local order = props.Customer.order
@@ -350,11 +331,10 @@ local function Customer(props: {
 		})
 
 		drinkModel:PivotTo(rig.Head:GetPivot() + Vector3.new(0, 2, 0))
-		drinkModel.Parent = workspace -- Parent to workspace BEFORE setting NetworkOwner!
+		drinkModel.Parent = workspace
 
 		for _, part in drinkModel:GetDescendants() do
 			if part:IsA("BasePart") then
-				-- Crucial for preventing NPC stuttering
 				part:SetNetworkOwner(nil)
 			end
 		end
@@ -376,44 +356,115 @@ local function Customer(props: {
 		if not (rig and rig.Parent and rig:FindFirstChild("Head") and paid) then
 			return
 		end
+		local promise = Promise.defer(function(resolve, reject, onCancel)
+			local sound = Instance.new("Sound", rig:FindFirstChildWhichIsA("BasePart"))
+			sound.SoundId = "rbxassetid://79020702281821"
+			if not sound.IsLoaded then
+				sound.Loaded:Wait()
+			end
+
+			return resolve(sound)
+		end)
+			:andThen(function(sound: Sound)
+				sound:Play()
+				sound.Ended:Wait()
+				return sound
+			end)
+			:andThen(function(sound)
+				sound:Destroy()
+			end)
+			:timeout(10)
+			:catch(print)
+
 		game:GetService("Chat"):Chat(rig.Head, "THANKS")
-		return
+		return function()
+			promise:cancel()
+		end
 	end, { rig, paid })
+
 	local emptyHanded = props.Customer.customerAction == "emptyHanded"
 	useEffect(function()
 		if not (rig and rig.Parent and rig:FindFirstChild("Head") and emptyHanded) then
 			return
 		end
+		local promise = Promise.defer(function(resolve, reject, onCancel)
+			local sound = Instance.new("Sound", rig:FindFirstChildWhichIsA("BasePart"))
+			sound.SoundId = "rbxassetid://133313033428402"
+			if not sound.IsLoaded then
+				sound.Loaded:Wait()
+			end
+
+			return resolve(sound)
+		end)
+			:andThen(function(sound: Sound)
+				sound:Play()
+				sound.Ended:Wait()
+				return sound
+			end)
+			:andThen(function(sound)
+				sound:Destroy()
+			end)
+			:timeout(10)
+			:catch(print)
+
 		game:GetService("Chat"):Chat(rig.Head, "Nevermind...")
-		return
+		return function()
+			promise:cancel()
+		end
 	end, { rig, emptyHanded })
+
 	local order = props.Customer.order
 	useEffect(function()
 		if not (rig and rig.Parent and rig:FindFirstChild("Head") and order) then
 			return
 		end
 		local config = CoffeeModule.Config[order]
+
+		local promise = Promise.defer(function(resolve, reject, onCancel)
+			local sound = Instance.new("Sound", rig:FindFirstChildWhichIsA("BasePart"))
+			sound.SoundId = "rbxassetid://132299423186452"
+			if not sound.IsLoaded then
+				sound.Loaded:Wait()
+			end
+
+			return resolve(sound)
+		end)
+			:andThen(function(sound: Sound)
+				sound:Play()
+				sound.Ended:Wait()
+				return sound
+			end)
+			:andThen(function(sound)
+				sound:Destroy()
+			end)
+			:timeout(10)
+			:catch(print)
+
 		game:GetService("Chat"):Chat(rig.Head, `I'd like a {config and config.DisplayName or "👀"} please`)
-		return
+		return function()
+			promise:cancel()
+		end
 	end, { rig, order })
 
 	return e(React.Fragment)
 end
 
-local selectCustomers = function(state)
-	return state.Customers
-end
 local selectCustomersById = function(playerId: string)
-	return Reflex.createSelector({ selectCustomers }, function(customers)
+	return Reflex.createSelector(function(state)
+		return state.Customers
+	end, function(customers)
 		return customers[playerId]
 	end)
 end
 
-local function Customers(props: {
-	PlayerId: string,
-	CafeModel: CafeTypes.Cafe,
-	BaseModel: CafeTypes.CafeBase,
-})
+local function Customers(
+	props: {
+		PlayerId: string,
+		CafeModel: CafeTypes.Cafe,
+		BaseModel: CafeTypes.CafeBase,
+		Cashiers: { [string]: any }, -- NEW
+	}
+)
 	local player, setPlayer = useState(nil :: Player?)
 	local customers, setCustomers = useState(nil :: { Types.CustomerEntity }?)
 
@@ -444,6 +495,7 @@ local function Customers(props: {
 				Customer = customer,
 				CafeModel = props.CafeModel,
 				BaseModel = props.BaseModel,
+				CashierData = props.Cashiers[customer.targetCounterUuid], -- Safely pass specific cashier!
 			}
 			children[customer.id] = e(Customer, customerProps)
 		end
