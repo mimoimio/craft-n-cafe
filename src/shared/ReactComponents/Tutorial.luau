@@ -264,7 +264,8 @@ local function Tutorial()
 			-- Find the model by UUID inside the CafeBase
 			local model = uiStates.cafeBase:FindFirstChild(targetUuid, true)
 			if model then
-				return model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart") or model
+				-- return model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart") or model
+				return model
 			end
 		end
 		return nil

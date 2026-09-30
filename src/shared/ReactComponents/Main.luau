@@ -59,7 +59,7 @@ local function MainMenu()
 
 		-- Zoom explicitly to THIS player's assigned plot, not the whole map
 		local cf: CFrame, s: Vector3 = cafeBase:GetBoundingBox()
-		local newcamcf = CFrame.new((cf + s).Position, cf.Position)
+		local newcamcf = CFrame.new((cf + Vector3.new(-s.X, s.Y, s.Z)).Position, cf.Position)
 		cam:PivotTo(newcamcf)
 		cam:ZoomToExtents(cf, s)
 		local controls
