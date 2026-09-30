@@ -124,7 +124,7 @@ export type CupsState = {
 export type CupEntity = {
 	drinkId: string,
 	score: number,
-	status: string,
+	status: number,
 }
 
 export type IngredientsState = {
@@ -140,6 +140,7 @@ export type CustomerEntity = {
 	customerAction: "entering" | "walking" | "queuing" | "waiting" | "sitting" | "leaving",
 	servedBy: ("player" | string)?,
 	actionStartTime: number,
+	secondsWaited: number,
 }
 
 export type SpawnCustomerPayload = {

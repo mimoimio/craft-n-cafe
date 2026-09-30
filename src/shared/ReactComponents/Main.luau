@@ -84,7 +84,7 @@ local function MainMenu()
 		if player then
 			local loadingScreen = player.PlayerGui:FindFirstChild("LoadingScreen")
 			if loadingScreen then
-				task.delay(10, function()
+				task.delay(1, function()
 					loadingScreen:Destroy()
 				end)
 			end

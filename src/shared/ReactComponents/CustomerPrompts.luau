@@ -93,6 +93,9 @@ local function CustomerPromptNode(props: {
 	-- 4. Check if the player is currently serving this specific customer
 	local isServing = props.CustomerData and props.CustomerData.servedBy == "player"
 	local currentInput = useInputDevice()
+	local secondsWaited = props.CustomerData and props.CustomerData.secondsWaited or 0
+	local isQueuingOrWaiting = props.CustomerData
+		and (props.CustomerData.customerAction == "queuing" or props.CustomerData.customerAction == "waiting")
 
 	return e(React.Fragment, {}, {
 		-- The Interactive Custom UI (Only shows when hovered and panels are closed)
@@ -139,6 +142,7 @@ local function CustomerPromptNode(props: {
 			ExtentsOffsetWorldSpace = Vector3.new(0, 0, 0), -- Floats safely above the customer model
 			AlwaysOnTop = true,
 			ref = function() end,
+			ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		}, {
 			e(SmallText, {
 				Size = UDim2.new(1, 0, 1, 0),
@@ -147,8 +151,32 @@ local function CustomerPromptNode(props: {
 				TextYAlignment = Enum.TextYAlignment.Center,
 				TextColor3 = Color3.new(0.4, 1, 0.4), -- Matching green text
 				TextStrokeTransparency = 0,
+				ZIndex = 10,
 			}),
+			-- e("ImageLabel", {
+			-- 	Image = "rbxassetid://127657596958436",
+			-- 	ZIndex = 1,
+			-- 	Size = UDim2.new(1, 0, 1, 0),
+			-- 	ImageColor3 = Color3.new(0, 1, 0):Lerp(Color3.new(1, 0, 0), secondsWaited / 30),
+			-- }),
 		}) or nil,
+		WaitMeter = e("BillboardGui", {
+			Adornee = props.Model and props.Model.Parent and props.Model.PrimaryPart or nil,
+			Size = UDim2.fromScale(1, 1),
+			ExtentsOffsetWorldSpace = Vector3.new(0, 2, 0), -- Floats safely above the customer model
+			AlwaysOnTop = true,
+			ref = function() end,
+			ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+		}, {
+			isQueuingOrWaiting and e("ImageLabel", {
+				Image = "rbxassetid://144082822",
+				ScaleType = Enum.ScaleType.Fit,
+				ZIndex = 1,
+				Size = UDim2.new(1, 0, 1, 0),
+				BackgroundTransparency = 1,
+				ImageColor3 = Color3.new(0, 1, 0):Lerp(Color3.new(1, 0, 0), math.clamp(secondsWaited / 30, 0, 1)),
+			}),
+		}),
 	})
 end
 

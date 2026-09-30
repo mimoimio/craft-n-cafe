@@ -12,6 +12,7 @@ local Types = require(ReplicatedStorage.Shared.Types)
 local PlaceablesModule = require(ReplicatedStorage.Shared.PlaceablesModule)
 
 local SPAWN_INTERVAL = 10
+local MAX_WAITING_TIME = 30
 local rng = Random.new()
 local lastSpawnTimes = {}
 
@@ -118,8 +119,9 @@ function CustomersService.ServeCustomer(player: Player, uid: string, workerUid: 
 	if cup.drinkId == found.order then
 		local drinkConfig = CoffeeModule.Config[cup.drinkId]
 		local cashReward = drinkConfig and (drinkConfig.Price * cup.score // #drinkConfig.Ingredients)
-		local exp = playersStats.EXP + 1
+		local exp = playersStats.EXP + cup.status
 		local level = LevelConfig.GetLevel(exp)
+
 		GlobalState.serveCustomer(playerId, {
 			customerUid = uid,
 			cash = cashReward,
@@ -247,11 +249,19 @@ function CustomersService.initialize()
 
 				local CafeCapacity = playerStats.CafeCapacity
 
+				local minOneCustomerWaiting
 				for _, customer in playersCustomers do
 					if customer.customerAction == "paid" then
 						continue
 					end
 					table.insert(activePlayerCustomers, customer)
+					if customer.customerAction == "waiting" or customer.customerAction == "queuing" then
+						minOneCustomerWaiting = true
+					end
+				end
+
+				if minOneCustomerWaiting then
+					GlobalState.tickCustomer(playerId)
 				end
 
 				local lastSpawn = lastSpawnTimes[playerId] or 0
@@ -281,6 +291,20 @@ function CustomersService.initialize()
 					if customer.customerAction == "paid" or customer.customerAction == "emptyHanded" then
 						if timeInState >= 2 then
 							GlobalState.removeCustomer(playerId, customer.id)
+							continue
+						end
+					end
+					warn("customer.secondsWaited", customer.secondsWaited)
+					if
+						(customer.customerAction == "waiting" or customer.customerAction == "queuing")
+						and customer.secondsWaited
+					then
+						if customer.secondsWaited > MAX_WAITING_TIME then
+							GlobalState.timeOut(playerId, {
+								customerUid = customer.id,
+								timestamp = workspace:GetServerTimeNow(),
+							})
+							continue
 						end
 					end
 				end

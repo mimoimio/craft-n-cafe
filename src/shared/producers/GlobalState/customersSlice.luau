@@ -151,6 +151,31 @@ local actions = {
 
 		return Set(state, playerId, newCustomers)
 	end,
+	timeOut = function(state: CustomersState, playerId: string, payload: { customerUid: string, timestamp: number })
+		local playersCustomers = state[playerId] or {}
+
+		local index
+		for i, customer in playersCustomers do
+			if customer.id == payload.customerUid then
+				index = i
+				break
+			end
+		end
+		if not index then
+			return state
+		end
+
+		local newCustomers = Update(playersCustomers, index, function(customer: Types.CustomerEntity)
+			local new = table.clone(customer)
+			new.customerAction = "emptyHanded"
+			new.actionStartTime = payload.timestamp
+			new.servedBy = nil
+			new.order = nil
+			return new
+		end)
+
+		return Set(state, playerId, newCustomers)
+	end,
 	removeCustomer = function(state: CustomersState, playerId: string, uid: string)
 		local playersCustomers = state[playerId] or {}
 
@@ -166,6 +191,20 @@ local actions = {
 			return Set(state, playerId, Array.removeIndex(playersCustomers, index))
 		end
 		return state
+	end,
+	tickCustomer = function(state: CustomersState, playerId)
+		local playersCustomers = state[playerId]
+		if not playersCustomers then
+			return state
+		end
+
+		playersCustomers = table.clone(playersCustomers)
+		for i, customer in playersCustomers do
+			if customer.customerAction == "waiting" or customer.customerAction == "queuing" then
+				customer.secondsWaited = (customer.secondsWaited or 0) + 1
+			end
+		end
+		return Set(state, playerId, playersCustomers)
 	end,
 }
 
