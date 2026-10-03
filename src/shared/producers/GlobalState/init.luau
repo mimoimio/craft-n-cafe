@@ -5,7 +5,7 @@ local Reflex = require(ReplicatedStorage.Packages.Reflex)
 local Types = require(ReplicatedStorage.Shared.Types)
 
 local statsSlice = require(script.statsSlice)
-local ingredientsSlice = require(script.ingredientsSlice)
+-- local ingredientsSlice = require(script.ingredientsSlice)
 local customersSlice = require(script.customersSlice)
 local workersSlice = require(script.workersSlice)
 local cupsSlice = require(script.cupsSlice)
@@ -16,12 +16,13 @@ export type CombinedActions = Types.CombinedActions
 
 export type GlobalState = {
 	Stats: statsSlice.StatsState,
-	Ingredients: ingredientsSlice.IngredientsState,
-	Customers: customersSlice.CustomersState,
 	Workers: workersSlice.WorkersState,
-	Cups: cupsSlice.CupsState,
 	Plot: plotSlice.PlotState,
 	Inventory: inventorySlice.InventoryState,
+
+	-- not persistent. Empty when rejoin
+	Customers: customersSlice.CustomersState,
+	Cups: cupsSlice.CupsState,
 }
 
 export type Stats = statsSlice.StatsState
@@ -29,7 +30,7 @@ export type PlayerData = Types.PlayerData
 
 local producer = Reflex.combineProducers({
 	Stats = statsSlice,
-	Ingredients = ingredientsSlice,
+	-- Ingredients = ingredientsSlice,
 	Customers = customersSlice,
 	Workers = workersSlice,
 	Cups = cupsSlice,

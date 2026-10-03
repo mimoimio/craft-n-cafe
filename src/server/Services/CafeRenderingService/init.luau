@@ -103,7 +103,7 @@ local function BasesManager()
 		})
 	end
 
-	children.recipeHint = e(require(ReplicatedStorage.Shared.ReactComponents.RecipeHint))
+	-- children.recipeHint = e(require(ReplicatedStorage.Shared.ReactComponents.RecipeHint))
 	return e(React.Fragment, nil, children)
 end
 

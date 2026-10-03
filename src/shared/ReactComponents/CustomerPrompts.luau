@@ -96,7 +96,9 @@ local function CustomerPromptNode(props: {
 	local secondsWaited = props.CustomerData and props.CustomerData.secondsWaited or 0
 	local isQueuingOrWaiting = props.CustomerData
 		and (props.CustomerData.customerAction == "queuing" or props.CustomerData.customerAction == "waiting")
-
+	local color = secondsWaited < 10
+			and Color3.new(0, 1, 0.2):Lerp(Color3.new(1, 1, 0), math.clamp(secondsWaited / 10, 0, 1))
+		or Color3.new(1, 1, 0):Lerp(Color3.new(1, 0, 0), math.clamp((secondsWaited - 10) / 10, 0, 1))
 	return e(React.Fragment, {}, {
 		-- The Interactive Custom UI (Only shows when hovered and panels are closed)
 		PromptUI = e(ScreenPromptButton, {
@@ -129,7 +131,7 @@ local function CustomerPromptNode(props: {
 				Adornee = props.Model and props.Model.Parent and props.Model or nil,
 				Enabled = isServing or (visible and shown),
 				FillColor = Color3.new(1, 1, 1),
-				FillTransparency = 0.4,
+				FillTransparency = 0.8,
 				OutlineColor = shown and Color3.new() or isServing and Color3.new(0.4, 1, 0.4) or nil, -- Green outline if serving
 				-- ref = warn,
 			}),
@@ -153,17 +155,11 @@ local function CustomerPromptNode(props: {
 				TextStrokeTransparency = 0,
 				ZIndex = 10,
 			}),
-			-- e("ImageLabel", {
-			-- 	Image = "rbxassetid://127657596958436",
-			-- 	ZIndex = 1,
-			-- 	Size = UDim2.new(1, 0, 1, 0),
-			-- 	ImageColor3 = Color3.new(0, 1, 0):Lerp(Color3.new(1, 0, 0), secondsWaited / 30),
-			-- }),
 		}) or nil,
 		WaitMeter = e("BillboardGui", {
 			Adornee = props.Model and props.Model.Parent and props.Model.PrimaryPart or nil,
 			Size = UDim2.fromScale(1, 1),
-			ExtentsOffsetWorldSpace = Vector3.new(0, 2, 0), -- Floats safely above the customer model
+			StudsOffset = Vector3.new(-2, 0, 0),
 			AlwaysOnTop = true,
 			ref = function() end,
 			ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
@@ -174,7 +170,19 @@ local function CustomerPromptNode(props: {
 				ZIndex = 1,
 				Size = UDim2.new(1, 0, 1, 0),
 				BackgroundTransparency = 1,
-				ImageColor3 = Color3.new(0, 1, 0):Lerp(Color3.new(1, 0, 0), math.clamp(secondsWaited / 30, 0, 1)),
+				-- ImageColor3 = color,
+			}, {
+				e("UIGradient", {
+					Color = ColorSequence.new(color, color:Lerp(Color3.new(0, 0, 0.9), 0.3)),
+					Rotation = 90,
+				}),
+				e("UICorner", {
+					CornerRadius = UDim.new(1, 0),
+				}),
+				e("UIStroke", {
+					Thickness = 4,
+					Transparency = 0,
+				}),
 			}),
 		}),
 	})

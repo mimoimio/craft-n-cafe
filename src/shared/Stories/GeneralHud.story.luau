@@ -87,7 +87,7 @@ local function story(frame: Frame)
 	GlobalState.startPlayerSession("MockUser", {
 		Plot = getPlot(),
 		Stats = {
-			EXP = 100,
+			EXP = 1,
 			Level = 1,
 			Cash = 500000,
 			TutorialCompleted = false,
@@ -109,11 +109,15 @@ local function story(frame: Frame)
 
 			local exp = playersStats.EXP + 1
 			local level = LevelConfig.GetLevel(exp)
+			exp += level * 2
 			GlobalState._addExp("MockUser", exp, level)
 		end
 	end)
 
 	-- 2. Mock Server: Listen for Mock Remote Events
+	local startlistner = Remotes.Play.OnServerEvent:Connect(function(player)
+		GlobalState.setPlayerPhase(player.UserId, "playing")
+	end)
 	local placeListener = Remotes.PlaceItem.OnServerEvent:Connect(function(player, payload)
 		local playerId = player and tostring(player.UserId) or "MockUser"
 
@@ -291,6 +295,7 @@ local function story(frame: Frame)
 	PlacementController:setBuildMode(false)
 	return function()
 		placeListener:Disconnect()
+		startlistner:Disconnect()
 		destroyListener:Disconnect()
 		buyListener:Disconnect()
 		local playerId = "MockUser"

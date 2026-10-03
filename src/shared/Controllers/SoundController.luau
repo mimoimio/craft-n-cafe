@@ -168,18 +168,33 @@ function SoundController.initialize()
 		initializeSoundPool("powerUp7", POOL_SIZE)
 	end)
 
-	local playerId = tostring(game:GetService("Players").LocalPlayer.UserId)
+	local player = game:GetService("Players").LocalPlayer
+	local playerId = tostring(player.UserId)
 
-	-- 1. get player's SfxOn and Volume
-	-- 2. wait if not exist yet
-	-- 3. apply volume
-	-- 4. listen to SfxOn change
+	-- Selector function with NO fallbacks
+	local function selectVolume(state)
+		local pStats = state.Stats[playerId]
+		return pStats and pStats.SfxVolume
+	end
 
-	-- GlobalState:once(selectVolumeAndOn, function() end, function(SFXVolume)
-	-- 	return type(SFXVolume)
-	-- end, function(state)
-	-- 	SoundController.setVolume(state)
-	-- end)
+	-- 1. Grab first loaded value that is not nil
+	local initialVol = selectVolume(GlobalState:getState())
+
+	if initialVol ~= nil then
+		-- Apply instantly if already loaded
+		SoundController.setVolume(initialVol)
+	else
+		-- 2. If it is nil, wait for it to exist, apply it ONCE, then disconnect.
+		local unsub
+		unsub = GlobalState:subscribe(selectVolume, function(newVolume)
+			if newVolume ~= nil then
+				SoundController.setVolume(newVolume)
+				if unsub then
+					unsub() -- Disconnect! We no longer listen to the server.
+				end
+			end
+		end)
+	end
 end
 
 return SoundController

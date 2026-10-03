@@ -61,6 +61,7 @@ local function SmallButton(props)
 		AutomaticSize = props.AutomaticSize or Enum.AutomaticSize.XY,
 		ZIndex = props.ZIndex or 11,
 		AutoButtonColor = props.AutoButtonColor,
+		Selectable = props.Selectable,
 		[React.Event.Activated] = props[React.Event.Activated] and function(rbx)
 			props[React.Event.Activated](rbx)
 			SoundController.Sound("drop_001")

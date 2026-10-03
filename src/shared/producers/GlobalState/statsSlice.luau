@@ -29,6 +29,7 @@ local initialState: StatsState = {}
 -- /// REDUCERS ///
 local actions = {
 	startPlayerSession = function(state: StatsState, playerId: string, data: PlayerData)
+		data.Stats.PlayerPhase = "mainMenu"
 		return Set(state, playerId, data.Stats)
 	end,
 	endPlayerSession = function(state: StatsState, playerId: string, data: PlayerData)
@@ -84,7 +85,7 @@ local actions = {
 		if not playersStats then
 			return state
 		end
-		return Set(state, playerId, Set(playersStats, "MusicVolume", volume))
+		return Set(state, playerId, Set(playersStats, "SfxVolume", volume))
 	end,
 	completeTutorial = function(state: StatsState, playerId: string)
 		local playersStats = state[playerId]
@@ -119,6 +120,14 @@ local actions = {
 		end
 
 		return Set(state, playerId, Set(playersStats, "Cash", playersStats.Cash + payload.Cash))
+	end,
+	setPlayerPhase = function(state: StatsState, playerId: string, playerPhase: Types.PlayerPhase)
+		local playersStats = state[playerId]
+		if not playersStats then
+			return state
+		end
+
+		return Set(state, playerId, Set(playersStats, "PlayerPhase", playerPhase))
 	end,
 
 	serveCustomer = function(state: StatsState, playerId: string, payload: Types.ServeCustomerPayload)

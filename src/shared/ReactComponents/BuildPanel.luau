@@ -29,6 +29,18 @@ local useEffect = React.useEffect
 local useBreakpoint = require(script.Parent.Parent.Hooks.useBreakpoint)
 local useInputDevice = require(ReplicatedStorage.Shared.Hooks.useInputDevice)
 
+local DOWN_ICON = BuildersIcon["chevron-large-down"]
+local function Padding(props: {
+	All: UDim,
+})
+	local All = props.All or UDim.new(0, 4)
+	return e("UIPadding", {
+		PaddingTop = All,
+		PaddingBottom = All,
+		PaddingLeft = All,
+		PaddingRight = All,
+	})
+end
 local playerId = Players.LocalPlayer and tostring(Players.LocalPlayer.UserId) or "MockUser"
 
 local function ItemButton(props: {
@@ -78,6 +90,7 @@ local function ItemButton(props: {
 		end,
 		BackgroundColor3 = isSelected and Color3.new(0, 1, 0) or nil,
 		Padding = { All = UDim.new() },
+		Visible = props.Visible,
 	}, {
 		e("ImageLabel", {
 			ZIndex = 1,
@@ -117,7 +130,7 @@ local function ItemButton(props: {
 			Size = UDim2.new(1, 0, 1, mobile and -6 or -12),
 		}),
 		e(SmallText, {
-			TextSize = 20,
+			TextSize = mobile and 12 or 20,
 			Text = `x{count}`,
 			HorizontalAlignment = Enum.HorizontalAlignment.Center,
 			TextWrapped = true,
@@ -128,6 +141,79 @@ local function ItemButton(props: {
 	})
 end
 
+local function CategoryRow(props: {
+	mobile: boolean,
+	setCategory: (category: string) -> (),
+})
+	local selectedCategory, setSelectedCategory = useState(nil)
+	local categories = PlaceablesModule.Categories
+	local selecting, setSelecting = useState(false)
+	useEffect(function()
+		if props.setCategory then
+			props.setCategory(selectedCategory)
+		end
+	end, { selectedCategory })
+
+	local children = {}
+	for i, category in categories do
+		children[category] = e(SmallButton, {
+			Size = UDim2.new(1, 0, 0, props.mobile and 20 or 40),
+			AutomaticSize = Enum.AutomaticSize.None,
+			Text = category,
+			RichText = true,
+			TextXAlignment = "Left",
+			BackgroundTransparency = 0.2,
+			Rounded = false,
+			[React.Event.Activated] = function()
+				setSelecting(false)
+				setSelectedCategory(category)
+			end,
+		}, {})
+	end
+	children["All"] = e(SmallButton, {
+		Size = UDim2.new(1, 0, 0, props.mobile and 20 or 40),
+		AutomaticSize = Enum.AutomaticSize.None,
+		Text = "All",
+		RichText = true,
+		TextXAlignment = "Left",
+		BackgroundTransparency = 0.2,
+		Rounded = false,
+		[React.Event.Activated] = function()
+			setSelecting(false)
+			setSelectedCategory(nil)
+		end,
+	}, {})
+	return e("Frame", {
+		LayoutOrder = 2,
+		Size = UDim2.new(1, 0, 0, props.mobile and 40 or 60),
+		AutomaticSize = Enum.AutomaticSize.None,
+		BackgroundTransparency = 1,
+		ClipsDescendants = false,
+		ZIndex = 20,
+	}, {
+		e(Padding),
+		DropdownButton = e(SmallButton, {
+			Size = UDim2.new(1, 0, 1, 0),
+			AutomaticSize = Enum.AutomaticSize.None,
+			Text = `Category: {selectedCategory == nil and "All" or selectedCategory} {DOWN_ICON}`,
+			RichText = true,
+			[React.Event.Activated] = function()
+				setSelecting(function(prev)
+					return not prev
+				end)
+			end,
+			TextXAlignment = "Left",
+		}, {}),
+		Dropdown = e(VStack, {
+			Visible = selecting,
+			AutomaticSize = Enum.AutomaticSize.XY,
+			VerticalFlex = Enum.UIFlexAlignment.None,
+			ClipsDescendants = false,
+			Size = UDim2.new(1, 0, 0, 0),
+			Position = UDim2.new(0, 0, 1, 0),
+		}, children),
+	})
+end
 local function BuildPanel()
 	local visible, setVisible = useState(false)
 	local selectedItem, setSelectedItem = useState(nil)
@@ -253,6 +339,7 @@ local function BuildPanel()
 
 	local pos, setPos = useSpring({ start = 0, target = 0, damper = 1, speed = 10 })
 	local itemSelected = selectedItem and true or false
+	local category, setCategory = useState(nil)
 	useEffect(function()
 		if itemSelected then
 			GuiService.SelectedObject = nil
@@ -279,6 +366,7 @@ local function BuildPanel()
 					config = config,
 					count = count,
 					mobile = mobile,
+					Visible = (category == nil) or category == config.Category,
 				})
 			end
 		end
@@ -493,7 +581,13 @@ local function BuildPanel()
 			ZIndex = 2,
 		}, {
 			Header = e(SmallText, { Text = "Inventory", Size = UDim2.new(1, 0, 0, 30), LayoutOrder = 1 }),
+
+			Categories = e(CategoryRow, {
+				mobile = mobile,
+				setCategory = setCategory,
+			}),
 			ScrollingFrame = e("ScrollingFrame", {
+				Selectable = false,
 				Size = UDim2.new(1, 0, 1, selectedItem and -90 or -40),
 				AutomaticCanvasSize = Enum.AutomaticSize.Y,
 				CanvasSize = UDim2.new(1, 0, 0, 0),

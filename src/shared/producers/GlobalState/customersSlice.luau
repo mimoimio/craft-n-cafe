@@ -21,7 +21,8 @@ local initialState: CustomersState = {}
 
 local actions = {
 	startPlayerSession = function(state: CustomersState, playerId: string, data: PlayerData)
-		return Set(state, playerId, data.Customers)
+		-- return Set(state, playerId, data.Customers)
+		return Set(state, playerId, {})
 	end,
 	endPlayerSession = function(state: CustomersState, playerId: string, data: PlayerData)
 		return RemoveKey(state, playerId)
@@ -91,6 +92,7 @@ local actions = {
 				new.customerAction = "waiting"
 				new.servedBy = payload.workerUid or "player"
 				new.actionStartTime = payload.timestamp
+				new.secondsWaited = 0
 				new.order = payload.order
 				return new
 			end)
@@ -99,7 +101,7 @@ local actions = {
 	serveCustomer = function(
 		state: CustomersState,
 		playerId: string,
-		payload: { customerUid: string, Cash: number, timestamp: number }
+		payload: Types.ServeCustomerPayload
 	)
 		local playersCustomers = state[playerId] or {}
 

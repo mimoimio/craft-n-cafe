@@ -17,20 +17,18 @@ export type UIState = {
 	viewportSize: Vector2,
 	buildItemId: string?, -- Tracks the selected item
 	cafeBase: CafeTypes.CafeBase,
-	playerPhase: PlayerPhase,
 }
 
-export type PlayerPhase = "mainMenu" | "playing"
 export type UIActions = {
 	toggle: (panel: string) -> (),
 	setViewportSize: (viewportSize: Vector2) -> (),
 	selectBuildItem: (itemId: string) -> (),
 	setCafeBase: (cafeBase: CafeTypes.CafeBase) -> (),
-	setPlayerPhase: (phase: PlayerPhase) -> (),
 }
 
 local initialState: UIState = {
 	panel = "none",
+	panelCleared = {},
 	buildItemId = nil,
 	playerPhase = "mainMenu",
 }
@@ -90,8 +88,13 @@ local producer = Reflex.createProducer(initialState, {
 	setCafeBase = function(state: UIState, cafeBase: CafeTypes.CafeBase)
 		return Set(state, "cafeBase", cafeBase)
 	end,
-	setPlayerPhase = function(state: UIState, playerPhase: PlayerPhase)
-		return Set(state, "playerPhase", playerPhase)
+	setSettingsButton = function(state: UIState, settingsButton: GuiButton)
+		return Set(state, "settingsButton", settingsButton)
+	end,
+	setPanelCleared = function(state: UIState, panel: string, cleared)
+		local panels = state.panelCleared
+
+		return Set(state, "panelCleared", Set(panels, panel, cleared))
 	end,
 }) :: Reflex.Producer<UIState, UIActions>
 

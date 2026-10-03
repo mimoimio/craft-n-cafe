@@ -97,6 +97,7 @@ local function getCounterTargetCFrame(baseModel: CafeTypes.CafeBase, cashierData
 end
 
 local original = workspace.Rig:Clone()
+local npcsFolder = workspace.NPCS
 
 local function Customer(
 	props: {
@@ -119,7 +120,10 @@ local function Customer(
 
 	-- 1. Mounting
 	useEffect(function()
-		local clone = original:Clone() :: CafeTypes.CustomerRig
+		local npcs = npcsFolder:GetChildren()
+		local selected = npcs[(#npcs * math.random() + 1 )// 1]
+		local clone = selected:Clone() :: CafeTypes.CustomerRig
+		
 		local unsub = observeRigClone(clone)
 		local tag = "Customer" .. props.PlayerId
 		local rootPart = clone:FindFirstChild("HumanoidRootPart")
@@ -133,9 +137,16 @@ local function Customer(
 		for i, desc: BasePart in clone:GetDescendants() do
 			if desc:IsA("BasePart") then
 				desc.CollisionGroup = "Characters"
+				desc.Anchored = false
 			end
 		end
 
+		if not clone:FindFirstChild("TriggerPrompt")  then
+			local prompt = Instance.new("ProximityPrompt")
+			prompt.Parent = clone
+			prompt.Name = "TriggerPrompt"
+		end
+		
 		setRig(clone)
 		clone.TriggerPrompt.MaxActivationDistance = 15
 		setPrompt(clone.TriggerPrompt)

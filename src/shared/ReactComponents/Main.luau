@@ -10,6 +10,8 @@ local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Types = require(ReplicatedStorage.Shared.Types)
+local BuildersIcon = require(script.Parent.Parent.Utils.BuildersIcon)
+local useInputDevice = require(script.Parent.Parent.Hooks.useInputDevice)
 
 local SoundController = require(ReplicatedStorage.Shared.Controllers.SoundController)
 local Primitives = ReplicatedStorage.Shared.ReactComponents.ui
@@ -32,22 +34,28 @@ local ShopPanel = require(script.Parent.ShopPanel)
 local Sidebar = require(script.Parent.Sidebar)
 
 local player = game:GetService("Players").LocalPlayer
+local UserInputService = game:GetService("UserInputService")
 local playerId = player and tostring(player.UserId) or "MockUser"
 local admin = not player or playerId == "5470482596"
 
-local function MainMenu()
+local function MainMenu(props)
 	local cafeBase, setCafeBase = useState(nil)
 
 	-- 1. Listen for the CafeBase to be loaded by the background component
 	useEffect(function()
 		local unsub = UIState:subscribe(function(state: UIState.UIState)
 			return state.cafeBase
-		end, setCafeBase)
+		end, function(newCafeBase)
+			setCafeBase(newCafeBase)
+		end)
 
-		setCafeBase(UIState:getState().cafeBase)
+		local initialBase = UIState:getState().cafeBase
+
+		setCafeBase(initialBase)
 		return unsub
 	end, {})
 
+	local buttonRef = React.useRef(nil)
 	-- 2. Once the CafeBase is found, snap the camera to it
 	useEffect(function()
 		if not cafeBase then
@@ -59,39 +67,52 @@ local function MainMenu()
 
 		-- Zoom explicitly to THIS player's assigned plot, not the whole map
 		local cf: CFrame, s: Vector3 = cafeBase:GetBoundingBox()
-		local newcamcf = CFrame.new((cf + Vector3.new(-s.X, s.Y, s.Z)).Position, cf.Position)
+		local newcamcf = CFrame.new((cf:ToWorldSpace(CFrame.new(-s.X, s.Y, -s.Z))).Position, cf.Position)
 		cam:PivotTo(newcamcf)
 		cam:ZoomToExtents(cf, s)
+
 		local controls
+
 		local controlPromise = Promise.defer(function(resolve, reject, onCancel)
 			if not player then
 				return reject("not player")
 			end
-			local playerScripts = player:WaitForChild("PlayerScripts", 10)
-			local playerModule = require(playerScripts:WaitForChild("PlayerModule", 10))
 
+			local playerScripts = player:WaitForChild("PlayerScripts", 10)
+			if not playerScripts then
+				return reject("PlayerScripts timeout")
+			end
+
+			local playerModuleScript = playerScripts:WaitForChild("PlayerModule", 10)
+			if not playerModuleScript then
+				return reject("PlayerModule timeout")
+			end
+
+			local playerModule = require(playerModuleScript)
 			return resolve(playerModule)
 		end)
 			:andThen(function(playerModule)
-				-- Get the controls object
 				controls = playerModule:GetControls()
 				controls:Disable()
 			end)
 			:catch(function(err)
-				warn(err)
+				warn("[Main] ControlPromise Error:", err)
 			end)
 
 		if player then
 			local loadingScreen = player.PlayerGui:FindFirstChild("LoadingScreen")
 			if loadingScreen then
 				task.delay(1, function()
-					loadingScreen:Destroy()
+					if loadingScreen.Parent then
+						loadingScreen:Destroy()
+						GuiService.SelectedObject = buttonRef.current
+					end
 				end)
+			else
 			end
 		end
 
 		return function()
-			-- Explicitly lock camera back to the character when they press Play
 			cam.CameraType = Enum.CameraType.Custom
 			if player and player.Character then
 				local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
@@ -105,7 +126,9 @@ local function MainMenu()
 			end
 		end
 	end, { cafeBase })
-
+	local OnMount = React.useCallback(function(rbx)
+		GuiService.SelectedObject = rbx
+	end, {})
 	return e(VStack, {
 		VerticalFlex = Enum.UIFlexAlignment.None,
 		HorizontalFlex = Enum.UIFlexAlignment.None,
@@ -118,14 +141,13 @@ local function MainMenu()
 		}),
 
 		e(SmallButton, {
-			-- Visual feedback so they know it's loading vs ready
 			BackgroundColor3 = cafeBase and Color3.new(0.2, 0.7, 0.2) or Color3.new(0.4, 0.4, 0.4),
 			[React.Event.Activated] = function()
-				-- Only allow playing if the plot has been successfully loaded
 				if cafeBase then
-					UIState.setPlayerPhase("playing")
+					Remotes.Play:FireServer()
 				end
 			end,
+			OnMount = OnMount,
 		}, {
 			e(SmallText, {
 				Text = cafeBase and "Play" or "Wait",
@@ -136,6 +158,7 @@ local function MainMenu()
 		}),
 	})
 end
+
 local function Tutorial(props)
 	local TutorialCompleted, setTutorialCompleted = useState(nil)
 	useEffect(function()
@@ -148,73 +171,132 @@ local function Tutorial(props)
 		return unsub
 	end, {})
 	if TutorialCompleted == true or TutorialCompleted == nil then
-		return
+		return nil
 	end
 	return e(require(script.Parent.Tutorial))
 end
-local function Main(props)
-	local playerPhase: "mainMenu" | "playing", setPlayerPhase = useState("mainMenu")
 
+local function PlayPhase(props)
+	local panel, setPanel = useBinding("none")
 	useEffect(function()
 		local unsub = UIState:subscribe(function(state: UIState.UIState)
-			return state.playerPhase
-		end, setPlayerPhase)
-
-		setPlayerPhase(UIState:getState().playerPhase)
-		return unsub
+			return state.panel
+		end, setPanel)
+		local conn = UserInputService.InputBegan:Connect(function(io: InputObject, gp: boolean)
+			if io.KeyCode == Enum.KeyCode.ButtonY then
+				GuiService.SelectedObject = UIState:getState().settingsButton
+			elseif io.KeyCode == Enum.KeyCode.ButtonB then
+				UIState.toggle("none")
+			end
+		end)
+		return function()
+			conn:Disconnect()
+			unsub()
+		end
 	end, {})
-
-	return e(React.Fragment, {}, {
-		-- Mount CafeBase loader outside the phase check so it secretly loads the plot in the background
-		CafeBaseLoader = e(CafeBase),
-
-		-- The Main Menu UI
-		MenuPhase = (playerPhase == "mainMenu") and e(MainMenu) or nil,
-
-		-- The Active Gameplay UI
-		PlayPhase = (playerPhase == "playing") and e("Frame", {
-			Transparency = 1,
+	local currentInput = useInputDevice()
+	local gamepad = currentInput == "Gamepad"
+	return e("Frame", {
+		Transparency = 1,
+		Size = UDim2.new(1, 0, 1, 0),
+	}, {
+		admin and e(require(script.Parent.ConsoleApp)),
+		e(BuildPanel),
+		e(ShopPanel),
+		e(Tutorial),
+		e(require(script.Parent.CustomersOrder)),
+		e(require(script.Parent.CustomerPrompts)),
+		e(require(script.Parent.StationPrompts)),
+		e(require(script.Parent.SettingsPanel)),
+		e("Frame", {
 			Size = UDim2.new(1, 0, 1, 0),
+			BackgroundTransparency = 1,
+			AutomaticSize = Enum.AutomaticSize.XY,
 		}, {
-			admin and e(require(script.Parent.ConsoleApp)),
-			e(BuildPanel),
-			e(ShopPanel),
-			e(Tutorial),
-			e(require(script.Parent.CustomersOrder)),
-			e(require(script.Parent.CustomerPrompts)),
-			e(require(script.Parent.StationPrompts)),
-			e(require(script.Parent.SettingsPanel)),
+			layout = e("UIListLayout", {
+				FillDirection = Enum.FillDirection.Vertical,
+				HorizontalAlignment = Enum.HorizontalAlignment.Left,
+				VerticalAlignment = Enum.VerticalAlignment.Bottom,
+				SortOrder = Enum.SortOrder.LayoutOrder,
+				Padding = UDim.new(0, 24),
+			}),
+			gamepad and e(SmallText, {
+				Text = `{BuildersIcon.GetPromptText(Enum.KeyCode.ButtonY, currentInput)} Menu`,
+				RichText = true,
+				TextSize = 34,
+				Visible = panel:map(function(panel)
+					return panel == "none"
+				end),
+			}),
+			gamepad and e(SmallText, {
+				Text = `{BuildersIcon.GetPromptText(Enum.KeyCode.ButtonB, currentInput)} Close`,
+				RichText = true,
+				TextSize = 34,
+				Visible = panel:map(function(panel)
+					return panel ~= "none"
+				end),
+			}),
+		}),
+		e("Frame", {
+			Size = UDim2.new(1, 0, 1, 0),
+			BackgroundTransparency = 1,
+			AutomaticSize = Enum.AutomaticSize.XY,
+		}, {
+			layout = e("UIListLayout", {
+				FillDirection = Enum.FillDirection.Vertical,
+				HorizontalAlignment = Enum.HorizontalAlignment.Center,
+				SortOrder = Enum.SortOrder.LayoutOrder,
+				Padding = UDim.new(0, 5),
+			}),
 			e("Frame", {
-				Size = UDim2.new(1, 0, 1, 0),
 				BackgroundTransparency = 1,
+				LayoutOrder = 1,
 				AutomaticSize = Enum.AutomaticSize.XY,
 			}, {
 				layout = e("UIListLayout", {
-					FillDirection = Enum.FillDirection.Vertical,
+					FillDirection = Enum.FillDirection.Horizontal,
 					HorizontalAlignment = Enum.HorizontalAlignment.Center,
 					SortOrder = Enum.SortOrder.LayoutOrder,
 					Padding = UDim.new(0, 5),
 				}),
-				e("Frame", {
-					BackgroundTransparency = 1,
-					LayoutOrder = 1,
-					AutomaticSize = Enum.AutomaticSize.XY,
-				}, {
-					layout = e("UIListLayout", {
-						FillDirection = Enum.FillDirection.Horizontal,
-						HorizontalAlignment = Enum.HorizontalAlignment.Center,
-						SortOrder = Enum.SortOrder.LayoutOrder,
-						Padding = UDim.new(0, 5),
-					}),
-					e(EXPOverlay),
-					e(CashOverlay),
-				}),
+				e(EXPOverlay),
+				e(CashOverlay),
 			}),
-			e(require(script.Parent.PlayersCup), {
-				LayoutOrder = 2,
-			}),
-			e(Sidebar),
-		}) or nil,
+		}),
+		e(require(script.Parent.PlayersCup), {
+			LayoutOrder = 2,
+		}),
+		e(Sidebar),
+	})
+end
+
+local function Main(props)
+	local playerPhase, setPlayerPhase = useState("mainMenu")
+
+	useEffect(function()
+		local unsub = GlobalState:subscribe(function(state: GlobalState.GlobalState)
+			local stats = state.Stats[playerId]
+			local phase = stats and stats.PlayerPhase or "mainMenu"
+			return phase
+		end, function(newPhase)
+			setPlayerPhase(newPhase)
+		end)
+
+		local state = GlobalState:getState()
+		local stats = state.Stats[playerId]
+		local initialPhase = stats and stats.PlayerPhase or "mainMenu"
+
+		setPlayerPhase(initialPhase)
+
+		return unsub
+	end, {})
+
+	return e(React.Fragment, {}, {
+		CafeBaseLoader = e(CafeBase),
+
+		MenuPhase = (playerPhase == "mainMenu") and e(MainMenu) or nil,
+
+		PlayPhase = (playerPhase == "playing") and e(PlayPhase) or nil,
 	})
 end
 

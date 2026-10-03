@@ -3,18 +3,21 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local React = require(ReplicatedStorage.Packages.React)
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
+local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 
 local Primitives = ReplicatedStorage.Shared.ReactComponents.ui
 local SmallButton = require(Primitives.SmallButton)
 local SmallText = require(Primitives.SmallText)
 
 local e = React.createElement
+local useEffect = React.useEffect
+local useState = React.useState
 local RedDot = require(script.Parent.RedDot).RedDot
 
 local VStack = require(script.Parent.ui.VStack)
 
 local player = game:GetService("Players").LocalPlayer
-local playerId = player and tostring(player.UserId) or ""
+local playerId = player and tostring(player.UserId) or "MockUser"
 local admin = not player or playerId == "5470482596"
 
 function SidebarButton(props)
@@ -31,6 +34,7 @@ function SidebarButton(props)
 		[React.Event.Activated] = props[React.Event.Activated],
 		Padding = { All = UDim.new(0, 0) },
 		LayoutOrder = props.LayoutOrder,
+		OnMount = props.OnMount,
 	}, {
 
 		e(SmallText, {
@@ -51,17 +55,51 @@ function SidebarButton(props)
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.5),
 			BackgroundTransparency = 1,
-		}, {
-
-			e(RedDot, {
-				Position = UDim2.new(1, 0, 0, 8),
-				SizeNum = 48,
-			}),
-		}),
+		}, props.children),
 	})
 end
 
+--[[
+
+The logics for the red dots.
+Shop:
+	conditions:
+		1. An Item hasn't been seen by the player.
+		
+
+]]
+
 function Sidebar(props)
+	local level, setLevel = useState(nil)
+	local TutorialCompleted, setTutorialCompleted = useState(nil)
+	local panelCleared, setPanelCleared = useState(nil)
+	useEffect(function()
+		local unsub = UIState:subscribe(function(state: UIState.UIState)
+			return state.panelCleared
+		end, setPanelCleared)
+		local state = UIState:getState()
+		setPanelCleared(state.panelCleared)
+		return unsub
+	end, {})
+	useEffect(function()
+		local unsub = GlobalState:subscribe(function(state: GlobalState.GlobalState)
+			return state.Stats[playerId] and state.Stats[playerId].Level or nil
+		end, function(level)
+			setLevel(level)
+		end)
+		local state = GlobalState:getState()
+		setLevel(state.Stats[playerId] and state.Stats[playerId].Level or nil)
+		return unsub
+	end, {})
+	useEffect(function()
+		local unsub = GlobalState:subscribe(function(state: GlobalState.GlobalState)
+			return state.Stats[playerId] and state.Stats[playerId].TutorialCompleted or nil
+		end, setTutorialCompleted)
+		local state = GlobalState:getState()
+		setTutorialCompleted(state.Stats[playerId] and state.Stats[playerId].TutorialCompleted or nil)
+		return unsub
+	end, {})
+	level = level or 0
 	return e(VStack, {
 		VerticalFlex = Enum.UIFlexAlignment.None,
 		HorizontalFlex = Enum.UIFlexAlignment.None,
@@ -70,15 +108,17 @@ function Sidebar(props)
 		Spacing = UDim.new(0, 8),
 	}, {
 
-		ToggleShop = e(SidebarButton, {
+		ToggleShop = level > 1 and e(SidebarButton, {
 			[React.Event.Activated] = function()
 				UIState.toggle("shop")
 			end,
 			Image = "rbxassetid://15403066964",
 			Text = "Shop",
 			LayoutOrder = 1,
+		}, {
+			panelCleared.shop == false and e(RedDot, {}, {}),
 		}),
-		ToggleIndex = e(SidebarButton, {
+		ToggleIndex = level > 1 and e(SidebarButton, {
 			[React.Event.Activated] = function()
 				UIState.toggle("recipe")
 			end,
@@ -86,7 +126,7 @@ function Sidebar(props)
 			Text = "Index",
 			LayoutOrder = 2,
 		}),
-		ToggleBuild = e(SidebarButton, {
+		ToggleBuild = level > 1 and e(SidebarButton, {
 			[React.Event.Activated] = function()
 				UIState.toggle("build")
 			end,
@@ -103,7 +143,8 @@ function Sidebar(props)
 			Text = "Console",
 			LayoutOrder = 4,
 		}) or nil,
-		Settings = e(SidebarButton, {
+		Settings = TutorialCompleted and e(SidebarButton, {
+			OnMount = UIState.setSettingsButton,
 			[React.Event.Activated] = function()
 				UIState.toggle("settings")
 			end,

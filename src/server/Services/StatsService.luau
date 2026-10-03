@@ -33,6 +33,10 @@ function StatsService.initialize()
 		end
 		GlobalState.setMusicVolume(tostring(player.UserId), volume)
 	end)
+	Remotes.Play.OnServerEvent:Connect(function(player)
+		GlobalState.setPlayerPhase(tostring(player.UserId), "playing")
+	end)
+
 
 	local maxStep = 17 -- The total number of steps in your tutorial
 

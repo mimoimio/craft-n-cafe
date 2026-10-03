@@ -25,7 +25,9 @@ local function EXPHud(props: {
 	local exp = props.EXP
 	local level = exp and LevelConfig.GetLevel(exp) or nil
 	local levelsLowerBoundExp = exp and LevelConfig.GetExpOnLevel(level - 1) or nil
-	local percent = exp and (exp - levelsLowerBoundExp) / (LevelConfig.GetExpOnLevel(level) - levelsLowerBoundExp)
+	local currentExpOnLevel =exp and (exp - levelsLowerBoundExp) or nil
+	local maxExpOnLevel =exp and (LevelConfig.GetExpOnLevel(level) - levelsLowerBoundExp) or nil
+	local percent = exp and currentExpOnLevel / maxExpOnLevel
 		or nil
 	local textSize = mobile and 24 or 32
 	local height = mobile and 30 or 50
@@ -76,9 +78,11 @@ local function EXPHud(props: {
 				-- 		COINICON
 				-- 	) .. [[%s]]
 				-- ):format(coins or 0),
-				Text = "Level " .. Mionum.new(exp and level or 0):toString(),
+				Text = `<font size="{textSize}">Level ` .. Mionum.new(exp and level or 0):toString().."</font>"..( exp and `\n<font size="10">{Mionum.new(currentExpOnLevel):toString()}/{Mionum.new(maxExpOnLevel):toString()}</font>` or ""),
 				RichText = true,
 				TextSize = textSize,
+				MaxTextSize = textSize,
+				MinTextSize = 10,
 				TextColor3 = Color3.new(1, 1, 1),
 				Size = UDim2.new(0, width, 0, height),
 				AutomaticSize = Enum.AutomaticSize.None,

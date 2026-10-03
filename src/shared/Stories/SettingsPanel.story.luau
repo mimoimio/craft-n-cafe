@@ -53,7 +53,7 @@ local function StoryApp(props: {})
 		ShopPanel = e(
 			require(ReplicatedStorage.Shared.ReactComponents.RedDot).RedDotProvider,
 			nil,
-			{ e(require(ReplicatedStorage.Shared.ReactComponents.ShopPanel)) }
+			{ e(require(ReplicatedStorage.Shared.ReactComponents.SettingsPanel)) }
 		),
 		LevelSetter = e("TextBox", {
 			Text = "5",
@@ -67,11 +67,19 @@ local function story(frame: Frame)
 	for i, config in PlaceablesModule.Array do
 		inventory[config.Id] = math.min(32, config.MaxAllowed)
 	end
-	UIState.toggle("shop")
+	UIState.toggle("settings")
 	GlobalState.startPlayerSession("MockUser", {
 		Plot = getPlot(),
-		Stats = { EXP = 100, Level = 5, Cash = 500000 },
+		Stats = {
+			EXP = 100,
+			Level = 5,
+			Cash = 500000,
+		},
 		Inventory = inventory,
+		SfxVolume = 0.5,
+		SfxOn = true,
+		MusicVolume = 0.5,
+		MusicOn = true,
 
 		Ingredients = {},
 		Customers = {},

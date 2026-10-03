@@ -161,6 +161,7 @@ return {
 	DestroyItem = CreateRemote("DestroyItem"),
 	BuyItem = CreateRemote("BuyItem"),
 	ExpandPlot = CreateRemote("ExpandPlot"),
+	Play = CreateRemote("Play"),
 
 	-- Example usage for RemoteFunction:
 	-- GetServerData = CreateRemoteFunction("GetServerData"),

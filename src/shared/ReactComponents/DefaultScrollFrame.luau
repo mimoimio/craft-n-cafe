@@ -23,6 +23,7 @@ local function DefaultScrollFrame(props)
 		ref = function(this: ScrollingFrame)
 			-- this.CanvasPosition = Vector2.new(0.1, 1)
 		end,
+		Selectable = false,
 	}, {
 		InsetWrapper = e("Frame", {
 			Size = UDim2.new(
@@ -49,6 +50,7 @@ local function DefaultScrollFrame(props)
 				Spacing = UDim.new(0, 2),
 				VerticalFlex = Enum.UIFlexAlignment.None,
 				ClipsDescendants = true,
+				Padding = props.Padding,
 			}, props.children),
 			--[[{
 				e(SmallButton, {

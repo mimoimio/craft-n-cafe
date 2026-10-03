@@ -12,7 +12,7 @@ local Types = require(ReplicatedStorage.Shared.Types)
 local PlaceablesModule = require(ReplicatedStorage.Shared.PlaceablesModule)
 
 local SPAWN_INTERVAL = 10
-local MAX_WAITING_TIME = 30
+local MAX_WAITING_TIME = 20
 local rng = Random.new()
 local lastSpawnTimes = {}
 
@@ -247,7 +247,10 @@ function CustomersService.initialize()
 					continue
 				end
 
-				local CafeCapacity = playerStats.CafeCapacity
+				if playerStats.PlayerPhase ~= "playing" then
+					continue
+				end
+
 
 				local minOneCustomerWaiting
 				for _, customer in playersCustomers do
@@ -260,7 +263,7 @@ function CustomersService.initialize()
 					end
 				end
 
-				if minOneCustomerWaiting then
+				if minOneCustomerWaiting and playerStats.PlayerPhase == "playing" then
 					GlobalState.tickCustomer(playerId)
 				end
 
@@ -271,7 +274,7 @@ function CustomersService.initialize()
 
 				if
 					now - lastSpawn >= randomInterval
-					and #activePlayerCustomers < CafeCapacity
+					-- and #activePlayerCustomers < CafeCapacity
 					and playerStats.CafeOpen
 				then
 					Promise.defer(function(resolve)
@@ -294,7 +297,7 @@ function CustomersService.initialize()
 							continue
 						end
 					end
-					warn("customer.secondsWaited", customer.secondsWaited)
+					-- warn("customer.secondsWaited", customer.secondsWaited)
 					if
 						(customer.customerAction == "waiting" or customer.customerAction == "queuing")
 						and customer.secondsWaited

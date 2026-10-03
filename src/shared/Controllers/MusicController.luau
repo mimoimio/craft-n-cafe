@@ -98,14 +98,6 @@ function MusicController.Start()
 		_playIndex(1)
 	end
 end
-function MusicController.initialize()
-	if _initialized then
-		return
-	end
-	_initialized = true
-
-	MusicController.Start()
-end
 
 function MusicController.next()
 	_playIndex(_index + 1)
@@ -140,6 +132,25 @@ function MusicController.subscribe(fn: (state: any) -> ()): () -> ()
 			table.remove(_listeners, idx)
 		end
 	end
+end
+function MusicController.initialize()
+	if _initialized then
+		return
+	end
+	_initialized = true
+
+	MusicController.Start()
+
+	local player = game:GetService("Players").LocalPlayer
+	local playerId = tostring(player.UserId)
+
+	-- Listen to GlobalState for MusicVolume changes
+	GlobalState:subscribe(function(state)
+		local playerStats = state.Stats[playerId]
+		return playerStats and playerStats.MusicVolume or 0.5
+	end, function(newVolume)
+		MusicController.setVolume(newVolume)
+	end)
 end
 
 return MusicController

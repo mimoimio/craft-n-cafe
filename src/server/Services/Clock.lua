@@ -30,7 +30,7 @@ function self.start()
 	end
 	self.SecondsPerDay = SecondsPerDay
 	self.CurrentTime = game.Lighting.ClockTime
-	self.IsMorning = game.Lighting.ClockTime >= morningTime and game.Lighting.ClockTime < 18 or false
+	self.IsMorning = game.Lighting.ClockTime >= morningTime and game.Lighting.ClockTime < 17 or false
 	if self.IsMorning then
 		Sunrise()
 	end
@@ -57,7 +57,7 @@ local secPerGameHour = minPerGameDay / ((1 / 60) / (1 / 24))
 function self.TimeIncrement()
 	local clockNow = (((workspace:GetServerTimeNow()) / secPerGameHour) % 24)
 	game.Lighting.ClockTime = clockNow
-	if game.Lighting.ClockTime >= morningTime and game.Lighting.ClockTime < 18 and not self.IsMorning then
+	if game.Lighting.ClockTime >= morningTime and game.Lighting.ClockTime < 17 and not self.IsMorning then
 		Sunrise()
 		self.IsMorning = true
 		if game.Lighting.ClockTime <= 8 then
@@ -71,7 +71,7 @@ function self.TimeIncrement()
 				sound:Destroy()
 			end)
 		end
-	elseif ((game.Lighting.ClockTime >= 19.5) or (game.Lighting.ClockTime < morningTime)) and self.IsMorning then
+	elseif ((game.Lighting.ClockTime >= 17) or (game.Lighting.ClockTime < morningTime)) and self.IsMorning then
 		self.IsMorning = false
 		Sunset()
 	end

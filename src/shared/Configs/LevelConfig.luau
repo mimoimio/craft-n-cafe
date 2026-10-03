@@ -18,7 +18,9 @@ function LevelConfig.GetExpOnLevel(lvl: number): number
 	if lvl < 1 then
 		return 0
 	end
-	return (2.5 ^ lvl) * 2 // 1 + 12
+	local exp = (2.5 ^ lvl) * 2 // 1 + 12 * 3 * lvl
+	return exp
+
 end
 function LevelConfig.GetLevel(exp: number): number
 	if type(exp) ~= "number" then

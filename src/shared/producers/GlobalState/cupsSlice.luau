@@ -27,8 +27,8 @@ local initialState: CupsState = {}
 -- /// REDUCERS ///
 local actions = {
 	startPlayerSession = function(state: CupsState, playerId: string, data: PlayerData)
-		-- warn("stats", state)
-		return Set(state, playerId, data.Cups)
+		-- return Set(state, playerId, data.Cups)
+		return Set(state, playerId, {})
 	end,
 	endPlayerSession = function(state: CupsState, playerId: string, data: PlayerData)
 		return RemoveKey(state, playerId)
