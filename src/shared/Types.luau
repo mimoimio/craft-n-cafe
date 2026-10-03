@@ -251,7 +251,7 @@ export type CombinedActions = {
     wrongOrder: (playerId: PlayerId, payload: WrongOrderPayload) -> (),
     timeOut: (playerId: PlayerId, payload: { customerUid: string, timestamp: number }) -> (),
     removeCustomer: (playerId: PlayerId, uid: string) -> (),
-    tickCustomer: (playerId: PlayerId) -> (),	
+    tickCustomer: (playerId: PlayerId) -> (),			
 }
 
 --Coffee Modules
