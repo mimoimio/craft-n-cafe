@@ -117,19 +117,67 @@ function CustomersService.ServeCustomer(player: Player, uid: string, workerUid: 
 	end
 
 	if cup.drinkId == found.order then
-		local drinkConfig = CoffeeModule.Config[cup.drinkId]
-		local cashReward = drinkConfig and (drinkConfig.Price * cup.score // #drinkConfig.Ingredients)
-		local exp = playersStats.EXP + cup.status
-		local level = LevelConfig.GetLevel(exp)
+        local drinkConfig = CoffeeModule.Config[cup.drinkId]
+        local cashReward = drinkConfig and (drinkConfig.Price * cup.score // #drinkConfig.Ingredients)
+        local exp = playersStats.EXP + cup.status
+        local level = LevelConfig.GetLevel(exp)
 
-		GlobalState.serveCustomer(playerId, {
-			customerUid = uid,
-			cash = cashReward,
-			EXP = exp,
-			level = level,
-			timestamp = workspace:GetServerTimeNow(),
-			workerUid = workerUid,
-		})
+        -- 1. Get the player's plot data to scan for seats
+        local plotState = state.Plot and state.Plot[playerId]
+        local availableSeats = {}
+        
+        if plotState then
+            local seatUuids = {}
+            
+            -- Collect all placed Grid seats
+            for uuid, item in pairs(plotState.placedItems) do
+                local config = PlaceablesModule.GetConfig(item.id)
+                if config and config.Category == "Seat" then -- Ensure your furniture config uses this category!
+                    table.insert(seatUuids, uuid)
+                end
+            end
+            
+            -- Collect all Spatial seats
+            for uuid, item in pairs(plotState.spatialItems) do
+                local config = PlaceablesModule.GetConfig(item.id)
+                if config and config.Category == "Seat" then
+                    table.insert(seatUuids, uuid)
+                end
+            end
+
+            -- 2. Filter out seats that are already assigned to customers
+            local occupiedSeats = {}
+            for _, c in ipairs(playersCustomers) do
+                if c.targetSeatUuid then
+                    occupiedSeats[c.targetSeatUuid] = true
+                end
+            end
+
+            for _, uuid in ipairs(seatUuids) do
+                if not occupiedSeats[uuid] then
+                    table.insert(availableSeats, uuid)
+                end
+            end
+        end
+
+        -- 3. Determine if they dine in (50% chance AND there must be an open seat)
+        local willDineIn = (math.random() > 0.5) and #availableSeats > 0
+        local chosenSeatUuid = nil
+        
+        if willDineIn then
+            chosenSeatUuid = availableSeats[math.random(1, #availableSeats)]
+        end
+
+        -- 4. Fire the state update
+        GlobalState.serveCustomer(playerId, {
+            customerUid = uid,
+            cash = cashReward,
+            EXP = exp,
+            level = level,
+            timestamp = workspace:GetServerTimeNow(),
+            workerUid = workerUid,
+            targetSeatUuid = chosenSeatUuid, -- Will be nil for takeout, valid UUID for dine-in
+        })
 	elseif cup.drinkId ~= found.order then
 		GlobalState.wrongOrder(playerId, {
 			customerUid = uid,
@@ -290,27 +338,44 @@ function CustomersService.initialize()
 				end
 
 				for _, customer in ipairs(playersCustomers) do
-					local timeInState = now - (customer.actionStartTime or now)
-					if customer.customerAction == "paid" or customer.customerAction == "emptyHanded" then
-						if timeInState >= 2 then
-							GlobalState.removeCustomer(playerId, customer.id)
-							continue
-						end
-					end
-					-- warn("customer.secondsWaited", customer.secondsWaited)
-					if
-						(customer.customerAction == "waiting" or customer.customerAction == "queuing")
-						and customer.secondsWaited
-					then
-						if customer.secondsWaited > MAX_WAITING_TIME then
-							GlobalState.timeOut(playerId, {
-								customerUid = customer.id,
-								timestamp = workspace:GetServerTimeNow(),
-							})
-							continue
-						end
-					end
-				end
+                    local timeInState = now - (customer.actionStartTime or now)
+                    
+                    -- Handle Despawns (Added "leaving" to this check)
+                    if customer.customerAction == "paid" or customer.customerAction == "emptyHanded" or customer.customerAction == "leaving" then
+                        -- NOTE: You currently have this at 2 seconds. You may want to increase this 
+                        -- to 5-10 so they actually have time to walk to the door before vanishing!
+                        if timeInState >= 2 then
+                            GlobalState.removeCustomer(playerId, customer.id)
+                            continue
+                        end
+                    end
+                    
+                    -- NEW: Handle Dining Timer
+                    if customer.customerAction == "sitting" then
+                        local MAX_DINING_TIME = 15 -- Time in seconds they spend eating
+                        if timeInState >= MAX_DINING_TIME then
+                            GlobalState.finishDining(playerId, {
+                                customerUid = customer.id,
+                                timestamp = now
+                            })
+                            continue
+                        end
+                    end
+
+                    -- Handle Waiting Timeouts (existing)
+                    if
+                        (customer.customerAction == "waiting" or customer.customerAction == "queuing")
+                        and customer.secondsWaited
+                    then
+                        if customer.secondsWaited > MAX_WAITING_TIME then
+                            GlobalState.timeOut(playerId, {
+                                customerUid = customer.id,
+                                timestamp = workspace:GetServerTimeNow(),
+                            })
+                            continue
+                        end
+                    end
+                end
 			end
 		end
 	end)

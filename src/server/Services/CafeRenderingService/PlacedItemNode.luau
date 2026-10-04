@@ -162,8 +162,8 @@ local function PlacedItemNode(props: {
 		part.CanTouch = false
 		part.CanQuery = false
 		part.Transparency = 1
-		part.Parent = clone
 		part:PivotTo(originalCFrame) -- this is important
+		part.Parent = clone
 
 		for i, desc: BasePart in clone:GetDescendants() do
 			if desc:IsA("BasePart") then
@@ -175,6 +175,7 @@ local function PlacedItemNode(props: {
 		clone.PrimaryPart = part
 		clone:PivotTo(targetCFrame)
 		clone.Name = props.Uuid
+		part:Destroy()
 		clone.Parent = props.BaseModel.Grid
 
 		return function()

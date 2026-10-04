@@ -260,4 +260,51 @@ function Grid.isSpatialInBounds(relativeCFrame: CFrame, itemSize: Vector3, plotS
 
 	return true
 end
+-- [[ PATHFINDING MATH ]]
+
+-- Gets the exact grid cell a world position falls into
+function Grid.worldToCell(worldPos: Vector3, plotCFrame: CFrame): (GridStud, GridStud)
+	local localPos = plotCFrame:PointToObjectSpace(worldPos)
+	return math.floor(localPos.X / Grid.SIZE), math.floor(localPos.Z / Grid.SIZE)
+end
+
+-- Gets the World Position of the exact center of a grid cell
+function Grid.cellToWorld(x: GridStud, z: GridStud, plotCFrame: CFrame, plotSize: Vector3): Vector3
+	local localX = (x * Grid.SIZE) + (Grid.SIZE / 2)
+	local localZ = (z * Grid.SIZE) + (Grid.SIZE / 2)
+	local localY = plotSize.Y / 2
+	return (plotCFrame * CFrame.new(localX, localY, localZ)).Position
+end
+
+-- Checks if an NPC can walk from Cell 1 to adjacent Cell 2 (Checks for solids AND walls!)
+function Grid.canMove(
+	x1: GridStud,
+	z1: GridStud,
+	x2: GridStud,
+	z2: GridStud,
+	plotState: Types.PlotState?,
+	ignoreSolid: boolean?
+): boolean
+	if not plotState then
+		return true
+	end
+
+	-- 1. Check if the target cell has a Solid item taking up space
+	-- If ignoreSolid is true (it's their final destination), we skip this check!
+	if not ignoreSolid then
+		local hx, hz = x2 * 2, z2 * 2
+		if plotState.grid["Main_" .. hx .. "_" .. hz] ~= nil then
+			return false
+		end
+	end
+
+	-- 2. Check if there's a Wall cutting off the edge between the two cells
+	local edgeHx = x1 * 2 + (x2 - x1)
+	local edgeHz = z1 * 2 + (z2 - z1)
+	if plotState.grid["Main_" .. edgeHx .. "_" .. edgeHz] ~= nil then
+		return false
+	end
+
+	return true
+end
 return Grid

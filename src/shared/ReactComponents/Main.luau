@@ -126,7 +126,10 @@ local function MainMenu(props)
 			end
 		end
 	end, { cafeBase })
-	local OnMount = React.useCallback(function(rbx)
+	local OnMount = React.useCallback(function(rbx: GuiObject)
+		if not (rbx and rbx:FindFirstAncestorWhichIsA("PlayerGui")) then
+			return
+		end
 		GuiService.SelectedObject = rbx
 	end, {})
 	return e(VStack, {

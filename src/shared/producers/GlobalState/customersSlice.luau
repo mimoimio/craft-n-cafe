@@ -99,35 +99,71 @@ local actions = {
 		)
 	end,
 	serveCustomer = function(
-		state: CustomersState,
-		playerId: string,
-		payload: Types.ServeCustomerPayload
-	)
-		local playersCustomers = state[playerId] or {}
+        state: CustomersState,
+        playerId: string,
+        payload: Types.ServeCustomerPayload
+    )
+        local playersCustomers = state[playerId] or {}
 
-		local index
-		for i, customer in playersCustomers do
-			if customer.id == payload.customerUid then
-				index = i
-				break
-			end
-		end
-		if not index then
-			return state
-		end
+        local index
+        for i, customer in playersCustomers do
+            if customer.id == payload.customerUid then
+                index = i
+                break
+            end
+        end
+        if not index then
+            return state
+        end
 
-		return Set(
-			state,
-			playerId,
-			Update(playersCustomers, index, function(customer: Types.CustomerEntity)
-				local new = table.clone(customer)
-				new.customerAction = "paid"
-				new.servedBy = nil
-				new.actionStartTime = payload.timestamp
-				return new
-			end)
-		)
-	end,
+        return Set(
+            state,
+            playerId,
+            Update(playersCustomers, index, function(customer: Types.CustomerEntity)
+                local new = table.clone(customer)
+                
+                -- NEW: Branch state based on whether they got a seat
+                if payload.targetSeatUuid then
+                    new.customerAction = "sitting"
+                    new.targetSeatUuid = payload.targetSeatUuid
+                else
+                    new.customerAction = "paid" -- Takeout (existing behavior)
+                end
+                
+                new.servedBy = nil
+                new.actionStartTime = payload.timestamp
+                return new
+            end)
+        )
+    end,
+
+    -- NEW ACTION
+    finishDining = function(state: CustomersState, playerId: string, payload: Types.FinishDiningPayload)
+        local playersCustomers = state[playerId] or {}
+
+        local index
+        for i, customer in playersCustomers do
+            if customer.id == payload.customerUid then
+                index = i
+                break
+            end
+        end
+        if not index then
+            return state
+        end
+
+        return Set(
+            state,
+            playerId,
+            Update(playersCustomers, index, function(customer: Types.CustomerEntity)
+                local new = table.clone(customer)
+                new.customerAction = "leaving"
+                new.actionStartTime = payload.timestamp
+                new.targetSeatUuid = nil -- Clear the seat so it can be used by others
+                return new
+            end)
+        )
+    end,
 	wrongOrder = function(state: CustomersState, playerId: string, payload: { customerUid: string, timestamp: number })
 		local playersCustomers = state[playerId] or {}
 
