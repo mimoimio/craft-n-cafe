@@ -15,7 +15,7 @@ export type CafeBase = Model & {
 	Cafe: Cafe?, -- the main cafe building, rendered in Services/CafeRenderingService
 	Part: Part, -- The dynamic green plot part rendered by React at runtime
 
-	GetAttribute: (self: CafeBase, attribute: string & "OwnerId") -> string,
+	GetAttribute: (self: CafeBase, attribute: string & "OwnerId") -> string, -- player.UserId string
 }
 
 export type IngredientId = string

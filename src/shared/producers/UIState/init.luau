@@ -12,11 +12,13 @@ local Set = Dictionary.set
 local Merge = Dictionary.merge
 
 export type Breakpoint = "xs" | "sm" | "md" | "lg" | "xl"
+-- Add to UIState export type:
 export type UIState = {
 	panel: string,
 	viewportSize: Vector2,
-	buildItemId: string?, -- Tracks the selected item
+	buildItemId: string?,
 	cafeBase: CafeTypes.CafeBase,
+	reportTargetId: string?, -- NEW
 }
 
 export type UIActions = {
@@ -24,6 +26,7 @@ export type UIActions = {
 	setViewportSize: (viewportSize: Vector2) -> (),
 	selectBuildItem: (itemId: string) -> (),
 	setCafeBase: (cafeBase: CafeTypes.CafeBase) -> (),
+	setReportTargetId: (userId: string?) -> (), -- NEW
 }
 
 local initialState: UIState = {
@@ -31,8 +34,8 @@ local initialState: UIState = {
 	panelCleared = {},
 	buildItemId = nil,
 	playerPhase = "mainMenu",
+	reportTargetId = nil, -- NEW
 }
-
 local function calculateBreakpoint(viewportSize: Vector2): Breakpoint
 	local width = viewportSize.X
 	local height = viewportSize.Y
@@ -95,6 +98,9 @@ local producer = Reflex.createProducer(initialState, {
 		local panels = state.panelCleared
 
 		return Set(state, "panelCleared", Set(panels, panel, cleared))
+	end,
+	setReportTargetId = function(state: UIState, userId: string?)
+		return Set(state, "reportTargetId", userId)
 	end,
 }) :: Reflex.Producer<UIState, UIActions>
 

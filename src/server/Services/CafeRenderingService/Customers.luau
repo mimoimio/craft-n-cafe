@@ -4,6 +4,7 @@ local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+local TweenService = game:GetService("TweenService")
 
 local React = require(ReplicatedStorage.Packages.React)
 local Promise = require(ReplicatedStorage.Packages.Promise)
@@ -19,12 +20,14 @@ local DrinkModelUtil = require(ReplicatedStorage.Shared.Utils.DrinkModelUtil)
 
 local Grid = require(ReplicatedStorage.Shared.Grid)
 local Models = ReplicatedStorage.Shared.Models
-local AStar = require(ReplicatedStorage.Shared.AStar) -- NEW: Custom Pathfinder
+local AStar = require(ReplicatedStorage.Shared.AStar)
 
 local e = React.createElement
 local useEffect = React.useEffect
 local useState = React.useState
 local useRef = React.useRef
+
+local CUSTOMER_WALK_SPEED = 6
 
 local disappointed = {
 	"Where are the drinks?",
@@ -60,10 +63,9 @@ local observeRigClone = function(clone: Model): (() -> ())?
 	end
 end
 
--- PURE FUNCTION: Calculates Counter CFrame
+-- PURE FUNCTION: Calculates Counter CFrame (NOW FACING 180 DEGREES)
 local function getCounterTargetCFrame(baseModel: CafeTypes.CafeBase, cashierData: any?): CFrame?
 	if not cashierData then
-		warn("[Customers-CFrame] cashierData is nil")
 		return nil
 	end
 
@@ -72,7 +74,6 @@ local function getCounterTargetCFrame(baseModel: CafeTypes.CafeBase, cashierData
 
 	local prefab = Models:FindFirstChild(item.id)
 	if not prefab then
-		warn("[Customers-CFrame] Failed to find Prefab model for counter:", item.id)
 		return nil
 	end
 
@@ -94,13 +95,12 @@ local function getCounterTargetCFrame(baseModel: CafeTypes.CafeBase, cashierData
 		counterCF = Grid.spatialToWorld(spatialCFrame, plotCFrame, plotSize)
 	end
 
-	local finalcf = counterCF * CFrame.new(0, 0, -4)
-	-- local finalcf = counterCF * CFrame.new(0, 0, -(itemSize.Z / 2 + 1))
-	print(`[Customers-CFrame] Counter Target for {item.id}: {tostring(finalcf.Position)}`)
+	-- Offset by 4 studs forward, and rotate 180 degrees to face the counter!
+	local finalcf = counterCF * CFrame.new(0, 0, -4) * CFrame.Angles(0, math.pi, 0)
 	return finalcf
 end
 
--- PURE FUNCTION: Calculates Seat CFrame
+-- PURE FUNCTION: Calculates Seat CFrame (Fallback if no physical seat is found)
 local function getSeatTargetCFrame(baseModel: CafeTypes.CafeBase, seatData: any?): CFrame?
 	if not seatData then
 		return nil
@@ -111,7 +111,6 @@ local function getSeatTargetCFrame(baseModel: CafeTypes.CafeBase, seatData: any?
 
 	local prefab = Models:FindFirstChild(item.id)
 	if not prefab then
-		warn("[Customers-CFrame] Failed to find Prefab model for seat:", item.id)
 		return nil
 	end
 
@@ -132,9 +131,7 @@ local function getSeatTargetCFrame(baseModel: CafeTypes.CafeBase, seatData: any?
 		seatCF = Grid.spatialToWorld(spatialCFrame, plotCFrame, plotSize)
 	end
 
-	local finalcf = seatCF * CFrame.new(0, 1.5, 0)
-	print(`[Customers-CFrame] Seat Target for {item.id}: {tostring(finalcf.Position)}`)
-	return finalcf
+	return seatCF * CFrame.new(0, 1.5, 0)
 end
 
 local original = workspace.Rig:Clone()
@@ -154,15 +151,12 @@ local function Customer(props: {
 	local prompt: ProximityPrompt, setPrompt = useState(nil)
 	local actionRef = useRef(nil)
 
-	print(`[Customer-Render] Rendered {props.Customer.id} | Action: {props.Customer.customerAction}`)
-
 	useEffect(function()
 		actionRef.current = props.Customer.customerAction
 	end, { props.Customer })
 
 	-- 1. Mounting the Rig
 	useEffect(function()
-		print(`[Customers-Rig] Spawning rig for {props.Customer.id}...`)
 		local clone
 		if npcsFolder and #npcsFolder:GetChildren() > 0 then
 			local npcs = npcsFolder:GetChildren()
@@ -176,18 +170,36 @@ local function Customer(props: {
 		local tag = "Customer" .. props.PlayerId
 		local rootPart = clone:FindFirstChild("HumanoidRootPart")
 
+		if rootPart then
+			clone.PrimaryPart = rootPart
+		end
 		clone:AddTag(tag)
 		clone.Name = props.Customer.id
 		clone.Parent = workspace
+
 		if rootPart and rootPart:CanSetNetworkOwnership() then
 			rootPart:SetNetworkOwner(nil)
 		end
+
 		for i, desc: BasePart in clone:GetDescendants() do
 			if desc:IsA("BasePart") then
 				desc.CollisionGroup = "Characters"
-				desc.Anchored = false
+				if desc.Name == "HumanoidRootPart" then
+					desc.Anchored = true
+				else
+					desc.Anchored = false
+				end
 			end
 		end
+
+		local humanoid = clone:FindFirstChildOfClass("Humanoid")
+		local feetOffset = 3
+		if humanoid and rootPart then
+			if humanoid.RigType == Enum.HumanoidRigType.R15 then
+				feetOffset = humanoid.HipHeight + (rootPart.Size.Y / 2)
+			end
+		end
+		clone:SetAttribute("FeetOffset", feetOffset)
 
 		if not clone:FindFirstChild("TriggerPrompt") then
 			local newPrompt = Instance.new("ProximityPrompt")
@@ -203,25 +215,32 @@ local function Customer(props: {
 		local action = props.Customer.customerAction
 
 		local spotCF = getCounterTargetCFrame(props.BaseModel, props.CashierData) or entranceCF
-		local targetCF = entranceCF + Vector3.new(0, 4, 0)
+
+		local plotPart = props.BaseModel.Part
+		local floorY = plotPart.Position.Y + (plotPart.Size.Y / 2)
+
+		local spotFloorPos = Vector3.new(spotCF.Position.X, floorY, spotCF.Position.Z)
+		local entranceFloorPos = Vector3.new(entranceCF.Position.X, floorY, entranceCF.Position.Z)
+
+		local targetFloorPos = entranceFloorPos + (entranceCF.LookVector * 4)
+		local spawnRotation = action == "queuing" and spotCF.Rotation or entranceCF.Rotation
 
 		if action == "queuing" then
-			targetCF = spotCF
+			targetFloorPos = spotFloorPos
 		elseif action == "paid" or action == "emptyHanded" then
-			targetCF = spotCF + (spotCF.LookVector * 4)
+			targetFloorPos = spotFloorPos + (spotCF.LookVector * 4)
 		end
 
-		clone:PivotTo(targetCF)
+		clone:PivotTo(CFrame.new(targetFloorPos + Vector3.new(0, feetOffset, 0)) * spawnRotation)
+
 		clone.TriggerPrompt.RequiresLineOfSight = false
 		clone.TriggerPrompt.ActionText = "Tend Customer"
 		clone.TriggerPrompt.Style = Enum.ProximityPromptStyle.Default
 
 		local conn = clone.TriggerPrompt.Triggered:Connect(function(player: Player)
-			print(`[Customers-Interact] Prompt triggered on {props.Customer.id} by {player.Name}`)
 			if tostring(player.UserId) ~= props.PlayerId then
 				return
 			end
-
 			if actionRef.current == "waiting" then
 				CustomersService.ServeCustomer(player, props.Customer.id)
 			elseif actionRef.current == "queuing" then
@@ -230,7 +249,6 @@ local function Customer(props: {
 		end)
 
 		return function()
-			print(`[Customers-Rig] Destroying rig for {props.Customer.id}`)
 			if clone and clone.Parent then
 				clone:Destroy()
 			end
@@ -245,7 +263,7 @@ local function Customer(props: {
 		end
 	end, { props.Customer.id, props.BaseModel, props.CafeModel })
 
-	-- 2. State Transition & Custom A* Pathfinding
+	-- 2. State Transition & Custom Tween Pathfinding
 	local cashierX = props.CashierData and props.CashierData.itemData.x or nil
 	local cashierZ = props.CashierData and props.CashierData.itemData.z or nil
 	local seatX = props.SeatData and props.SeatData.itemData.x or nil
@@ -262,138 +280,204 @@ local function Customer(props: {
 		end
 
 		local humanoid = rig:FindFirstChildOfClass("Humanoid")
+		local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
 		local rootPart = rig:FindFirstChild("HumanoidRootPart")
+		local feetOffset = rig:GetAttribute("FeetOffset") or 3
+
 		local action = props.Customer.customerAction
 		local entranceCF = props.BaseModel.Entrance:GetPivot()
 
-		local spotCF = getCounterTargetCFrame(props.BaseModel, props.CashierData) or entranceCF
+		local plotPart = props.BaseModel.Part
+		local floorY = plotPart.Position.Y + (plotPart.Size.Y / 2)
+
+		local spotCF = getCounterTargetCFrame(props.BaseModel, props.CashierData)
 		local seatCF = getSeatTargetCFrame(props.BaseModel, props.SeatData)
-		local targetPos = nil
+
+		local targetFloorPos = entranceCF.Position
+		local finalCF = entranceCF
 
 		local holdingAnimation: AnimationTrack?
 		local sittingAnimation: AnimationTrack?
+		local walkingAnimation: AnimationTrack?
 
-		print(`[Customers-State] {props.Customer.id} routing state: {action}`)
-
-		-- Determine target
 		if action == "walking" or action == "entering" then
 			prompt.Enabled = false
-			targetPos = spotCF.Position
+			targetFloorPos = spotCF and Vector3.new(spotCF.Position.X, floorY, spotCF.Position.Z) or entranceCF.Position
+			finalCF = spotCF or entranceCF
 		elseif action == "queuing" or action == "waiting" then
 			prompt.Enabled = true
-			targetPos = spotCF.Position
+			targetFloorPos = spotCF and Vector3.new(spotCF.Position.X, floorY, spotCF.Position.Z) or entranceCF.Position
+			finalCF = spotCF or entranceCF
 		elseif action == "sitting" then
 			prompt.Enabled = false
-			targetPos = seatCF and seatCF.Position or entranceCF.Position
+			targetFloorPos = seatCF and Vector3.new(seatCF.Position.X, floorY, seatCF.Position.Z) or entranceCF.Position
+			finalCF = seatCF or entranceCF
 		elseif action == "paid" or action == "emptyHanded" or action == "leaving" then
 			prompt.Enabled = false
-			targetPos = entranceCF.Position
+			targetFloorPos = Vector3.new(entranceCF.Position.X, floorY, entranceCF.Position.Z)
+			finalCF = entranceCF
 		end
 
-		print(`[Customers-Nav] {props.Customer.id} Target Position: {tostring(targetPos)}`)
-
-		-- Handle hold cup animations
-		if action == "paid" or action == "sitting" or action == "leaving" then
+		-- UPDATED: Removed "sitting" from HoldCup animation logic
+		if action == "paid" or action == "leaving" then
 			local animation = ReplicatedStorage.Shared.Animations:FindFirstChild("HoldCup")
-			if rig and rig.Parent and animation and humanoid then
-				local animator: Animator = humanoid:FindFirstChildOfClass("Animator")
-				if animator then
-					print(`[Customers-Anim] Playing HoldCup for {props.Customer.id}`)
-					holdingAnimation = animator:LoadAnimation(animation)
-					holdingAnimation.Looped = true
-					holdingAnimation.Priority = Enum.AnimationPriority.Action
-					holdingAnimation:Play(0.1, 1, 2)
-				end
+			if animator and animation then
+				holdingAnimation = animator:LoadAnimation(animation)
+				holdingAnimation.Looped = true
+				holdingAnimation.Priority = Enum.AnimationPriority.Action
+				holdingAnimation:Play(0.1, 1, 2)
 			end
 		end
 
 		local isNavigating = true
 
-		-- A* Grid Pathfinding Execution
-		if humanoid and rootPart and targetPos then
+		if humanoid and rootPart and targetFloorPos then
 			task.spawn(function()
-				print(`[Customers-Nav] Calculating Grid Path for {props.Customer.id}...`)
+				-- STAND UP LOGIC: Unsit, wait for physics weld to break, and re-anchor
+				if humanoid.Sit then
+					humanoid.Sit = false
+					task.wait(0.1)
+					rootPart.Anchored = true
 
-				-- 1. Convert to logical Grid Cells
+					-- Reset orientation to stand straight up before tweening
+					local currPos = rootPart.Position
+					rootPart.CFrame = CFrame.new(currPos.X, floorY + feetOffset, currPos.Z)
+				end
+
 				local startX, startZ = Grid.worldToCell(rootPart.Position, props.BaseModel.Part.CFrame)
-				local endX, endZ = Grid.worldToCell(targetPos, props.BaseModel.Part.CFrame)
-				print(`[Customers-Nav] Grid Cells -> Start: ({startX}, {startZ}) | End: ({endX}, {endZ})`)
+				local endX, endZ = Grid.worldToCell(targetFloorPos, props.BaseModel.Part.CFrame)
 
-				-- 2. Execute A* search
 				local path = AStar.compute(startX, startZ, endX, endZ, props.PlotState, props.BaseModel.Part.Size.X)
+
+				if not path then
+					path = AStar.compute(startX, startZ, endX, endZ, props.PlotState, props.BaseModel.Part.Size.X, true)
+				end
 
 				local broke = false
 				local moveToFinished = false
 				local failedpath = false
 
 				if path then
-					print(`[Customers-Nav] A* Success! {#path} nodes found for {props.Customer.id}`)
 					local waypoints = {}
-
-					-- Translate grid nodes to world centers
 					for _, node in ipairs(path) do
 						table.insert(
 							waypoints,
 							Grid.cellToWorld(node.x, node.z, props.BaseModel.Part.CFrame, props.BaseModel.Part.Size)
 						)
 					end
-					table.insert(waypoints, targetPos) -- Snap exactly to final destination
+					table.insert(waypoints, targetFloorPos)
+
+					local walkAnim = ReplicatedStorage.Shared.Animations:FindFirstChild("Walk")
+					if animator and walkAnim then
+						walkingAnimation = animator:LoadAnimation(walkAnim)
+						walkingAnimation.Priority = Enum.AnimationPriority.Movement
+						walkingAnimation.Looped = true
+						walkingAnimation:Play()
+					end
 
 					for i, wp in ipairs(waypoints) do
 						if not isNavigating then
-							print(`[Customers-Nav] Cancelled mid-path for {props.Customer.id}`)
 							break
 						end
 
-						humanoid:MoveTo(wp + Vector3.new(0, 2, 0))
-						local moveSuccess = humanoid.MoveToFinished:Wait()
+						local startPos = rootPart.Position
+						local targetP = Vector3.new(wp.X, floorY + feetOffset, wp.Z)
+						local dist = (targetP - startPos).Magnitude
 
-						if not moveSuccess then
-							warn(`[Customers-Nav] {props.Customer.id} got stuck at waypoint {i}!`)
-							broke = true
-							break
+						if dist > 0.1 then
+							local timeToTake = dist / CUSTOMER_WALK_SPEED
+							local targetCFrame
+
+							if i == #waypoints and finalCF then
+								targetCFrame = CFrame.new(targetP) * finalCF.Rotation
+							else
+								local lookVector = (targetP - startPos).Unit
+								local lookAtCF =
+									CFrame.lookAt(startPos, startPos + Vector3.new(lookVector.X, 0, lookVector.Z))
+								targetCFrame = CFrame.new(targetP) * lookAtCF.Rotation
+								rootPart.CFrame = CFrame.new(startPos) * lookAtCF.Rotation
+							end
+
+							local tween = TweenService:Create(
+								rootPart,
+								TweenInfo.new(timeToTake, Enum.EasingStyle.Linear),
+								{ CFrame = targetCFrame }
+							)
+							tween:Play()
+							tween.Completed:Wait()
+						else
+							if i == #waypoints and finalCF then
+								local targetCFrame = CFrame.new(startPos) * finalCF.Rotation
+								local tween = TweenService:Create(
+									rootPart,
+									TweenInfo.new(0.2, Enum.EasingStyle.Linear),
+									{ CFrame = targetCFrame }
+								)
+								tween:Play()
+								tween.Completed:Wait()
+							end
 						end
 
 						if i == #waypoints then
-							print(`[Customers-Nav] {props.Customer.id} reached destination!`)
 							moveToFinished = true
 						end
 					end
+
+					if walkingAnimation then
+						walkingAnimation:Stop()
+					end
 				else
-					warn(
-						`[Customers-Nav] A* FAILED to find path for {props.Customer.id} from ({startX}, {startZ}) to ({endX}, {endZ})`
-					)
 					failedpath = true
 				end
 
-				-- Failsafe Teleport
 				if broke or failedpath then
-					print(`[Customers-Nav] Failsafe triggered. Teleporting {props.Customer.id} to target.`)
-					rig:PivotTo(CFrame.new(targetPos))
+					rootPart.CFrame = CFrame.new(targetFloorPos + Vector3.new(0, feetOffset, 0))
+						* (finalCF and finalCF.Rotation or CFrame.Angles(0, 0, 0))
 				end
 
-				-- Queue logic after walking to counter
+				-- ACTION LOGIC EXECUTION ONCE ARRIVED:
+
+				-- 1. Queue logic after walking to counter
 				if action == "walking" and (failedpath or moveToFinished or broke) then
-					print(`[Customers-State] Dispatching queueCustomer for {props.Customer.id}`)
 					GlobalState.queueCustomer(props.PlayerId, {
 						customerUid = props.Customer.id,
 						timestamp = workspace:GetServerTimeNow(),
 					})
 				end
 
-				-- Sit execution
+				-- 2. Delete logic after walking to entrance/exit door
+				if
+					(action == "paid" or action == "emptyHanded" or action == "leaving")
+					and (failedpath or moveToFinished or broke)
+				then
+					print(`[Customers-Anim] {props.Customer.id} reached exit! Removing from state.`)
+					GlobalState.removeCustomer(props.PlayerId, props.Customer.id)
+				end
+
+				-- 3. Sitting logic after walking to table
 				if action == "sitting" and (moveToFinished or failedpath or broke) and seatCF then
-					print(`[Customers-Anim] Executing Sit sequence for {props.Customer.id}`)
-					rig:PivotTo(seatCF)
-					local sitAnim = ReplicatedStorage.Shared.Animations:FindFirstChild("Sit")
-					if sitAnim and humanoid then
-						local animator = humanoid:FindFirstChildOfClass("Animator")
-						if animator then
-							sittingAnimation = animator:LoadAnimation(sitAnim)
-							sittingAnimation.Priority = Enum.AnimationPriority.Action2
-							sittingAnimation.Looped = true
-							sittingAnimation:Play()
+					local seatInstance = nil
+					if props.SeatData and props.SeatData.uuid then
+						local seatModel = props.BaseModel:FindFirstChild(props.SeatData.uuid, true)
+						if seatModel then
+							seatInstance = seatModel:FindFirstChildWhichIsA("Seat", true)
 						end
+					end
+
+					if seatInstance then
+						rootPart.Anchored = false
+						seatInstance.Disabled = false
+						seatInstance:Sit(humanoid)
+					else
+						rootPart.CFrame = seatCF
+					end
+
+					local sitAnim = ReplicatedStorage.Shared.Animations:FindFirstChild("Sit")
+					if sitAnim and animator then
+						sittingAnimation = animator:LoadAnimation(sitAnim)
+						sittingAnimation.Priority = Enum.AnimationPriority.Action2
+						sittingAnimation.Looped = true
+						sittingAnimation:Play()
 					end
 				end
 			end)
@@ -406,6 +490,9 @@ local function Customer(props: {
 			end
 			if sittingAnimation then
 				sittingAnimation:Stop()
+			end
+			if walkingAnimation then
+				walkingAnimation:Stop()
 			end
 		end
 	end, {
@@ -426,19 +513,30 @@ local function Customer(props: {
 
 	-- 3. Drink Models
 	local hasDrink = action == "paid" or action == "sitting" or action == "leaving"
+	local isSitting = action == "sitting"
+
 	useEffect(function()
 		local order = props.Customer.order
-		if not (rig and rig.Parent and order and rig:FindFirstChild("Head") and hasDrink) then
+		local head = rig and rig:FindFirstChild("Head")
+		local rootPart = rig and rig:FindFirstChild("HumanoidRootPart")
+
+		if not (rig and rig.Parent and order and head and rootPart and hasDrink) then
 			return
 		end
 
-		print(`[Customers-Drink] Attaching drink '{order}' to {props.Customer.id}`)
 		local drinkModel, modelBasePart = DrinkModelUtil.BuildDrinkModel(order, "none", {
 			Anchored = false,
 			CanCollide = false,
 		})
 
-		drinkModel:PivotTo(rig.Head:GetPivot() + Vector3.new(0, 2, 0))
+		-- UPDATED: Determine placement attachment based on state
+		local attachPart = isSitting and rootPart or head
+
+		-- If sitting, push it 2 studs forward and slightly up to rest on the table
+		-- If walking, float it 2 studs above the head
+		local offsetCFrame = isSitting and CFrame.new(0, 0.5, -2) or CFrame.new(0, 2, 0)
+
+		drinkModel:PivotTo(attachPart.CFrame * offsetCFrame)
 		drinkModel.Parent = workspace
 
 		for _, part in drinkModel:GetDescendants() do
@@ -450,14 +548,14 @@ local function Customer(props: {
 		if modelBasePart then
 			local weld = Instance.new("WeldConstraint")
 			weld.Part0 = modelBasePart
-			weld.Part1 = rig.Head
+			weld.Part1 = attachPart
 			weld.Parent = modelBasePart
 		end
 
 		return function()
 			drinkModel:Destroy()
 		end
-	end, { rig, hasDrink, props.Customer.order })
+	end, { rig, hasDrink, isSitting, props.Customer.order })
 
 	-- 4. Chat logic
 	local justServed = action == "paid" or action == "sitting"
@@ -465,7 +563,6 @@ local function Customer(props: {
 		if not (rig and rig.Parent and rig:FindFirstChild("Head") and justServed) then
 			return
 		end
-		print(`[Customers-Chat] Thanks -> {props.Customer.id}`)
 		local sound = Instance.new("Sound", rig:FindFirstChildWhichIsA("BasePart"))
 		sound.SoundId = "rbxassetid://79020702281821"
 		if not sound.IsLoaded then
@@ -484,7 +581,6 @@ local function Customer(props: {
 		if not (rig and rig.Parent and rig:FindFirstChild("Head") and emptyHanded) then
 			return
 		end
-		print(`[Customers-Chat] EmptyHanded -> {props.Customer.id}`)
 		local sound = Instance.new("Sound", rig:FindFirstChildWhichIsA("BasePart"))
 		sound.SoundId = "rbxassetid://133313033428402"
 		if not sound.IsLoaded then
@@ -504,8 +600,6 @@ local function Customer(props: {
 			return
 		end
 		local config = CoffeeModule.Config[order]
-		print(`[Customers-Chat] Order -> {props.Customer.id} | Drink: {config and config.DisplayName}`)
-
 		local sound = Instance.new("Sound", rig:FindFirstChildWhichIsA("BasePart"))
 		sound.SoundId = "rbxassetid://132299423186452"
 		if not sound.IsLoaded then
@@ -549,7 +643,6 @@ local function Customers(props: {
 	local plotState, setPlotState = useState(nil)
 
 	useEffect(function()
-		print(`[Customers-Container] Initializing Customers container for {props.PlayerId}`)
 		setPlayer(getPlayer(props.PlayerId))
 
 		local unsubCust = GlobalState:subscribe(selectCustomersById(props.PlayerId), setCustomers)
@@ -575,9 +668,17 @@ local function Customers(props: {
 			local seatData = nil
 			if customer.targetSeatUuid and plotState then
 				if plotState.placedItems[customer.targetSeatUuid] then
-					seatData = { type = "Grid", itemData = plotState.placedItems[customer.targetSeatUuid] }
+					seatData = {
+						uuid = customer.targetSeatUuid,
+						type = "Grid",
+						itemData = plotState.placedItems[customer.targetSeatUuid],
+					}
 				elseif plotState.spatialItems[customer.targetSeatUuid] then
-					seatData = { type = "Spatial", itemData = plotState.spatialItems[customer.targetSeatUuid] }
+					seatData = {
+						uuid = customer.targetSeatUuid,
+						type = "Spatial",
+						itemData = plotState.spatialItems[customer.targetSeatUuid],
+					}
 				end
 			end
 

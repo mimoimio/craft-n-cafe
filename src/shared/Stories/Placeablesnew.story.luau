@@ -38,6 +38,7 @@ local CATEGORIES = {
 	"Cashier",
 	"Station",
 	"Furniture",
+	"Seat",
 	"Decoration",
 }
 
