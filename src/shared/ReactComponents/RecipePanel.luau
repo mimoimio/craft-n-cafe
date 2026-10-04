@@ -730,9 +730,9 @@ local function RecipePanel(props: {
 						BackgroundTransparency = 1,
 
 						BackgroundColor3 = PANEL_BG,
-						Image = "rbxassetid://127657596958436",
 						ImageColor3 = bg, --Color3.new(0.505882, 0.254901, 0.254901),
 						-- ImageColor3 = PANEL_BG,
+						Image = "rbxassetid://127657596958436",
 						ScaleType = Enum.ScaleType.Slice,
 						SliceCenter = Rect.new(8, 8, 92, 92),
 						BorderSizePixel = 0,

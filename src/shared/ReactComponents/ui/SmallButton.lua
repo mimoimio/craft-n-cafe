@@ -50,7 +50,7 @@ local function SmallButton(props)
 		LayoutOrder = props.LayoutOrder,
 		Size = props.Size or UDim2.new(0, 48, 0, 48),
 		Rotation = props.Rotation,
-		Visible = visible,
+		Visible = props.Visible,
 		TextTruncate = props.TextTruncate,
 		Position = props.Position,
 		AnchorPoint = props.AnchorPoint,

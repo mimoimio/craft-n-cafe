@@ -107,6 +107,10 @@ local function CustomerPromptNode(props: {
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Size = UDim2.fromOffset(200, 50),
 			Visible = visible and shown,
+			Image = "rbxassetid://127657596958436",
+			ScaleType = Enum.ScaleType.Slice,
+			SliceCenter = Rect.new(8, 8, 92, 92),
+			BackgroundTransparency = 1,
 		}, {
 			-- e(SmallText, {
 			-- 	Size = UDim2.new(1, 0, 1, 0),

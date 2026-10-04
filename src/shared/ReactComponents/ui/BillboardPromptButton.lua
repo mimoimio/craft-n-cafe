@@ -1,3 +1,4 @@
+-- BillboardPromptButton.luau
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -94,7 +95,7 @@ abstracted stages:
 	TriggerEnded:
 		set buttonShown to true
 ]]
-local function ScreenPromptButton(props: {
+local function BillboardPromptButton(props: {
 	ProximityPrompt: ProximityPrompt,
 	Adornee: () -> (),
 	PromptShown: (() -> ())?,
@@ -388,4 +389,4 @@ local function ScreenPromptButton(props: {
 		or nil
 end
 
-return ScreenPromptButton
+return BillboardPromptButton

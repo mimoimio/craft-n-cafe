@@ -462,10 +462,17 @@ local function StationPromptNode(props: { Model: Model, stationId: string })
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Size = UDim2.fromOffset(200, 50),
 			Visible = visible and shown,
+			Image = "rbxassetid://127657596958436",
+			ScaleType = Enum.ScaleType.Slice,
+			SliceCenter = Rect.new(8, 8, 92, 92),
+			BackgroundTransparency = 1,
 		}, {
+			-- e("UICorner", { CornerRadius = UDim.new(0, 8) }),
+			e("UIStroke", { Thickness = 2 }),
 			e(SmallText, {
 				Size = UDim2.new(1, 0, 1, 0),
 				TextXAlignment = Enum.TextXAlignment.Center,
+				TextYAlignment = Enum.TextYAlignment.Center,
 				Text = prompt and (BuildersIcon.GetPromptText(
 					currentInput == "Gamepad" and prompt.GamepadKeyCode or prompt.KeyboardKeyCode,
 					currentInput
@@ -503,14 +510,21 @@ local function StationPromptNode(props: { Model: Model, stationId: string })
 					ExtentsOffsetWorldSpace = Vector3.new(0, 0, 0), -- Floats safely above the customer model
 					AlwaysOnTop = true,
 				}, {
-					e(SmallText, {
+					e("Frame", {
 						Size = UDim2.new(1, 0, 1, 0),
-						Text = label,
-						TextXAlignment = Enum.TextXAlignment.Center,
-						TextYAlignment = Enum.TextYAlignment.Center,
-						TextColor3 = Color3.new(0.4, 1, 1), -- Matching green text
-						TextStrokeTransparency = 0,
-						TextSize = 20,
+						BackgroundTransparency = 0.6,
+					}, {
+						e("UICorner", { CornerRadius = UDim.new(0, 8) }),
+						e("UIStroke", { Thickness = 2 }),
+						e(SmallText, {
+							Size = UDim2.new(1, 0, 1, 0),
+							Text = label,
+							TextXAlignment = Enum.TextXAlignment.Center,
+							TextYAlignment = Enum.TextYAlignment.Center,
+							TextColor3 = Color3.new(0.4, 1, 1), -- Matching green text
+							TextStrokeTransparency = 0,
+							TextSize = 20,
+						}),
 					}),
 				}),
 			}),
