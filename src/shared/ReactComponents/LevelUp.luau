@@ -44,7 +44,7 @@ end
 local INTER_DELAY = 0.4
 
 local player = game:GetService("Players").LocalPlayer
-local playerId = player and tostring(player.UserId) or ""
+local playerId = player and tostring(player.UserId) or "MockUser"
 
 local function delayedRevealTransMap(startTime, sec: number, minTransparency: number?) -- from 1 to 0
 	return function(t)
@@ -110,7 +110,7 @@ local function LevelUp(props: {})
 		local _playersStats = state.Stats[playerId]
 		setPlayersLevel(_playersStats and _playersStats.Level or 1)
 		if not player then
-			task.delay(1, function()
+			task.delay(0.1, function()
 				setPlayersLevel(6)
 			end)
 		end
@@ -125,6 +125,10 @@ local function LevelUp(props: {})
 			task.cancel(timer)
 		end
 	end, {})
+
+	useEffect(function()
+		warn("playersLevel", playersLevel)
+	end, { playersLevel })
 
 	local prevLevelRef = useRef(nil)
 	local shown, setShown = useState(false)

@@ -95,12 +95,10 @@ local function getCounterTargetCFrame(baseModel: CafeTypes.CafeBase, cashierData
 		counterCF = Grid.spatialToWorld(spatialCFrame, plotCFrame, plotSize)
 	end
 
-	-- Offset by 4 studs forward, and rotate 180 degrees to face the counter!
-	local finalcf = counterCF * CFrame.new(0, 0, -4) * CFrame.Angles(0, math.pi, 0)
-	return finalcf
+	return counterCF * CFrame.new(0, 0, -4) * CFrame.Angles(0, math.pi, 0)
 end
 
--- PURE FUNCTION: Calculates Seat CFrame (Fallback if no physical seat is found)
+-- PURE FUNCTION: Calculates Seat CFrame
 local function getSeatTargetCFrame(baseModel: CafeTypes.CafeBase, seatData: any?): CFrame?
 	if not seatData then
 		return nil
@@ -151,16 +149,33 @@ local function Customer(props: {
 	local prompt: ProximityPrompt, setPrompt = useState(nil)
 	local actionRef = useRef(nil)
 
+	print(`[Customer-Render] Rendered {props.Customer.id} | Action: {props.Customer.customerAction}`)
+
 	useEffect(function()
 		actionRef.current = props.Customer.customerAction
 	end, { props.Customer })
 
 	-- 1. Mounting the Rig
 	useEffect(function()
+		print(`[Customers-Rig] Spawning rig for {props.Customer.id}...`)
 		local clone
-		if npcsFolder and #npcsFolder:GetChildren() > 0 then
-			local npcs = npcsFolder:GetChildren()
-			local selected = npcs[(#npcs * math.random() + 1) // 1]
+
+		-- Safely filter out broken models in NPCS folder
+		local validNpcs = {}
+		if npcsFolder then
+			for _, child in ipairs(npcsFolder:GetChildren()) do
+				if
+					child:IsA("Model")
+					and child:FindFirstChild("HumanoidRootPart")
+					and child:FindFirstChildOfClass("Humanoid")
+				then
+					table.insert(validNpcs, child)
+				end
+			end
+		end
+
+		if #validNpcs > 0 then
+			local selected = validNpcs[(#validNpcs * math.random() + 1) // 1]
 			clone = selected:Clone()
 		else
 			clone = original:Clone()
@@ -193,6 +208,13 @@ local function Customer(props: {
 		end
 
 		local humanoid = clone:FindFirstChildOfClass("Humanoid")
+
+		-- FIX: Ensure Animator exists so load animations don't crash
+		if humanoid and not humanoid:FindFirstChildOfClass("Animator") then
+			local animator = Instance.new("Animator")
+			animator.Parent = humanoid
+		end
+
 		local feetOffset = 3
 		if humanoid and rootPart then
 			if humanoid.RigType == Enum.HumanoidRigType.R15 then
@@ -222,16 +244,19 @@ local function Customer(props: {
 		local spotFloorPos = Vector3.new(spotCF.Position.X, floorY, spotCF.Position.Z)
 		local entranceFloorPos = Vector3.new(entranceCF.Position.X, floorY, entranceCF.Position.Z)
 
-		local targetFloorPos = entranceFloorPos + (entranceCF.LookVector * 4)
-		local spawnRotation = action == "queuing" and spotCF.Rotation or entranceCF.Rotation
+		-- FIX: Calculate spawn exactly on the floor
+		local spawnPos = entranceFloorPos - (entranceCF.LookVector * 2)
+		local spawnRot = entranceCF.Rotation
 
 		if action == "queuing" then
-			targetFloorPos = spotFloorPos
+			spawnPos = spotFloorPos
+			spawnRot = spotCF.Rotation
 		elseif action == "paid" or action == "emptyHanded" then
-			targetFloorPos = spotFloorPos + (spotCF.LookVector * 4)
+			spawnPos = spotFloorPos + (spotCF.LookVector * 4)
+			spawnRot = spotCF.Rotation
 		end
 
-		clone:PivotTo(CFrame.new(targetFloorPos + Vector3.new(0, feetOffset, 0)) * spawnRotation)
+		clone:PivotTo(CFrame.new(spawnPos + Vector3.new(0, feetOffset, 0)) * spawnRot)
 
 		clone.TriggerPrompt.RequiresLineOfSight = false
 		clone.TriggerPrompt.ActionText = "Tend Customer"
@@ -300,6 +325,10 @@ local function Customer(props: {
 		local sittingAnimation: AnimationTrack?
 		local walkingAnimation: AnimationTrack?
 
+		-- Tween reference for cleanup
+		local activeTween = nil
+		local isNavigating = true
+
 		if action == "walking" or action == "entering" then
 			prompt.Enabled = false
 			targetFloorPos = spotCF and Vector3.new(spotCF.Position.X, floorY, spotCF.Position.Z) or entranceCF.Position
@@ -318,7 +347,6 @@ local function Customer(props: {
 			finalCF = entranceCF
 		end
 
-		-- UPDATED: Removed "sitting" from HoldCup animation logic
 		if action == "paid" or action == "leaving" then
 			local animation = ReplicatedStorage.Shared.Animations:FindFirstChild("HoldCup")
 			if animator and animation then
@@ -329,17 +357,12 @@ local function Customer(props: {
 			end
 		end
 
-		local isNavigating = true
-
 		if humanoid and rootPart and targetFloorPos then
 			task.spawn(function()
-				-- STAND UP LOGIC: Unsit, wait for physics weld to break, and re-anchor
 				if humanoid.Sit then
 					humanoid.Sit = false
 					task.wait(0.1)
 					rootPart.Anchored = true
-
-					-- Reset orientation to stand straight up before tweening
 					local currPos = rootPart.Position
 					rootPart.CFrame = CFrame.new(currPos.X, floorY + feetOffset, currPos.Z)
 				end
@@ -392,29 +415,37 @@ local function Customer(props: {
 								targetCFrame = CFrame.new(targetP) * finalCF.Rotation
 							else
 								local lookVector = (targetP - startPos).Unit
-								local lookAtCF =
-									CFrame.lookAt(startPos, startPos + Vector3.new(lookVector.X, 0, lookVector.Z))
-								targetCFrame = CFrame.new(targetP) * lookAtCF.Rotation
-								rootPart.CFrame = CFrame.new(startPos) * lookAtCF.Rotation
+								local lookFlat = Vector3.new(lookVector.X, 0, lookVector.Z)
+
+								-- FIX: Protect CFrame.lookAt from math crash
+								if lookFlat.Magnitude > 0.001 then
+									local lookAtCF = CFrame.lookAt(startPos, startPos + lookFlat)
+									targetCFrame = CFrame.new(targetP) * lookAtCF.Rotation
+									rootPart.CFrame = CFrame.new(startPos) * lookAtCF.Rotation
+								else
+									targetCFrame = CFrame.new(targetP) * rootPart.CFrame.Rotation
+								end
 							end
 
-							local tween = TweenService:Create(
+							activeTween = TweenService:Create(
 								rootPart,
 								TweenInfo.new(timeToTake, Enum.EasingStyle.Linear),
 								{ CFrame = targetCFrame }
 							)
-							tween:Play()
-							tween.Completed:Wait()
+							activeTween:Play()
+							activeTween.Completed:Wait()
+							activeTween = nil
 						else
 							if i == #waypoints and finalCF then
 								local targetCFrame = CFrame.new(startPos) * finalCF.Rotation
-								local tween = TweenService:Create(
+								activeTween = TweenService:Create(
 									rootPart,
 									TweenInfo.new(0.2, Enum.EasingStyle.Linear),
 									{ CFrame = targetCFrame }
 								)
-								tween:Play()
-								tween.Completed:Wait()
+								activeTween:Play()
+								activeTween.Completed:Wait()
+								activeTween = nil
 							end
 						end
 
@@ -435,9 +466,6 @@ local function Customer(props: {
 						* (finalCF and finalCF.Rotation or CFrame.Angles(0, 0, 0))
 				end
 
-				-- ACTION LOGIC EXECUTION ONCE ARRIVED:
-
-				-- 1. Queue logic after walking to counter
 				if action == "walking" and (failedpath or moveToFinished or broke) then
 					GlobalState.queueCustomer(props.PlayerId, {
 						customerUid = props.Customer.id,
@@ -445,16 +473,13 @@ local function Customer(props: {
 					})
 				end
 
-				-- 2. Delete logic after walking to entrance/exit door
 				if
 					(action == "paid" or action == "emptyHanded" or action == "leaving")
 					and (failedpath or moveToFinished or broke)
 				then
-					print(`[Customers-Anim] {props.Customer.id} reached exit! Removing from state.`)
 					GlobalState.removeCustomer(props.PlayerId, props.Customer.id)
 				end
 
-				-- 3. Sitting logic after walking to table
 				if action == "sitting" and (moveToFinished or failedpath or broke) and seatCF then
 					local seatInstance = nil
 					if props.SeatData and props.SeatData.uuid then
@@ -485,6 +510,9 @@ local function Customer(props: {
 
 		return function()
 			isNavigating = false
+			if activeTween then
+				activeTween:Cancel()
+			end
 			if holdingAnimation then
 				holdingAnimation:Stop()
 			end
@@ -529,11 +557,7 @@ local function Customer(props: {
 			CanCollide = false,
 		})
 
-		-- UPDATED: Determine placement attachment based on state
 		local attachPart = isSitting and rootPart or head
-
-		-- If sitting, push it 2 studs forward and slightly up to rest on the table
-		-- If walking, float it 2 studs above the head
 		local offsetCFrame = isSitting and CFrame.new(0, 0.5, -2) or CFrame.new(0, 2, 0)
 
 		drinkModel:PivotTo(attachPart.CFrame * offsetCFrame)

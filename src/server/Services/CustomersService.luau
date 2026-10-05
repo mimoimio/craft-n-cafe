@@ -299,7 +299,7 @@ function CustomersService.initialize()
 					continue
 				end
 
-				local CafeCapacity = playerStats.CafeCapacity or 4
+				-- local CafeCapacity = playerStats.CafeCapacity or 4
 
 				-- FIX: Count only customers in "pre-serve" states for capacity limits
 				local preServeCustomerCount = 0
@@ -329,7 +329,7 @@ function CustomersService.initialize()
 				-- Spawns ONLY if preServeCustomerCount is less than capacity
 				if
 					now - lastSpawn >= randomInterval
-					and preServeCustomerCount < CafeCapacity
+					-- and preServeCustomerCount < CafeCapacity
 					and playerStats.CafeOpen
 				then
 					Promise.defer(function(resolve)
