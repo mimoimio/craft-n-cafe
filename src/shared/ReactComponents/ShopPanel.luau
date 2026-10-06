@@ -14,6 +14,7 @@ local PlaceablesModule = require(ReplicatedStorage.Shared.PlaceablesModule)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Types = require(ReplicatedStorage.Shared.Types)
 local PlotExpansionsConfig = require(ReplicatedStorage.Shared.Configs.PlotExpansionsConfig)
+local WorkersConfig = require(ReplicatedStorage.Shared.Configs.WorkersConfig) -- NEW: Import Workers config
 
 local Primitives = ReplicatedStorage.Shared.ReactComponents.ui
 local VStack = require(Primitives.VStack)
@@ -48,12 +49,13 @@ local playerId = Players.LocalPlayer and tostring(Players.LocalPlayer.UserId) or
 
 local function ShopTabs(props: {
 	mobile: boolean,
+	setTab: (string) -> ()?,
+	LayoutOrder: number?,
 })
 	return e(HStack, {
 		Size = UDim2.new(0, 0, 0, 0),
 		LayoutOrder = props.LayoutOrder,
 		AutomaticSize = Enum.AutomaticSize.XY,
-		-- Padding = { All = UDim.new(0, 8) },
 		VerticalFlex = "Fill",
 		HorizontalFlex = "Fill",
 		Spacing = UDim.new(0, props.mobile and 4 or 8),
@@ -91,15 +93,28 @@ local function ShopTabs(props: {
 				end
 			end,
 		}),
+		-- NEW: Staff Tab
+		e(SmallButton, {
+			Text = "Staff",
+			AutomaticSize = Enum.AutomaticSize.XY,
+			Size = UDim2.new(1, 0, 0, 0),
+			LayoutOrder = 4,
+			[React.Event.Activated] = function()
+				if props.setTab then
+					props.setTab("staff")
+				end
+			end,
+		}),
 	})
 end
 local function ItemModelViewport(props: {
 	config: Types.PlaceableConfig,
+	mobile: boolean?,
+	ImageTransparency: number?,
 })
 	local itemId = props.config.Id
 	local currentCamera: Camera, setCurrentCamera = useState(nil)
 	local modelClone, setModelClone = useState(nil)
-	local mobile = props.mobile
 	local viewportFrame: ViewportFrame, setViewportFrame = useState(nil)
 
 	useEffect(function()
@@ -133,8 +148,8 @@ local function ItemModelViewport(props: {
 
 	local onMount = React.useCallback(function(rbx)
 		setViewportFrame(rbx)
-		-- warn(rbx)
 	end, {})
+	
 	return e("ViewportFrame", {
 		ZIndex = 1,
 		CurrentCamera = currentCamera,
@@ -152,13 +167,17 @@ local function ItemModelViewport(props: {
 		}),
 	})
 end
+
 local function ItemButton(
 	props: {
 		isSelected: boolean,
 		isLocked: boolean,
 		config: Types.PlaceableConfig,
 		mobile: boolean,
-		-- [React.Event.Activated]: () -> (),
+		cleared: boolean,
+		selectingCategory: React.ReactBinding<boolean>?,
+		Visible: boolean?,
+		-- [React.Event.Activated]: () -> (), -- cant type like this
 	}
 )
 	local itemId = props.config.Id
@@ -237,7 +256,7 @@ local function ItemButton(
 			LightDirection = Vector3.new(0, -1, -1),
 			BackgroundTransparency = 1,
 			Active = false,
-			ImageTransparency = isLocked and 0.5 or 0, -- Dim the 3D model if locked
+			ImageTransparency = isLocked and 0.5 or 0,
 		}, {
 			World = e("WorldModel", {
 				ref = setWorldModel,
@@ -254,8 +273,10 @@ end
 
 local function CategoryRow(props: {
 	mobile: boolean,
-	setCategory: (category: string) -> (),
+	setCategory: (category: string?) -> (),
 	onSelecting: (selecting: boolean) -> (),
+	Visible: boolean?,
+	LayoutOrder: number?,
 })
 	local selectedCategory, setSelectedCategory = useState(nil)
 	local categories = PlaceablesModule.Categories
@@ -266,6 +287,7 @@ local function CategoryRow(props: {
 			props.setCategory(selectedCategory)
 		end
 	end, { selectedCategory })
+	
 	useEffect(function()
 		if props.onSelecting then
 			props.onSelecting(selecting)
@@ -301,6 +323,7 @@ local function CategoryRow(props: {
 			setSelectedCategory(nil)
 		end,
 	}, {})
+	
 	return e("Frame", {
 		LayoutOrder = props.LayoutOrder,
 		Size = UDim2.new(1, 0, 0, props.mobile and 40 or 60),
@@ -341,6 +364,7 @@ local function ShopPanel()
 	local playerStats, setPlayerStats = useState(nil)
 	local playerInventory, setPlayerInventory = useState(nil)
 	local plotState, setPlotState = useState(nil)
+	local playerWorkers, setPlayerWorkers = useState(nil) -- NEW
 
 	local xs, sm, md, lg, xl = useBreakpoint()
 	local mobile = xs or sm or md
@@ -355,7 +379,7 @@ local function ShopPanel()
 			setVisible(panel == "shop")
 			if panel ~= "shop" then
 				setSelectedItem(nil)
-			end -- Clear selection when closed
+			end
 		end)
 		setVisible(selectPanel(UIState:getState()) == "shop")
 		return unsub
@@ -372,29 +396,32 @@ local function ShopPanel()
 		local function selectPlot(state)
 			return state.Plot and state.Plot[playerId] or nil
 		end
+		local function selectWorkers(state)
+			return state.Workers and state.Workers[playerId] or {}
+		end
 
 		local unsubStats = GlobalState:subscribe(selectStats, setPlayerStats)
 		local unsubInv = GlobalState:subscribe(selectInv, setPlayerInventory)
 		local unsubPlot = GlobalState:subscribe(selectPlot, setPlotState)
+		local unsubWorkers = GlobalState:subscribe(selectWorkers, setPlayerWorkers)
 
 		setPlayerStats(selectStats(GlobalState:getState()))
 		setPlayerInventory(selectInv(GlobalState:getState()))
 		setPlotState(selectPlot(GlobalState:getState()))
+		setPlayerWorkers(selectWorkers(GlobalState:getState()))
 
 		return function()
 			unsubStats()
 			unsubInv()
 			unsubPlot()
+			unsubWorkers()
 		end
 	end, {})
-	-- State to keep track of items that need a red dot
+	
 	local unackedUnlocks, setUnackedUnlocks = useState({})
-
-	-- Ref to track the previous level without triggering re-renders
 	local prevLevelRef = useRef(nil)
 
 	useEffect(function()
-		-- Wait until we actually have player stats
 		if not playerStats or not playerStats.Level then
 			return
 		end
@@ -402,29 +429,25 @@ local function ShopPanel()
 		local currentLevel = playerStats.Level
 		local prevLevel = prevLevelRef.current
 
-		-- Condition: previously playerStats.Level is not nil
-		-- Condition: playerStats.Level is larger than previous level
 		if prevLevel ~= nil and currentLevel > prevLevel then
 			local newUnlocks = table.clone(unackedUnlocks)
 			local hasChanges = false
 
 			for _, config in ipairs(PlaceablesModule.Array) do
-				-- Condition: previously smaller than UnlockLevel, now larger or equal
 				if prevLevel < config.UnlockLevel and currentLevel >= config.UnlockLevel then
 					newUnlocks[config.Id] = true
 					hasChanges = true
 				end
 			end
 
-			-- Only update state if new items were actually unlocked
 			if hasChanges then
 				setUnackedUnlocks(newUnlocks)
 			end
 		end
 
-		-- Update the ref for the next time the level changes
 		prevLevelRef.current = currentLevel
 	end, { playerStats and playerStats.Level })
+	
 	local function getTotalOwned(itemId)
 		local count = playerInventory[itemId] or 0
 		for _, item in pairs(plotState.placedItems or {}) do
@@ -442,36 +465,32 @@ local function ShopPanel()
 
 	local tab, setTab = useState("item")
 	local selectingCategory, setSelectingCategory = useBinding(nil)
-	-- Animation & Layout
 	local show, setShow = useState(true)
 	local pos, setPos = useSpring({ start = 0, target = 0, damper = 1, speed = 10 })
 
-	-- 3. Pre-calculate details for the selected item overlay
 	local selectedConfig = selectedItem and PlaceablesModule.GetConfig(selectedItem)
 	local detailsOverlay = nil
+	
 	useEffect(function()
 		setPos({ target = show and 0 or 1, damper = 1, speed = 10 })
 	end, { show })
+	
 	local allCleared = true
-	-- Regular Catalog Items
-	for _, config in ipairs(PlaceablesModule.Array) do
-		-- red dot: start showing when item is unlocked when previously locked
-		-- conditions:
-		-- 		playerStats.Level is larger than or same as item.UnlockLevel
-		-- 		previously playerStats.Level is smaller than item.UnlockLevel
-		-- 		previously playerStats.Level is not nil
-		-- only remove dot when player clicks
+	local itemButtons = {}
 
+	for _, config in ipairs(PlaceablesModule.Array) do
 		allCleared = allCleared and not unackedUnlocks[config.Id]
 	end
+	
 	useEffect(function()
 		UIState.setPanelCleared("shop", allCleared)
-		return
 	end, { allCleared })
-	if not (playerStats and playerInventory) then
-		return
+	
+	if not (playerStats and playerInventory and plotState) then
+		return nil
 	end
 
+	-- Master-Detail Overlay for Standard Items
 	if selectedConfig then
 		local totalOwned = getTotalOwned(selectedConfig.Id)
 		local isMaxed = selectedConfig.MaxAllowed ~= math.huge and totalOwned >= selectedConfig.MaxAllowed
@@ -482,6 +501,7 @@ local function ShopPanel()
 		local btnColor = Color3.new(0.2, 0.7, 0.2)
 		local canBuy = true
 		local btnTextSize = mobile and 14 or 20
+		
 		if isLocked then
 			btnText = `Unlock at Lvl {selectedConfig.UnlockLevel}`
 			btnColor = Color3.new(0.4, 0.4, 0.4)
@@ -504,15 +524,7 @@ local function ShopPanel()
 			AutomaticSize = Enum.AutomaticSize.XY,
 			BackgroundTransparency = 0.6,
 			VerticalFlex = Enum.UIFlexAlignment.None,
-			Padding = {
-				All = UDim.new(0, 10),
-			},
-			OnMount = function(rbx)
-				if not rbx then
-					return
-				end
-				-- warn(rbx.AbsoluteSize)
-			end,
+			Padding = { All = UDim.new(0, 10) },
 			Spacing = UDim.new(0, 8),
 			ZIndex = 5,
 		}, {
@@ -523,10 +535,7 @@ local function ShopPanel()
 				TextXAlignment = Enum.TextXAlignment.Center,
 				TextYAlignment = Enum.TextYAlignment.Center,
 				AutomaticSize = Enum.AutomaticSize.XY,
-				-- TextWrapped = true,
-				-- BackgroundTransparency = 0.1,
-				-- Size = UDim2.new(1, 0, 0, 40),
-			}, {}),
+			}),
 			image = e("Frame", {
 				BackgroundTransparency = 0.2,
 				BackgroundColor3 = Color3.new(1, 1, 1),
@@ -534,7 +543,6 @@ local function ShopPanel()
 			}, {
 				itemmodelviewport = e(ItemModelViewport, { config = selectedConfig }),
 			}),
-
 			Stats = e(SmallText, {
 				Text = `<b>Price:</b> ${selectedConfig.Price}\n<b>Unlock Level:</b> {selectedConfig.UnlockLevel}\n<b>Owned:</b> {totalOwned} / {selectedConfig.MaxAllowed == math.huge and "∞" or selectedConfig.MaxAllowed}`,
 				RichText = true,
@@ -542,7 +550,6 @@ local function ShopPanel()
 				Size = UDim2.new(1, 0, 0, 0),
 				BackgroundColor3 = Color3.new(0.3, 0.3, 0.3),
 				AutomaticSize = Enum.AutomaticSize.XY,
-				-- BackgroundTransparency = 0.1,
 				LayoutOrder = 3,
 			}, {
 				padding = e(Padding),
@@ -600,10 +607,7 @@ local function ShopPanel()
 		})
 	end
 
-	-- 4. Generate Shop Grid Items
-	local itemButtons = {}
-
-	-- Plot Expansion Button (At the top of the grid)
+	-- Plot Expansion Button
 	local currentSize = plotState.plotSize or 32
 	local nextTier = nil
 	for _, tier in ipairs(PlotExpansionsConfig) do
@@ -645,16 +649,65 @@ local function ShopPanel()
 			}),
 		})
 	end
+	
+	-- NEW: Hire Worker Button logic
+	local workerCount = playerWorkers and #playerWorkers or 0
+	local nextWorkerTier = WorkersConfig[workerCount + 1]
+
+	if tab == "staff" then
+		if nextWorkerTier then
+			local canAfford = playerStats.Cash >= nextWorkerTier.Cost
+			local levelMet = playerStats.Level >= nextWorkerTier.UnlockLevel
+			local statusText = `(💲{nextWorkerTier.Cost})`
+			local bgColor = Color3.new(0.2, 0.5, 0.8)
+
+			if not levelMet then
+				statusText = `(Unlocks Lvl {nextWorkerTier.UnlockLevel})`
+				bgColor = Color3.new(0.4, 0.4, 0.4)
+			elseif not canAfford then
+				statusText = `(TOO EXPENSIVE)`
+				bgColor = Color3.new(0.6, 0.2, 0.2)
+			end
+
+			itemButtons["HIRE_WORKER"] = e(SmallButton, {
+				Size = UDim2.new(1, -8, 0, 80),
+				BackgroundColor3 = bgColor,
+				LayoutOrder = -1,
+				[React.Event.Activated] = function()
+					if canAfford and levelMet then
+						Remotes.HireWorker:FireServer()
+					end
+				end,
+				Visible = tab == "staff",
+			}, {
+				e("UIStroke", { Thickness = 2, Color = Color3.new(0.5, 0.8, 1) }),
+				e(SmallText, {
+					Text = `👨‍🍳 Hire {nextWorkerTier.Title} 👨‍🍳\n{statusText}\n<font size="12">Current Staff: {workerCount}</font>`,
+					RichText = true,
+					HorizontalAlignment = Enum.HorizontalAlignment.Center,
+				}),
+			})
+		else
+			itemButtons["MAX_WORKERS"] = e(SmallButton, {
+				Size = UDim2.new(1, -8, 0, 80),
+				BackgroundColor3 = Color3.new(0.4, 0.4, 0.4),
+				LayoutOrder = -1,
+				Visible = tab == "staff",
+			}, {
+				e("UIStroke", { Thickness = 2, Color = Color3.new(0.8, 0.8, 0.8) }),
+				e(SmallText, {
+					Text = `👨‍🍳 Maximum Staff Reached! 👨‍🍳\n<font size="12">Current Staff: {workerCount}</font>`,
+					RichText = true,
+					HorizontalAlignment = Enum.HorizontalAlignment.Center,
+				}),
+			})
+		end
+	end
 
 	-- Regular Catalog Items
 	for _, config in ipairs(PlaceablesModule.Array) do
 		local isLocked = playerStats.Level < config.UnlockLevel
-		-- red dot: start showing when item is unlocked when previously locked
-		-- conditions:
-		-- 		playerStats.Level is larger than or same as item.UnlockLevel
-		-- 		previously playerStats.Level is smaller than item.UnlockLevel
-		-- 		previously playerStats.Level is not nil
-		-- only remove dot when player clicks
+		
 		itemButtons[config.Id] = e(ItemButton, {
 			config = config,
 			Visible = tab == "item" and ((category == nil) or (category == config.Category)) or false,
@@ -664,11 +717,6 @@ local function ShopPanel()
 			cleared = not unackedUnlocks[config.Id],
 			[React.Event.Activated] = function()
 				setSelectedItem(config.Id)
-			end,
-			[React.Event.Activated] = function()
-				setSelectedItem(config.Id)
-
-				-- Condition: only remove dot when player clicks
 				if unackedUnlocks[config.Id] then
 					setUnackedUnlocks(function(prevMap)
 						local nextMap = table.clone(prevMap)
@@ -693,7 +741,6 @@ local function ShopPanel()
 		Active = true,
 		Visible = visible,
 	}, {
-		-- The Left-Side Action Area (Close Button + Details Overlay)
 		SidePanelContainer = e("Frame", {
 			Position = UDim2.new(0, 0, 0.5, 0),
 			AutomaticSize = Enum.AutomaticSize.XY,
@@ -703,7 +750,6 @@ local function ShopPanel()
 			Size = UDim2.new(0, 0, 1, 0),
 			ZIndex = 4,
 		}, {
-			-- Main Close Button
 			Close = e(SmallButton, {
 				Image = "",
 				AutomaticSize = Enum.AutomaticSize.None,
@@ -725,12 +771,9 @@ local function ShopPanel()
 					BackgroundTransparency = 1,
 				}),
 			}),
-
-			-- The Master-Detail Overlay
 			DetailsOverlay = detailsOverlay,
 		}),
 
-		-- Translucent Background
 		Background = e("ImageLabel", {
 			Image = "rbxassetid://103478691850846",
 			ScaleType = Enum.ScaleType.Slice,
@@ -745,7 +788,6 @@ local function ShopPanel()
 			ZIndex = 1,
 		}),
 
-		-- Main Shop Grid
 		ShopContainer = e(VStack, {
 			Size = UDim2.new(0, (mobile and 360 or 480), 1, 0),
 			Position = UDim2.new(0.5, 0, 0, 0),
@@ -757,21 +799,14 @@ local function ShopPanel()
 		}, {
 			Header = e(SmallText, {
 				Text = `Shop `,
-				-- Text = `Shop <font size="14" color="rgb(100,255,100)">[Cash: ${Mionum.new(
-				-- 	playerStats and playerStats.Cash or 0
-				-- )
-				-- 	:toString()}]</font>`,
 				RichText = true,
-				-- Size = UDim2.new(1, 0, 0, 30),
 				AutomaticSize = Enum.AutomaticSize.XY,
-				-- BackgroundTransparency = 0,
 				LayoutOrder = 1,
 			}, {
 				padding = e(Padding),
 			}),
 			Tabs = e(ShopTabs, {
 				mobile = mobile,
-				-- setCategory = setCategory,
 				LayoutOrder = 2,
 				setTab = setTab,
 			}),
@@ -787,7 +822,6 @@ local function ShopPanel()
 				Selectable = false,
 				AutomaticCanvasSize = Enum.AutomaticSize.XY,
 				CanvasSize = UDim2.new(1, 0, 0, 0),
-				-- BackgroundTransparency = 0.8,
 				BackgroundTransparency = 1,
 				ScrollBarThickness = 4,
 				ScrollingDirection = Enum.ScrollingDirection.Y,

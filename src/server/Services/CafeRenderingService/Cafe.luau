@@ -13,16 +13,17 @@ local Types = require(ReplicatedStorage.Shared.Types)
 type CashierItem = Types.PlacedItem | Types.SpatialItem
 type CashierItems = { [string]: CashierItem }
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
-local PlaceablesModule = require(ReplicatedStorage.Shared.PlaceablesModule) -- NEW: Required to identify Cashiers
+local PlaceablesModule = require(ReplicatedStorage.Shared.PlaceablesModule)
 
 local PlacedItemsManager = require(script.Parent.PlacedItemsManager)
 local Customers = require(script.Parent.Customers)
+local Workers = require(script.Parent.Workers)
 
 local function Cafe(props: { BaseModel: CafeTypes.CafeBase, PlayerId: string })
-	-- 1. Native Reflex Subscription Pattern
 	local plotSizeNum, setPlotSizeNum = useState(32)
 	local plotPart, setPlotPart = useState(nil)
-	local cashiers: CashierItems, setCashiers: (CashierItem | (prev: CashierItems) -> CashierItems) -> () = useState({}) -- NEW: Store extracted cashiers
+	local cashiers: CashierItems, setCashiers: (CashierItem | (prev: CashierItems) -> CashierItems) -> () = useState({})
+	local stations, setStations = useState({}) -- NEW: Store extracted stations
 
 	useEffect(function()
 		local function selectPlotState(state)
@@ -33,6 +34,7 @@ local function Cafe(props: { BaseModel: CafeTypes.CafeBase, PlayerId: string })
 			return plotState and plotState.plotSize or 32
 		end)
 
+		-- OBSERVE CASHIERS
 		local selectCashiers = function(state: GlobalState.GlobalState)
 			local plotState = state.Plot[props.PlayerId]
 			local newCashiers = {}
@@ -46,54 +48,83 @@ local function Cafe(props: { BaseModel: CafeTypes.CafeBase, PlayerId: string })
 					newCashiers[uuid] = { itemData = item, type = "Grid" }
 				end
 			end
-
 			for uuid, item in pairs(plotState.spatialItems or {}) do
 				local config = PlaceablesModule.GetConfig(item.id)
 				if config and config.Category == "Cashier" then
 					newCashiers[uuid] = { itemData = item, type = "Spatial" }
 				end
 			end
-
 			return newCashiers
 		end
 
-		local discriminator = function(cashierItem: CashierItem, itemId)
+		local unsubCashiers = GlobalState:observe(selectCashiers, function(cashierItem: CashierItem, itemId)
 			return itemId
-		end
-
-		local unsubCashiers = GlobalState:observe(
-			selectCashiers,
-			discriminator,
-			function(cashierItem: CashierItem, cashierUuid)
+		end, function(cashierItem: CashierItem, cashierUuid)
+			setCashiers(function(prev: CashierItem)
+				local newCashiers = table.clone(prev)
+				newCashiers[cashierUuid] = cashierItem
+				return newCashiers
+			end)
+			return function()
 				setCashiers(function(prev: CashierItem)
+					local cashier = prev[cashierUuid]
+					if not cashier then
+						return prev
+					end
 					local newCashiers = table.clone(prev)
-					newCashiers[cashierUuid] = cashierItem
+					newCashiers[cashierUuid] = nil
 					return newCashiers
 				end)
-				-- cleanup
-				return function()
-					setCashiers(function(prev: CashierItem)
-						local cashier = prev[cashierUuid]
-						if not cashier then
-							return prev
-						end
-						local newCashiers = table.clone(prev)
-						newCashiers[cashierUuid] = nil
-						return newCashiers
-					end)
-				end
 			end
-		)
+		end)
+
+		-- OBSERVE STATIONS
+		local selectStations = function(state: GlobalState.GlobalState)
+			local plotState = state.Plot[props.PlayerId]
+			local newStations = {}
+			if not plotState then
+				return newStations
+			end
+
+			-- Map string names (e.g. "espresso_station") to their physical UUID
+			for uuid, item in pairs(plotState.placedItems or {}) do
+				newStations[item.id] = uuid
+			end
+			for uuid, item in pairs(plotState.spatialItems or {}) do
+				newStations[item.id] = uuid
+			end
+			return newStations
+		end
+
+		local unsubStations = GlobalState:observe(selectStations, function(uuid: string, stationId: string)
+			-- Discriminator: Observe changes based on the station's name (e.g. "espresso_station")
+			return stationId
+		end, function(uuid: string, stationId: string)
+			-- On Add / On Change
+			setStations(function(prev)
+				local nextStations = table.clone(prev)
+				nextStations[stationId] = uuid
+				return nextStations
+			end)
+			-- On Remove
+			return function()
+				setStations(function(prev)
+					local nextStations = table.clone(prev)
+					nextStations[stationId] = nil
+					return nextStations
+				end)
+			end
+		end)
 
 		local unsubSize = GlobalState:subscribe(selectPlotSize, setPlotSizeNum)
 
 		-- Initialize state immediately
 		setPlotSizeNum(selectPlotSize(GlobalState:getState()))
-		-- setCashiers(selectCashiers(GlobalState:getState())) -- no need to initialize when already observing
 
 		return function()
 			unsubSize()
 			unsubCashiers()
+			unsubStations()
 		end
 	end, { props.PlayerId })
 
@@ -105,7 +136,6 @@ local function Cafe(props: { BaseModel: CafeTypes.CafeBase, PlayerId: string })
 		end
 		local entrance = props.BaseModel.Entrance
 		local mailbox = props.BaseModel.Mailbox
-
 		local entranceSize = entrance.Size
 		local plotSize = plotPart.Size
 
@@ -153,7 +183,13 @@ local function Cafe(props: { BaseModel: CafeTypes.CafeBase, PlayerId: string })
 	children.Customers = e(Customers, {
 		PlayerId = props.PlayerId,
 		BaseModel = props.BaseModel,
-		Cashiers = cashiers, -- NEW: Pass the extracted cashiers safely down!
+		Cashiers = cashiers,
+	})
+
+	children.Workers = e(Workers, {
+		PlayerId = props.PlayerId,
+		BaseModel = props.BaseModel,
+		Stations = stations, -- Pass the strictly observed stations
 	})
 
 	return e(React.Fragment, nil, children)

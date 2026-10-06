@@ -1,4 +1,4 @@
--- GeneralHud.story.luau
+-- SettingsPanel.story.luau
 local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")

@@ -106,6 +106,9 @@ local function PointerBeam(props: { Adornee: PVInstance? })
 	end, {})
 
 	useEffect(function()
+		if not player then
+			return
+		end
 		local conn = player.CharacterAdded:Connect(function(character)
 			setChar(character)
 		end)

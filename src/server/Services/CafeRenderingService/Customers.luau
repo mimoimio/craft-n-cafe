@@ -149,7 +149,7 @@ local function Customer(props: {
 	local prompt: ProximityPrompt, setPrompt = useState(nil)
 	local actionRef = useRef(nil)
 
-	print(`[Customer-Render] Rendered {props.Customer.id} | Action: {props.Customer.customerAction}`)
+	-- print(`[Customer-Render] Rendered {props.Customer.id} | Action: {props.Customer.customerAction}`)
 
 	useEffect(function()
 		actionRef.current = props.Customer.customerAction
@@ -157,7 +157,7 @@ local function Customer(props: {
 
 	-- 1. Mounting the Rig
 	useEffect(function()
-		print(`[Customers-Rig] Spawning rig for {props.Customer.id}...`)
+		-- print(`[Customers-Rig] Spawning rig for {props.Customer.id}...`)
 		local clone
 
 		-- Safely filter out broken models in NPCS folder
@@ -662,7 +662,7 @@ local function Customers(props: {
 	BaseModel: CafeTypes.CafeBase,
 	Cashiers: { [string]: any },
 })
-	local player, setPlayer = useState(nil :: Player?)
+	local player: Player?, setPlayer = useState(nil :: Player?)
 	local customers, setCustomers = useState(nil :: { Types.CustomerEntity }?)
 	local plotState, setPlotState = useState(nil)
 
@@ -687,7 +687,8 @@ local function Customers(props: {
 	end, { props.PlayerId })
 
 	local children = {}
-	if player and customers then
+	-- if player and customers then -- dont need
+	if customers then
 		for _, customer in customers do
 			local seatData = nil
 			if customer.targetSeatUuid and plotState then

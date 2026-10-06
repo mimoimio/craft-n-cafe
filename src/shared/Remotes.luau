@@ -163,6 +163,7 @@ return {
 	ExpandPlot = CreateRemote("ExpandPlot"),
 	Play = CreateRemote("Play"),
 	SubmitReport = CreateRemote("SubmitReport"),
+	HireWorker = CreateRemote("HireWorker"),
 
 	-- Example usage for RemoteFunction:
 	-- GetServerData = CreateRemoteFunction("GetServerData"),

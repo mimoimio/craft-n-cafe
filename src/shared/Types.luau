@@ -1,5 +1,5 @@
 -- Shared/Types.luau
---v2
+--v3
 
 export type GridStud = number
 export type HalfGridStud = number
@@ -145,6 +145,22 @@ export type CustomerEntity = {
 	secondsWaited: number,
 }
 
+-- NEW: Worker Types
+export type WorkerAction = "idle" | "walkingToCashier" | "takingOrder" | "walkingToStation" | "crafting" | "serving" | "trashing"
+
+export type WorkerEntity = {
+	id: string,
+	action: WorkerAction,
+	targetUuid: string?,
+	assignedCustomerUid: string?,
+	recipeQueue: { string }, -- E.g. {"cup_station", "espresso_station", "milk_station"}
+	lastTend: number,
+}
+
+export type WorkersState = {
+	[PlayerId]: { WorkerEntity },
+}
+
 export type SpawnCustomerPayload = {
 	targetCounterUuid: string,
 	customerUid: string,
@@ -165,12 +181,6 @@ export type AddIngredientPayload = {
 	ingredient: string,
 	newDrinkId: string,
 	score: number,
-}
-export type WrongOrderPayload = {
-	customerUid: string,
-	workerUid: string?,
-	customerId: string?,
-	timestamp: number,
 }
 export type ServeCustomerPayload = {
 	customerUid: string,
@@ -195,6 +205,17 @@ export type TakeCustomerOrderPayload = {
 	workerUid: string?,
 	order: string,
 	timestamp: number,
+	-- NEW: Added so workersSlice can intercept this action and route the AI
+	recipeQueue: { string }?, 
+	nextTargetUuid: string?, 
+}
+
+export type WrongOrderPayload = {
+	customerUid: string,
+	workerUid: string?,
+	customerId: string?,
+	timestamp: number,
+	nextTargetUuid: string?, -- NEW: UUID for the Trash Can so the worker walks there
 }
 export type QueueCustomerPayload = {
 	customerUid: string,
@@ -213,6 +234,35 @@ export type BuyItemPayload = {
 	itemId: string,
 	amount: number,
 	totalCost: number,
+}
+
+-- Worker action payloads
+export type HireWorkerPayload = {
+	id: string,
+}
+export type FireWorkerPayload = {
+	workerUid: string,
+}
+export type AssignWorkerTaskPayload = {
+	workerUid: string,
+	customerUid: string,
+	targetCounterUuid: string,
+}
+export type UpdateWorkerActionPayload = {
+	workerUid: string,
+	action: WorkerAction,
+	targetUuid: string?,
+}
+export type SetWorkerRecipePayload = {
+	workerUid: string,
+	recipeQueue: { string },
+}
+export type PopWorkerRecipePayload = {
+	workerUid: string,
+	nextTargetUuid: string?,
+}
+export type ResetWorkerPayload = {
+	workerUid: string,
 }
 
 export type StartPlayerSessionPayload = {}
@@ -259,7 +309,16 @@ export type CombinedActions = {
 	timeOut: (playerId: PlayerId, payload: { customerUid: string, timestamp: number }) -> (),
 	removeCustomer: (playerId: PlayerId, uid: string) -> (),
 	tickCustomer: (playerId: PlayerId) -> (),
-	finishDining: (playerId: PlayerId, payload: FinishDiningPayload) -> (), -- NEW
+	finishDining: (playerId: PlayerId, payload: FinishDiningPayload) -> (),
+	
+	-- Workers
+	hireCashier: (playerId: PlayerId, payload: HireWorkerPayload) -> (),
+	fireCashier: (playerId: PlayerId, payload: FireWorkerPayload) -> (),
+	assignWorkerTask: (playerId: PlayerId, payload: AssignWorkerTaskPayload) -> (),
+	updateWorkerAction: (playerId: PlayerId, payload: UpdateWorkerActionPayload) -> (),
+	setWorkerRecipe: (playerId: PlayerId, payload: SetWorkerRecipePayload) -> (),
+	popWorkerRecipe: (playerId: PlayerId, payload: PopWorkerRecipePayload) -> (),
+	resetWorker: (playerId: PlayerId, payload: ResetWorkerPayload) -> (),
 }
 
 --Coffee Modules

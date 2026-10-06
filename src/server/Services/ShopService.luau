@@ -115,16 +115,20 @@ function ShopService.BuyPlotExpansion(player: Player)
 		cost = nextTier.Cost,
 	})
 end
+ShopService._connections = {}
 
--- Inside
 function ShopService.initialize()
-	Remotes.ExpandPlot.OnServerEvent:Connect(ShopService.BuyPlotExpansion) -- Make sure to define Remotes.BuyItem in your Shared/Remotes.luau!
+	table.insert(ShopService._connections, Remotes.ExpandPlot.OnServerEvent:Connect(ShopService.BuyPlotExpansion))
 	if Remotes.BuyItem then
-		Remotes.BuyItem.OnServerEvent:Connect(ShopService.BuyItem)
-	else
-		warn("Remotes.BuyItem is not defined yet.")
+		table.insert(ShopService._connections, Remotes.BuyItem.OnServerEvent:Connect(ShopService.BuyItem))
 	end
 end
 
+function ShopService.cleanup()
+	for _, conn in ipairs(ShopService._connections) do
+		conn:Disconnect()
+	end
+	table.clear(ShopService._connections)
+end
 
 return ShopService

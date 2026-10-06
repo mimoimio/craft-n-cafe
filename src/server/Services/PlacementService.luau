@@ -168,9 +168,18 @@ function PlacementService.DestroyItem(player: Player, uuid: string)
 		itemId = item.id,
 	})
 end
+PlacementService._connections = {}
+
 function PlacementService.initialize()
-	Remotes.PlaceItem.OnServerEvent:Connect(PlacementService.PlaceItem)
-	Remotes.DestroyItem.OnServerEvent:Connect(PlacementService.DestroyItem)
+	table.insert(PlacementService._connections, Remotes.PlaceItem.OnServerEvent:Connect(PlacementService.PlaceItem))
+	table.insert(PlacementService._connections, Remotes.DestroyItem.OnServerEvent:Connect(PlacementService.DestroyItem))
+end
+
+function PlacementService.cleanup()
+	for _, conn in ipairs(PlacementService._connections) do
+		conn:Disconnect()
+	end
+	table.clear(PlacementService._connections)
 end
 
 return PlacementService

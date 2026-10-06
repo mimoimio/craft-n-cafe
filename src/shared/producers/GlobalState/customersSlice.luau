@@ -21,16 +21,16 @@ local initialState: CustomersState = {}
 
 local actions = {
 	startPlayerSession = function(state: CustomersState, playerId: string, data: PlayerData)
-		-- return Set(state, playerId, data.Customers)
 		return Set(state, playerId, {})
 	end,
+
 	endPlayerSession = function(state: CustomersState, playerId: string, data: PlayerData)
 		return RemoveKey(state, playerId)
 	end,
+
 	spawnCustomer = function(state: CustomersState, playerId: string, payload: Types.SpawnCustomerPayload)
 		local playersCustomers = state[playerId] or {}
 
-		-- FIX: Map targetCounterUuid from the payload to the state
 		return Set(
 			state,
 			playerId,
@@ -43,6 +43,7 @@ local actions = {
 			})
 		)
 	end,
+
 	queueCustomer = function(state: CustomersState, playerId: string, payload: Types.QueueCustomerPayload)
 		local playersCustomers = state[playerId] or {}
 		local index
@@ -52,9 +53,7 @@ local actions = {
 				break
 			end
 		end
-		if not index then
-			return state
-		end
+		if not index then return state end
 
 		return Set(
 			state,
@@ -67,12 +66,12 @@ local actions = {
 			end)
 		)
 	end,
-	takeCustomerOrder = function(state: CustomersState, playerId: string, payload: Types.TakeCustomerOrderPayload)
-		local playersCustomers = state[playerId]
-		if not playersCustomers then
-			warn("not players customers")
-			return state
-		end
+
+	-- ==========================================
+	-- NEW INTERCEPT: Lock the Customer when Manager assigns a Worker!
+	-- ==========================================
+	assignWorkerTask = function(state: CustomersState, playerId: string, payload: Types.AssignWorkerTaskPayload)
+		local playersCustomers = state[playerId] or {}
 		local index
 		for i, customer in playersCustomers do
 			if customer.id == payload.customerUid then
@@ -80,10 +79,33 @@ local actions = {
 				break
 			end
 		end
-		if not index then
-			warn("not index")
-			return state
+		if not index then return state end
+
+		return Set(
+			state,
+			playerId,
+			Update(playersCustomers, index, function(customer: Types.CustomerEntity)
+				local new = table.clone(customer)
+				-- This locks the customer so the Failsafe passes!
+				new.servedBy = payload.workerUid 
+				return new
+			end)
+		)
+	end,
+
+	takeCustomerOrder = function(state: CustomersState, playerId: string, payload: Types.TakeCustomerOrderPayload)
+		local playersCustomers = state[playerId]
+		if not playersCustomers then return state end
+		
+		local index
+		for i, customer in playersCustomers do
+			if customer.id == payload.customerUid then
+				index = i
+				break
+			end
 		end
+		if not index then return state end
+		
 		return Set(
 			state,
 			playerId,
@@ -98,6 +120,7 @@ local actions = {
 			end)
 		)
 	end,
+
 	serveCustomer = function(state: CustomersState, playerId: string, payload: Types.ServeCustomerPayload)
 		local playersCustomers = state[playerId] or {}
 
@@ -108,9 +131,7 @@ local actions = {
 				break
 			end
 		end
-		if not index then
-			return state
-		end
+		if not index then return state end
 
 		return Set(
 			state,
@@ -118,12 +139,11 @@ local actions = {
 			Update(playersCustomers, index, function(customer: Types.CustomerEntity)
 				local new = table.clone(customer)
 
-				-- NEW: Branch state based on whether they got a seat
 				if payload.targetSeatUuid then
 					new.customerAction = "sitting"
 					new.targetSeatUuid = payload.targetSeatUuid
 				else
-					new.customerAction = "paid" -- Takeout (existing behavior)
+					new.customerAction = "paid" 
 				end
 
 				new.servedBy = nil
@@ -133,7 +153,6 @@ local actions = {
 		)
 	end,
 
-	-- NEW ACTION
 	finishDining = function(state: CustomersState, playerId: string, payload: Types.FinishDiningPayload)
 		local playersCustomers = state[playerId] or {}
 
@@ -144,9 +163,7 @@ local actions = {
 				break
 			end
 		end
-		if not index then
-			return state
-		end
+		if not index then return state end
 
 		return Set(
 			state,
@@ -155,12 +172,13 @@ local actions = {
 				local new = table.clone(customer)
 				new.customerAction = "leaving"
 				new.actionStartTime = payload.timestamp
-				new.targetSeatUuid = nil -- Clear the seat so it can be used by others
+				new.targetSeatUuid = nil 
 				return new
 			end)
 		)
 	end,
-	wrongOrder = function(state: CustomersState, playerId: string, payload: { customerUid: string, timestamp: number })
+
+	wrongOrder = function(state: CustomersState, playerId: string, payload: Types.WrongOrderPayload)
 		local playersCustomers = state[playerId] or {}
 
 		local index
@@ -170,9 +188,7 @@ local actions = {
 				break
 			end
 		end
-		if not index then
-			return state
-		end
+		if not index then return state end
 
 		local newCustomers = Update(playersCustomers, index, function(customer: Types.CustomerEntity)
 			local new = table.clone(customer)
@@ -185,6 +201,7 @@ local actions = {
 
 		return Set(state, playerId, newCustomers)
 	end,
+
 	timeOut = function(state: CustomersState, playerId: string, payload: { customerUid: string, timestamp: number })
 		local playersCustomers = state[playerId] or {}
 
@@ -195,9 +212,7 @@ local actions = {
 				break
 			end
 		end
-		if not index then
-			return state
-		end
+		if not index then return state end
 
 		local newCustomers = Update(playersCustomers, index, function(customer: Types.CustomerEntity)
 			local new = table.clone(customer)
@@ -210,6 +225,7 @@ local actions = {
 
 		return Set(state, playerId, newCustomers)
 	end,
+
 	removeCustomer = function(state: CustomersState, playerId: string, uid: string)
 		local playersCustomers = state[playerId] or {}
 
@@ -226,11 +242,10 @@ local actions = {
 		end
 		return state
 	end,
+
 	tickCustomer = function(state: CustomersState, playerId)
 		local playersCustomers = state[playerId]
-		if not playersCustomers then
-			return state
-		end
+		if not playersCustomers then return state end
 
 		playersCustomers = table.clone(playersCustomers)
 		for i, customer in playersCustomers do

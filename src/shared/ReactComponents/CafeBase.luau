@@ -51,7 +51,7 @@ local CafeBase = function(props: {})
 				-- Wait for the SERVER to replicate the dynamic Part to the Client
 				local plotPart = resolvedBase:WaitForChild("Part", TIMEOUT)
 				if plotPart then
-					warn('Set',resolvedBase)
+					-- warn('Set',resolvedBase)
 					UIState.setCafeBase(resolvedBase)
 				else
 					warn("[CafeBase] Timeout waiting for Server to replicate the dynamic Part.", resolvedBase)
