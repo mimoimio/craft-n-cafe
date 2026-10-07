@@ -26,12 +26,15 @@ local useEffect = React.useEffect
 local useState = React.useState
 local useRef = React.useRef
 
-local LOGENABLED = false
-local Log = LOGENABLED and print or function() end
+-- local LOGENABLED = true
+local Log = LOGENABLED and warn or function() end
 
-local WORKER_WALK_SPEED = 4 -- LEAVE THIS HERE 14 IS FAST
+local WORKER_WALK_SPEED = 20
+-- LEAVE THIS HERE 14 IS FAST
+-- local WORKER_WALK_SPEED = 4
 -- local WORKER_WALK_SPEED = 14
-local STATION_DURATION = 1.5
+local STATION_DURATION = 0.1
+-- local STATION_DURATION = 1.5
 
 local function getPlayer(playerId: string): Player?
 	if playerId == "MockUser" then
@@ -39,7 +42,7 @@ local function getPlayer(playerId: string): Player?
 		return {
 			UserId = "MockUser",
 			Name = "MockUser",
-		}
+		} :: any
 	end
 	local userId = tonumber(playerId)
 	if not userId then
@@ -210,7 +213,7 @@ local function Worker(props: {
 
 		Log(`\n======================================`)
 		Log(`[Workers-AI] 🤖 STATE MACHINE RENDER TRIGGERED`)
-		Log(`Worker ID: {worker.id}`)
+		Log(`Worker ID: {worker.id:sub(1, 8)}...`)
 		Log(`Current Action: {action}`)
 		Log(`Target Data: {tostring(worker.targetUuid)}`)
 		Log(`Assigned Customer: {tostring(worker.assignedCustomerUid)}`)
@@ -229,7 +232,7 @@ local function Worker(props: {
 		local plotPart = props.BaseModel.Part
 		local floorY = plotPart.Position.Y + (plotPart.Size.Y / 2)
 
-		-- 1. Check if the Customer Timed Out (Fetches directly to avoid dependency issues!)
+		-- 1. Check if the Customer Timed Out
 		local customer = getCustomerByUid(props.PlayerId, worker.assignedCustomerUid)
 		local isCustomerValid = false
 
@@ -284,9 +287,25 @@ local function Worker(props: {
 					`[Workers-AI] 🛑 HALT: Station '{worker.targetUuid}' is missing from plot! Worker halted until placed.`
 				)
 				return
-			else
-				warn(`[Workers-AI] 🚨 Target UUID missing in PlotState! Resetting Worker {worker.id} to 'idle'.`)
+			elseif action == "trashing" then
+				Log(`[Workers-AI] 🗑️ Trash bin missing! Magically deleting cup and resetting to idle.`)
+				DrinksService.TrashCup(getPlayer(props.PlayerId), worker.id)
 				GlobalState.resetWorker(props.PlayerId, { workerUid = worker.id })
+				return
+			else
+				warn(`[Workers-AI] 🚨 Target UUID missing in PlotState! Forcing Wrong Order.`)
+				if worker.assignedCustomerUid then
+					local trashUuid = props.Stations and props.Stations["trash_station"]
+						or WorkersService.GetStationUuid(props.PlotState, "trash_station")
+					GlobalState.wrongOrder(props.PlayerId, {
+						customerUid = worker.assignedCustomerUid,
+						workerUid = worker.id,
+						timestamp = workspace:GetServerTimeNow(),
+						nextTargetUuid = trashUuid,
+					})
+				else
+					GlobalState.resetWorker(props.PlayerId, { workerUid = worker.id })
+				end
 				return
 			end
 		end
@@ -322,6 +341,7 @@ local function Worker(props: {
 
 					local walkAnim = ReplicatedStorage.Shared.Animations:FindFirstChild("Walk")
 					if animator and walkAnim then
+						Log(`[Workers-AI] 🎬 LoadAnimation: Creating Walk Track for {worker.id:sub(1, 8)}...`)
 						walkingAnimation = (animator :: Animator):LoadAnimation(walkAnim);
 						(walkingAnimation):AdjustSpeed(WORKER_WALK_SPEED / 8)
 						walkingAnimation.Priority = Enum.AnimationPriority.Movement
@@ -386,8 +406,12 @@ local function Worker(props: {
 						end
 					end
 
+					-- THE FIX: Animation must be destroyed when the path loop finishes successfully!
 					if walkingAnimation then
+						Log(`[Workers-AI] 🏁 Destroying Walk Track (Path finished or aborted)`)
 						walkingAnimation:Stop()
+						walkingAnimation:Destroy()
+						walkingAnimation = nil
 					end
 				else
 					Log(`[Workers-AI] ❌ Path completely blocked! Failsafe Teleporting.`)
@@ -406,6 +430,7 @@ local function Worker(props: {
 				Log(`[Workers-AI] 📍 Worker reached destination. Proceeding to execute state Action...`)
 
 				local player = getPlayer(props.PlayerId)
+
 				if not player then
 					return
 				end
@@ -472,7 +497,6 @@ local function Worker(props: {
 					end
 				elseif action == "serving" then
 					Log(`[Workers-AI] 📦 Dispatching ServeCustomer`)
-					-- warn("Serving Customer")
 					CustomersService.ServeCustomer(player, worker.assignedCustomerUid, worker.id)
 				elseif action == "trashing" then
 					Log(`[Workers-AI] 🗑️ Dispatching TrashCup and resetWorker`)
@@ -487,11 +511,16 @@ local function Worker(props: {
 			if activeTween then
 				activeTween:Cancel()
 			end
+			-- FIX: Redundancy check in case component unmounts mid-walk
 			if walkingAnimation then
+				Log(`[Workers-AI] 🧹 Destroying Walk Track (Cleanup Phase)`)
 				walkingAnimation:Stop()
+				walkingAnimation:Destroy()
+				walkingAnimation = nil
 			end
 		end
 	end, { rig, props.WorkerData.action, props.WorkerData.targetUuid, props.Stations })
+
 	useEffect(function()
 		local cup = props.CupData
 		local head = rig and rig:FindFirstChild("Head")
@@ -552,25 +581,16 @@ local selectCupsById = function(playerId: string)
 		return cups[playerId]
 	end)
 end
-local selectCustomersById = function(playerId: string)
-	return Reflex.createSelector(function(state)
-		return state.Customers
-	end, function(customers)
-		return customers[playerId]
-	end)
-end
 
 local function Workers(props: { PlayerId: string, BaseModel: CafeTypes.CafeBase, Stations: any })
 	local workers, setWorkers = useState(nil)
 	local plotState, setPlotState = useState(nil)
 	local cupsState, setCupsState = useState(nil)
-	local customersState, setCustomersState = useState(nil)
 
 	useEffect(function()
 		local unsubWorkers = GlobalState:subscribe(selectWorkersById(props.PlayerId), setWorkers)
 		local unsubPlot = GlobalState:subscribe(selectPlotById(props.PlayerId), setPlotState)
 		local unsubCups = GlobalState:subscribe(selectCupsById(props.PlayerId), setCupsState)
-		local unsubCustomers = GlobalState:subscribe(selectCustomersById(props.PlayerId), setCustomersState)
 
 		local state = GlobalState:getState()
 		if state.Workers then
@@ -582,15 +602,11 @@ local function Workers(props: { PlayerId: string, BaseModel: CafeTypes.CafeBase,
 		if state.Cups then
 			setCupsState(state.Cups[props.PlayerId])
 		end
-		if state.Customers then
-			setCustomersState(state.Customers[props.PlayerId])
-		end
 
 		return function()
 			unsubWorkers()
 			unsubPlot()
 			unsubCups()
-			unsubCustomers()
 		end
 	end, { props.PlayerId })
 
@@ -606,7 +622,6 @@ local function Workers(props: { PlayerId: string, BaseModel: CafeTypes.CafeBase,
 				PlotState = plotState,
 				CupData = cupData,
 				Stations = props.Stations,
-				CustomersState = customersState,
 			})
 		end
 	end

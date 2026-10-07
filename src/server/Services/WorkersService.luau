@@ -8,7 +8,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 
 local WorkersService = {}
 
-local LOGENABLED = true
+-- local LOGENABLED = true
 local Log = LOGENABLED and print or function() end
 
 function WorkersService.HireWorker(player: Player)

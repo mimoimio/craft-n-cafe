@@ -11,12 +11,12 @@ local LevelConfig = require(ReplicatedStorage.Shared.Configs.LevelConfig)
 local Types = require(ReplicatedStorage.Shared.Types)
 local PlaceablesModule = require(ReplicatedStorage.Shared.PlaceablesModule)
 
-local SPAWN_INTERVAL = 10
+local SPAWN_INTERVAL = 1
 local MAX_WAITING_TIME = 20
 local rng = Random.new()
 local lastSpawnTimes = {}
 
-local LOGENABLED = false
+local LOGENABLED = true
 local Log = LOGENABLED and print or function() end
 
 local CustomersService = {}
@@ -70,12 +70,6 @@ function CustomersService.SpawnCustomer(playerId: string)
 	end
 
 	if #availableCounters == 0 then
-		-- Log("#playersCustomers", playersCustomers)
-		-- Log("#availableCounters == 0")
-		-- Log("availableCounters", availableCounters)
-		-- Log("counterUuids", counterUuids)
-		-- Log("plotState.spatialItems", plotState.spatialItems)
-		-- Log("plotState.placedItems", plotState.placedItems)
 		return
 	end
 
@@ -259,28 +253,56 @@ function CustomersService.TendCustomer(player: Player?, uid: string, workerUid: 
 
 	local playersCustomers = state.Customers[playerId]
 	if not playersCustomers then
-		Log("[TendCustomer] playersCustomers", playersCustomers)
+		Log("[TendCustomer] playersCustomers is missing")
+		if workerUid ~= "player" then
+			GlobalState.resetWorker(playerId, { workerUid = workerUid })
+		end
 		return
 	end
 
-	local found
+	local targetCustomer = nil
+	local isBusyWithSomeoneElse = false
+
 	for _, customer in ipairs(playersCustomers) do
 		if customer.id == uid then
-			found = customer
-			break
+			targetCustomer = customer
+		end
+
+		if
+			customer.id ~= uid
+			and customer.servedBy == workerUid
+			and (customer.customerAction == "waiting" or customer.customerAction == "queuing")
+		then
+			isBusyWithSomeoneElse = true
 		end
 	end
 
-	if not found or (found.servedBy and found.servedBy ~= workerUid) or found.customerAction ~= "queuing" then
-		Log("[TendCustomer] not found", found)
-		Log("[TendCustomer] found.servedBy and found.servedBy ~= workerUid", found.servedBy)
-		Log("[TendCustomer] found.customerAction ~= queuing", found.customerAction)
+	if isBusyWithSomeoneElse then
+		Log("[TendCustomer] Rejected! Worker/Player", workerUid, "is already busy with another customer.")
+		if workerUid ~= "player" then
+			GlobalState.resetWorker(playerId, { workerUid = workerUid })
+		end
+		return
+	end
+
+	if
+		not targetCustomer
+		or (targetCustomer.servedBy and targetCustomer.servedBy ~= workerUid)
+		or targetCustomer.customerAction ~= "queuing"
+	then
+		Log("[TendCustomer] Customer missing, stolen, or not queuing.")
+		if workerUid ~= "player" then
+			GlobalState.resetWorker(playerId, { workerUid = workerUid })
+		end
 		return
 	end
 
 	local validMenu = getValidMenu(playerId, state)
 	if #validMenu == 0 then
 		Log("[TendCustomer] #validMenu == 0")
+		if workerUid ~= "player" then
+			GlobalState.resetWorker(playerId, { workerUid = workerUid })
+		end
 		return
 	end
 
@@ -295,9 +317,14 @@ function CustomersService.TendCustomer(player: Player?, uid: string, workerUid: 
 		if fullQueue and #fullQueue > 0 then
 			nextTargetUuid = table.remove(fullQueue, 1)
 			recipeQueue = fullQueue
+		else
+			Log("[TendCustomer] CalculateRecipeQueue failed to generate a queue")
+			GlobalState.resetWorker(playerId, { workerUid = workerUid })
+			return
 		end
 	end
-	Log("[TendCustomer] takeCustomerOrder")
+
+	Log("[TendCustomer] takeCustomerOrder successfully dispatched")
 
 	GlobalState.takeCustomerOrder(playerId, {
 		order = order.Id,
@@ -337,16 +364,14 @@ function CustomersService.initialize()
 					continue
 				end
 
-				-- FIX: Iterate through all active player IDs in Stats instead of relying on game.Players:GetPlayers()
 				for playerId, playerStats in pairs(state.Stats) do
 					local playersCustomers = state.Customers[playerId]
+					local plotState = state.Plot and state.Plot[playerId]
 
-					if not playersCustomers then
-						Log("not playersCustomers")
+					if not playersCustomers or not plotState then
 						continue
 					end
 					if playerStats.PlayerPhase ~= "playing" then
-						Log('playerStats.PlayerPhase ~= "playing"')
 						continue
 					end
 
@@ -355,6 +380,37 @@ function CustomersService.initialize()
 
 					for _, customer in playersCustomers do
 						local action = customer.customerAction
+
+						-- DELETED CASH REGISTER FAILSAFE: Boot customer immediately if their register is gone!
+						local cashierExists = true
+						if customer.targetCounterUuid then
+							if
+								not plotState.placedItems[customer.targetCounterUuid]
+								and not plotState.spatialItems[customer.targetCounterUuid]
+							then
+								cashierExists = false
+							end
+						end
+
+						if
+							not cashierExists and (action == "walking" or action == "queuing" or action == "waiting")
+						then
+							Log(
+								`[CustomersService] 🚨 Cashier {customer.targetCounterUuid} was deleted! Booting customer.`
+							)
+							local WorkersService = require(script.Parent.WorkersService)
+							local trashUuid = WorkersService.GetStationUuid(plotState, "trash_station")
+
+							GlobalState.wrongOrder(playerId, {
+								customerUid = customer.id,
+								timestamp = now,
+								workerUid = customer.servedBy,
+								nextTargetUuid = trashUuid,
+							})
+							continue
+						end
+
+						-- Normal loop logic
 						if
 							action == "walking"
 							or action == "entering"
@@ -369,7 +425,6 @@ function CustomersService.initialize()
 					end
 
 					if minOneCustomerWaiting and playerStats.PlayerPhase == "playing" then
-						-- warn("ticked Customer")
 						GlobalState.tickCustomer(playerId)
 					end
 
@@ -383,7 +438,6 @@ function CustomersService.initialize()
 							local amount = 1
 							for i = 1, amount do
 								CustomersService.SpawnCustomer(playerId)
-								-- warn("spawing a customer")
 								task.wait(math.random() * SPAWN_INTERVAL)
 							end
 							return resolve
@@ -402,13 +456,12 @@ function CustomersService.initialize()
 						then
 							if timeInState >= 30 then
 								GlobalState.removeCustomer(playerId, customer.id)
-
 								continue
 							end
 						end
 
 						if customer.customerAction == "sitting" then
-							local MAX_DINING_TIME = 15
+							local MAX_DINING_TIME = 50
 							if timeInState >= MAX_DINING_TIME then
 								GlobalState.finishDining(playerId, {
 									customerUid = customer.id,

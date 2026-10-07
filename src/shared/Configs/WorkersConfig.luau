@@ -25,7 +25,7 @@ local WorkersConfig: { WorkerTier } = {
 		Cost = 35000,
 		UnlockLevel = 25,
 		Title = "Master Barista",
-	}
+	},
 }
 
 return WorkersConfig

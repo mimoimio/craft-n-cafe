@@ -146,7 +146,14 @@ export type CustomerEntity = {
 }
 
 -- NEW: Worker Types
-export type WorkerAction = "idle" | "walkingToCashier" | "takingOrder" | "walkingToStation" | "crafting" | "serving" | "trashing"
+export type WorkerAction =
+	"idle"
+	| "walkingToCashier"
+	| "takingOrder"
+	| "walkingToStation"
+	| "crafting"
+	| "serving"
+	| "trashing"
 
 export type WorkerEntity = {
 	id: string,
@@ -206,8 +213,8 @@ export type TakeCustomerOrderPayload = {
 	order: string,
 	timestamp: number,
 	-- NEW: Added so workersSlice can intercept this action and route the AI
-	recipeQueue: { string }?, 
-	nextTargetUuid: string?, 
+	recipeQueue: { string }?,
+	nextTargetUuid: string?,
 }
 
 export type WrongOrderPayload = {
@@ -310,7 +317,7 @@ export type CombinedActions = {
 	removeCustomer: (playerId: PlayerId, uid: string) -> (),
 	tickCustomer: (playerId: PlayerId) -> (),
 	finishDining: (playerId: PlayerId, payload: FinishDiningPayload) -> (),
-	
+
 	-- Workers
 	hireCashier: (playerId: PlayerId, payload: HireWorkerPayload) -> (),
 	fireCashier: (playerId: PlayerId, payload: FireWorkerPayload) -> (),

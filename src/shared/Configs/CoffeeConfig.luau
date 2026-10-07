@@ -1,27 +1,5 @@
 -- Shared/Configs/CoffeeConfig.luau
 return {
-	-- later do automatic pricing.
-	-- i'm struggling to choose. the quirk for this game is cafe theme + witch theme.
-	-- if cafe, then the most logical is to be a cafe simulator. It has customers and such.
-	-- but what's proven on roblox right now is, the simple collection fantasy driven, like
-	-- Steal A Brainrot, Grow A Graden, both had hit million ccu, billion visits. Now on
-	-- lower, there's Craft Food, I used to play, has been 10k ccu for a year i think, now
-	-- down to 1k ccu. Still is more than I could ask for for income. Just recently, My
-	-- Giant Sandwich/ Breakfast or something. Has 30k ccu. It's just a spawner, cookers,
-	-- and after done cooking, it stacks on to the plates, forming one sky high giant sandwich.
-	-- Another, Mine a Mountain. This, it has more depth, 30k ccu. Mine, Sell, Upgrade pickaxe,
-	-- Place crystals on base to add luck and just for flex i guess. Advanced players has giant crystals, and
-	-- there's so many kinds also, shiny.
-	-- All of those has Collection Fantasy. For Grow a Garden, you sell to get money, but there's
-	-- also plants that will fruit, therefore the collection fantasy is there.
-
-	-- But for this game, It's kind of split either a cafe management
-	-- or collection fantasy.
-	-- I want a collection fantasy, but usually for cafe you sell them. So I choose to add stock
-	-- so it will last longer, but ultimately it will perish. And for the earlier games, (except for mine a mountain i think)
-	-- they generate money passively, unlike here, must wait for customer entity to come and buy.
-	-- for passive income earlier, it's easy to give offline rewards, but this, there's more
-	-- steps to it.
 
 	{
 		Id = "water",

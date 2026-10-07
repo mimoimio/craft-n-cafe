@@ -149,15 +149,12 @@ local function Customer(props: {
 	local prompt: ProximityPrompt, setPrompt = useState(nil)
 	local actionRef = useRef(nil)
 
-	-- print(`[Customer-Render] Rendered {props.Customer.id} | Action: {props.Customer.customerAction}`)
-
 	useEffect(function()
 		actionRef.current = props.Customer.customerAction
 	end, { props.Customer })
 
 	-- 1. Mounting the Rig
 	useEffect(function()
-		-- print(`[Customers-Rig] Spawning rig for {props.Customer.id}...`)
 		local clone
 
 		-- Safely filter out broken models in NPCS folder
@@ -209,7 +206,6 @@ local function Customer(props: {
 
 		local humanoid = clone:FindFirstChildOfClass("Humanoid")
 
-		-- FIX: Ensure Animator exists so load animations don't crash
 		if humanoid and not humanoid:FindFirstChildOfClass("Animator") then
 			local animator = Instance.new("Animator")
 			animator.Parent = humanoid
@@ -244,7 +240,6 @@ local function Customer(props: {
 		local spotFloorPos = Vector3.new(spotCF.Position.X, floorY, spotCF.Position.Z)
 		local entranceFloorPos = Vector3.new(entranceCF.Position.X, floorY, entranceCF.Position.Z)
 
-		-- FIX: Calculate spawn exactly on the floor
 		local spawnPos = entranceFloorPos - (entranceCF.LookVector * 2)
 		local spawnRot = entranceCF.Rotation
 
@@ -325,7 +320,6 @@ local function Customer(props: {
 		local sittingAnimation: AnimationTrack?
 		local walkingAnimation: AnimationTrack?
 
-		-- Tween reference for cleanup
 		local activeTween = nil
 		local isNavigating = true
 
@@ -417,7 +411,6 @@ local function Customer(props: {
 								local lookVector = (targetP - startPos).Unit
 								local lookFlat = Vector3.new(lookVector.X, 0, lookVector.Z)
 
-								-- FIX: Protect CFrame.lookAt from math crash
 								if lookFlat.Magnitude > 0.001 then
 									local lookAtCF = CFrame.lookAt(startPos, startPos + lookFlat)
 									targetCFrame = CFrame.new(targetP) * lookAtCF.Rotation
@@ -492,7 +485,10 @@ local function Customer(props: {
 					if seatInstance then
 						rootPart.Anchored = false
 						seatInstance.Disabled = false
-						seatInstance:Sit(humanoid)
+						-- FIX: Prevent "Seat is occupied" warnings!
+						if seatInstance.Occupant == nil then
+							seatInstance:Sit(humanoid)
+						end
 					else
 						rootPart.CFrame = seatCF
 					end
@@ -513,14 +509,18 @@ local function Customer(props: {
 			if activeTween then
 				activeTween:Cancel()
 			end
+			-- FIX: We MUST explicitly call :Destroy() on loaded tracks to free memory and prevent 64 track limit crashes!
 			if holdingAnimation then
 				holdingAnimation:Stop()
+				holdingAnimation:Destroy()
 			end
 			if sittingAnimation then
 				sittingAnimation:Stop()
+				sittingAnimation:Destroy()
 			end
 			if walkingAnimation then
 				walkingAnimation:Stop()
+				walkingAnimation:Destroy()
 			end
 		end
 	end, {
@@ -687,7 +687,6 @@ local function Customers(props: {
 	end, { props.PlayerId })
 
 	local children = {}
-	-- if player and customers then -- dont need
 	if customers then
 		for _, customer in customers do
 			local seatData = nil

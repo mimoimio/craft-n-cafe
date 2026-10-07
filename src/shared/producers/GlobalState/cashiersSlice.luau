@@ -26,7 +26,7 @@ local actions = {
 	endPlayerSession = function(state: CashiersState, playerId: string)
 		return RemoveKey(state, playerId)
 	end,
-	hireCashier = function(state: CashiersState, playerId: string, payload: Types.HireCashierPayload)
+	hireCashier = function(state: CashiersState, playerId: string, payload: Types.HireWorkerPayload)
 		local cashiers = state[playerId]
 		if not cashiers then
 			return state
@@ -34,7 +34,7 @@ local actions = {
 
 		return Set(state, playerId, Sift.Array.insert(cashiers, #cashiers + 1, { id = payload.id, lastTend = 0 }))
 	end,
-	fireCashier = function(state: CashiersState, playerId: string, payload: Types.FireCashierPayload)
+	fireCashier = function(state: CashiersState, playerId: string, payload: Types.FireWorkerPayload)
 		local cashiers = state[playerId]
 		if not cashiers then
 			return state

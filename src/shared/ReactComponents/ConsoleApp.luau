@@ -69,7 +69,7 @@ local function ConsoleApp()
 		for key, slice in currentGlobalState do
 			if
 				false
-				-- key == "Customers"
+				-- key == "Plot"
 				-- or key == "Tables"
 				-- or key == "Drinks"
 				-- or key == "DiscoveredDrinks"

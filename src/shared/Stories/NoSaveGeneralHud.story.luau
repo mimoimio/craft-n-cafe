@@ -300,11 +300,11 @@ local function story(frame: Frame)
 	-- 6. Cleanup function when story unmounts
 	return function()
 		-- Serialize Plot for Dev Workflow
-		playersPlotString = formatValue(GlobalState:getState().Plot[mockUserId], 1)
-		local PlotTemplate = ServerStorage:FindFirstChild("PlotTemplate")
-		if PlotTemplate and playersPlotString then
-			PlotTemplate.Source = `return \{\n{playersPlotString}\n}`
-		end
+		-- playersPlotString = formatValue(GlobalState:getState().Plot[mockUserId], 1)
+		-- local PlotTemplate = ServerStorage:FindFirstChild("PlotTemplate")
+		-- if PlotTemplate and playersPlotString then
+		-- 	PlotTemplate.Source = `return \{\n{playersPlotString}\n}`
+		-- end
 
 		if expThread then
 			task.cancel(expThread)
