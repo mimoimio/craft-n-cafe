@@ -180,7 +180,7 @@ return {
 		DisplayName = "Table",
 		Category = "Furniture",
 		Price = 25,
-		UnlockLevel = 2,
+		UnlockLevel = 4,
 		MaxAllowed = math.huge,
 	},
 	{
@@ -188,7 +188,7 @@ return {
 		DisplayName = "Beanbag Chair",
 		Category = "Seat",
 		Price = 25,
-		UnlockLevel = 2,
+		UnlockLevel = 4,
 		MaxAllowed = math.huge,
 	},
 	{
@@ -196,7 +196,7 @@ return {
 		DisplayName = "Roof",
 		Category = "Architecture",
 		Price = 25,
-		UnlockLevel = 2,
+		UnlockLevel = 4,
 		MaxAllowed = math.huge,
 	},
 	{
@@ -204,7 +204,7 @@ return {
 		DisplayName = "Roof Corner",
 		Category = "Architecture",
 		Price = 25,
-		UnlockLevel = 2,
+		UnlockLevel = 4,
 		MaxAllowed = math.huge,
 	},
 	{
@@ -212,7 +212,7 @@ return {
 		DisplayName = "Ice Bin",
 		Category = "Station",
 		Price = 100,
-		UnlockLevel = 2,
+		UnlockLevel = 3,
 		MaxAllowed = 1,
 	},
 	{
@@ -220,7 +220,7 @@ return {
 		DisplayName = "Sofa",
 		Category = "Seat",
 		Price = 25,
-		UnlockLevel = 2,
+		UnlockLevel = 4,
 		MaxAllowed = math.huge,
 	},
 	{
@@ -228,7 +228,7 @@ return {
 		DisplayName = "Hanged Picture Frame",
 		Category = "Decoration",
 		Price = 25,
-		UnlockLevel = 2,
+		UnlockLevel = 4,
 		MaxAllowed = math.huge,
 	},
 	{
@@ -236,7 +236,7 @@ return {
 		DisplayName = "Concrete Wall",
 		Category = "Wall",
 		Price = 25,
-		UnlockLevel = 2,
+		UnlockLevel = 4,
 		MaxAllowed = math.huge,
 	},
 	{
@@ -244,7 +244,7 @@ return {
 		DisplayName = "Half Concrete Wall",
 		Category = "Wall",
 		Price = 12,
-		UnlockLevel = 2,
+		UnlockLevel = 4,
 		MaxAllowed = math.huge,
 	},
 	{
@@ -252,7 +252,7 @@ return {
 		DisplayName = "Roof Edge",
 		Category = "Architecture",
 		Price = 25,
-		UnlockLevel = 2,
+		UnlockLevel = 4,
 		MaxAllowed = math.huge,
 	},
 	{

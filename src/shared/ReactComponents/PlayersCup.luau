@@ -57,12 +57,12 @@ return function(props)
 		local playersCup = state.Customers[playerId] and state.Cups[playerId].player
 		setCup(playersCup)
 
-		if not player then
-			setCup({
-				drinkId = "shavedice",
-				score = 5,
-			})
-		end
+		-- if not player then
+		-- 	setCup({
+		-- 		drinkId = "shavedice",
+		-- 		score = 5,
+		-- 	})
+		-- end
 
 		return unsub
 	end)

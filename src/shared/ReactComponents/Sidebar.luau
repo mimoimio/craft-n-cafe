@@ -112,6 +112,9 @@ function Sidebar(props)
 			[React.Event.Activated] = function()
 				UIState.toggle("shop")
 			end,
+			OnMount = function(rbx)
+				UIState.setTutorialTarget("ShopButton", rbx)
+			end, -- NEW
 			Image = "rbxassetid://15403066964",
 			Text = "Shop",
 			LayoutOrder = 1,
@@ -126,7 +129,7 @@ function Sidebar(props)
 			Text = "Index",
 			LayoutOrder = 2,
 		}),
-		ToggleBuild = level >= 3 and e(SidebarButton, {
+		ToggleBuild = level > 2 and e(SidebarButton, {
 			OnMount = function(rbx)
 				UIState.setTutorialTarget("BuildButton", rbx)
 			end, -- NEW

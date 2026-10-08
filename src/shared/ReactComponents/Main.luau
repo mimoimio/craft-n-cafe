@@ -209,9 +209,11 @@ local function PlayPhase(props)
 		e(Tutorial),
 		e(require(script.Parent.CustomersOrder)),
 		-- player and
+		e(require(script.Parent.WarningsOverlay)),
 		e(require(script.Parent.LevelUp)),
 		e(require(script.Parent.CustomerPrompts)),
 		e(require(script.Parent.StationPrompts)),
+		e(require(script.Parent.ShopTutorial)),
 		e(require(script.Parent.SettingsPanel)),
 		e("Frame", {
 			Size = UDim2.new(1, 0, 1, 0),

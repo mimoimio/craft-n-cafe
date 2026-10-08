@@ -261,7 +261,7 @@ local AppWrapper = function()
 			e(SmallButton, {
 				[React.Event.Activated] = function()
 					GlobalState.buyItem("MockUser", {
-						itemId = "Register #1",
+						itemId = "Cashier",
 						amount = 1,
 						totalCost = 0,
 					})

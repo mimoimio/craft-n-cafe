@@ -29,7 +29,7 @@ local useRef = React.useRef
 -- local LOGENABLED = true
 local Log = LOGENABLED and warn or function() end
 
-local WORKER_WALK_SPEED = 20
+local WORKER_WALK_SPEED = 4
 -- LEAVE THIS HERE 14 IS FAST
 -- local WORKER_WALK_SPEED = 4
 -- local WORKER_WALK_SPEED = 14

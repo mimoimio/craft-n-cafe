@@ -29,7 +29,7 @@ local HStack = require(Primitives.HStack)
 local Slider = require(Primitives.Slider)
 
 local player = game:GetService("Players").LocalPlayer
-local playerId = player and tostring(player.UserId) or ""
+local playerId = player and tostring(player.UserId) or "MockUser"
 
 local function SettingsPanel(props: {
 	OnClose: () -> (),
@@ -45,14 +45,7 @@ local function SettingsPanel(props: {
 		return unsub
 	end, {})
 
-	local stats, setStats = useState((not player) and {
-		SfxVolume = 0.5,
-		MusicVolume = 0.5,
-		SecondsPlayed = 0,
-		Cash = 100,
-		Level = 1,
-		CafeOpen = false,
-	} or nil)
+	local stats, setStats = useState(nil)
 
 	useEffect(function()
 		local unsub = GlobalState:subscribe(function(state: GlobalState.GlobalState)

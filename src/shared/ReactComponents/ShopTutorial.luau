@@ -77,10 +77,13 @@ local function ScreenGuiCircle(props: { TargetButton: GuiObject?, Color: Color3?
 end
 
 local function ShopTutorial()
+	-- 1. ALL HOOKS MUST BE DECLARED UNCONDITIONALLY AT THE TOP
 	local globalStates, setGlobalStates = useState(GlobalState:getState())
 	local uiStates, setUiStates = useState(UIState:getState())
 	local time, setTime = useBinding(workspace:GetServerTimeNow())
 	local hasCompleted, setHasCompleted = useState(false)
+	local textRef = React.useRef("")
+	local currentInputDevice = useInputDevice()
 
 	useEffect(function()
 		local unsubGlobal = GlobalState:subscribe(function(s)
@@ -109,6 +112,18 @@ local function ShopTutorial()
 		end
 	end, {})
 
+	local textMap = useCallback(function(t)
+		local finalTexts = {}
+		local originalText = textRef.current or ""
+		local length = string.len(originalText)
+		for i = 1, length do
+			local offset = (math.sin((t + i) * 5) + 1) * 2
+			table.insert(finalTexts, `<font size="{18 + offset // 1}">{string.sub(originalText, i, i)}</font>`)
+		end
+		return table.concat(finalTexts)
+	end, {})
+
+	-- 2. LOGIC EVALUATION
 	local stats = globalStates.Stats[playerId]
 	local plotState = globalStates.Plot[playerId]
 	local inventory = globalStates.Inventory[playerId] or {}
@@ -136,11 +151,6 @@ local function ShopTutorial()
 		setHasCompleted(true)
 	end
 
-	-- Only run if Level 3+ and hasn't finished this specific tutorial
-	if level < 3 or hasCompleted then
-		return nil
-	end
-
 	local stepText = ""
 	local circleTarget2D = nil
 	local panel = uiStates.panel
@@ -165,28 +175,23 @@ local function ShopTutorial()
 			stepText = "Select the Ice Station from your inventory."
 			circleTarget2D = targets["BuildItem_ice_station"]
 		else
-			local input = useInputDevice()
-			local placeText = input == "Gamepad" and "R2" or input == "Touch" and "the Place Button" or "Left Click"
+			local placeText = currentInputDevice == "Gamepad" and "R2"
+				or currentInputDevice == "Touch" and "the Place Button"
+				or "Left Click"
 			stepText = `Place the Ice Station in your cafe using {placeText}!`
 			circleTarget2D = targets["PlaceButton"] -- (If applicable on your mobile UI)
 		end
 	end
 
-	local textRef = React.useRef("")
+	-- Update the ref safely inside an effect
 	useEffect(function()
 		textRef.current = stepText
 	end, { stepText })
 
-	local textMap = useCallback(function(t)
-		local finalTexts = {}
-		local originalText = textRef.current or ""
-		local length = string.len(originalText)
-		for i = 1, length do
-			local offset = (math.sin((t + i) * 5) + 1) * 2
-			table.insert(finalTexts, `<font size="{18 + offset // 1}">{string.sub(originalText, i, i)}</font>`)
-		end
-		return table.concat(finalTexts)
-	end, {})
+	-- 3. CONDITIONAL RENDER (Safe to return nil down here!)
+	if level < 3 or hasCompleted then
+		return nil
+	end
 
 	return e("ScreenGui", { DisplayOrder = 1006 }, {
 		Banner = e("ImageLabel", {
