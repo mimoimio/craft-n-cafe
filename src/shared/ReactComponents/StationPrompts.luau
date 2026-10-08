@@ -124,7 +124,7 @@ local function TimingBar(props: {
 			setProgress({
 				start = 0,
 				target = 1,
-				info = TweenInfo.new(TIMING_BAR_DURATION, Enum.EasingStyle.Exponential, Enum.EasingDirection.In),
+				info = TweenInfo.new(TIMING_BAR_DURATION, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
 			})
 		end)
 

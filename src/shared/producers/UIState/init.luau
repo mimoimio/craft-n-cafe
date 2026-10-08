@@ -18,7 +18,8 @@ export type UIState = {
 	viewportSize: Vector2,
 	buildItemId: string?,
 	cafeBase: CafeTypes.CafeBase,
-	reportTargetId: string?, -- NEW
+	tutorialTargets: { [string]: GuiObject },
+	reportTargetId: string?,
 }
 
 export type UIActions = {
@@ -26,7 +27,8 @@ export type UIActions = {
 	setViewportSize: (viewportSize: Vector2) -> (),
 	selectBuildItem: (itemId: string) -> (),
 	setCafeBase: (cafeBase: CafeTypes.CafeBase) -> (),
-	setReportTargetId: (userId: string?) -> (), -- NEW
+	setTutorialTarget: (id: string, rbx: GuiObject?) -> (),
+	setReportTargetId: (userId: string?) -> (),
 }
 
 local initialState: UIState = {
@@ -34,7 +36,8 @@ local initialState: UIState = {
 	panelCleared = {},
 	buildItemId = nil,
 	playerPhase = "mainMenu",
-	reportTargetId = nil, -- NEW
+	reportTargetId = nil,
+	tutorialTargets = {},
 }
 local function calculateBreakpoint(viewportSize: Vector2): Breakpoint
 	local width = viewportSize.X
@@ -93,6 +96,11 @@ local producer = Reflex.createProducer(initialState, {
 	end,
 	setSettingsButton = function(state: UIState, settingsButton: GuiButton)
 		return Set(state, "settingsButton", settingsButton)
+	end,
+	setTutorialTarget = function(state: UIState, id: string, rbx: GuiObject?)
+		local newTargets = table.clone(state.tutorialTargets)
+		newTargets[id] = rbx
+		return Set(state, "tutorialTargets", newTargets)
 	end,
 	setPanelCleared = function(state: UIState, panel: string, cleared)
 		local panels = state.panelCleared

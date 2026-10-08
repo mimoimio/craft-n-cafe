@@ -208,7 +208,8 @@ local function PlayPhase(props)
 		e(ShopPanel),
 		e(Tutorial),
 		e(require(script.Parent.CustomersOrder)),
-		player and e(require(script.Parent.LevelUp)),
+		-- player and
+		e(require(script.Parent.LevelUp)),
 		e(require(script.Parent.CustomerPrompts)),
 		e(require(script.Parent.StationPrompts)),
 		e(require(script.Parent.SettingsPanel)),

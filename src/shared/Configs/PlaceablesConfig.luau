@@ -4,7 +4,7 @@ return {
 		DisplayName = "Cup Stack",
 		Category = "Station",
 		Price = 0,
-		UnlockLevel = 1,
+		UnlockLevel = 4,
 		MaxAllowed = 1,
 	},
 	{
@@ -12,7 +12,7 @@ return {
 		DisplayName = "Hot Water Dispenser",
 		Category = "Station",
 		Price = 20,
-		UnlockLevel = 1,
+		UnlockLevel = 4,
 		MaxAllowed = 1,
 	},
 	{
@@ -20,7 +20,7 @@ return {
 		DisplayName = "Thin Roof",
 		Category = "Architecture",
 		Price = 25,
-		UnlockLevel = 1,
+		UnlockLevel = 4,
 		MaxAllowed = math.huge,
 	},
 	{
@@ -28,7 +28,7 @@ return {
 		DisplayName = "Trash Bin",
 		Category = "Station",
 		Price = 0,
-		UnlockLevel = 1,
+		UnlockLevel = 4,
 		MaxAllowed = 1,
 	},
 	{
@@ -36,7 +36,7 @@ return {
 		DisplayName = "Chair",
 		Category = "Seat",
 		Price = 25,
-		UnlockLevel = 1,
+		UnlockLevel = 4,
 		MaxAllowed = math.huge,
 	},
 	{
@@ -44,7 +44,7 @@ return {
 		DisplayName = "Plank Wall",
 		Category = "Wall",
 		Price = 25,
-		UnlockLevel = 1,
+		UnlockLevel = 4,
 		MaxAllowed = math.huge,
 	},
 	{
@@ -52,7 +52,7 @@ return {
 		DisplayName = "Candle",
 		Category = "Decoration",
 		Price = 25,
-		UnlockLevel = 1,
+		UnlockLevel = 4,
 		MaxAllowed = math.huge,
 	},
 	{
@@ -60,7 +60,7 @@ return {
 		DisplayName = "Wall Lamp",
 		Category = "Furniture",
 		Price = 25,
-		UnlockLevel = 1,
+		UnlockLevel = 4,
 		MaxAllowed = math.huge,
 	},
 	{
@@ -68,7 +68,7 @@ return {
 		DisplayName = "Potted Plant",
 		Category = "Decoration",
 		Price = 25,
-		UnlockLevel = 1,
+		UnlockLevel = 4,
 		MaxAllowed = math.huge,
 	},
 	{
@@ -76,7 +76,7 @@ return {
 		DisplayName = "Half Plank Wall",
 		Category = "Wall",
 		Price = 12,
-		UnlockLevel = 1,
+		UnlockLevel = 4,
 		MaxAllowed = math.huge,
 	},
 	{
@@ -84,7 +84,7 @@ return {
 		DisplayName = "Fence",
 		Category = "Wall",
 		Price = 100,
-		UnlockLevel = 1,
+		UnlockLevel = 4,
 		MaxAllowed = math.huge,
 	},
 	{
@@ -92,7 +92,7 @@ return {
 		DisplayName = "Counter Corner",
 		Category = "Surface",
 		Price = 25,
-		UnlockLevel = 1,
+		UnlockLevel = 4,
 		MaxAllowed = math.huge,
 	},
 	{
@@ -100,7 +100,7 @@ return {
 		DisplayName = "Small Wood Floor",
 		Category = "Architecture",
 		Price = 25,
-		UnlockLevel = 1,
+		UnlockLevel = 4,
 		MaxAllowed = math.huge,
 	},
 	{
@@ -108,7 +108,7 @@ return {
 		DisplayName = "Register #1",
 		Category = "Cashier",
 		Price = 250,
-		UnlockLevel = 1,
+		UnlockLevel = 4,
 		MaxAllowed = 1,
 	},
 	{
@@ -116,7 +116,7 @@ return {
 		DisplayName = "Milk Pitcher",
 		Category = "Station",
 		Price = 300,
-		UnlockLevel = 1,
+		UnlockLevel = 4,
 		MaxAllowed = 1,
 	},
 	{
@@ -124,7 +124,7 @@ return {
 		DisplayName = "Small Table",
 		Category = "Furniture",
 		Price = 25,
-		UnlockLevel = 1,
+		UnlockLevel = 4,
 		MaxAllowed = math.huge,
 	},
 	{
@@ -132,7 +132,7 @@ return {
 		DisplayName = "Counter",
 		Category = "Surface",
 		Price = 25,
-		UnlockLevel = 1,
+		UnlockLevel = 4,
 		MaxAllowed = math.huge,
 	},
 	{
@@ -140,7 +140,7 @@ return {
 		DisplayName = "Espresso Machine",
 		Category = "Station",
 		Price = 20,
-		UnlockLevel = 1,
+		UnlockLevel = 4,
 		MaxAllowed = 1,
 	},
 	{
@@ -148,7 +148,7 @@ return {
 		DisplayName = "Big Wood Floor",
 		Category = "Architecture",
 		Price = 25,
-		UnlockLevel = 1,
+		UnlockLevel = 4,
 		MaxAllowed = math.huge,
 	},
 	{
@@ -156,7 +156,7 @@ return {
 		DisplayName = "Wall Candle Holder",
 		Category = "Decoration",
 		Price = 25,
-		UnlockLevel = 1,
+		UnlockLevel = 4,
 		MaxAllowed = math.huge,
 	},
 	{
@@ -164,7 +164,7 @@ return {
 		DisplayName = "Modern Table",
 		Category = "Furniture",
 		Price = 25,
-		UnlockLevel = 1,
+		UnlockLevel = 4,
 		MaxAllowed = math.huge,
 	},
 	{
@@ -172,7 +172,7 @@ return {
 		DisplayName = "Plank Wall Window",
 		Category = "Wall",
 		Price = 25,
-		UnlockLevel = 1,
+		UnlockLevel = 4,
 		MaxAllowed = math.huge,
 	},
 	{

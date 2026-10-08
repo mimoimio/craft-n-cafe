@@ -108,7 +108,7 @@ function Sidebar(props)
 		Spacing = UDim.new(0, 8),
 	}, {
 
-		ToggleShop = level > 1 and e(SidebarButton, {
+		ToggleShop = level > 2 and e(SidebarButton, {
 			[React.Event.Activated] = function()
 				UIState.toggle("shop")
 			end,
@@ -118,7 +118,7 @@ function Sidebar(props)
 		}, {
 			panelCleared.shop == false and e(RedDot, {}, {}),
 		}),
-		ToggleIndex = level > 1 and e(SidebarButton, {
+		ToggleIndex = level > 3 and e(SidebarButton, {
 			[React.Event.Activated] = function()
 				UIState.toggle("recipe")
 			end,
@@ -126,23 +126,25 @@ function Sidebar(props)
 			Text = "Index",
 			LayoutOrder = 2,
 		}),
-		ToggleBuild = level > 1 and e(SidebarButton, {
+		ToggleBuild = level >= 3 and e(SidebarButton, {
+			OnMount = function(rbx)
+				UIState.setTutorialTarget("BuildButton", rbx)
+			end, -- NEW
 			[React.Event.Activated] = function()
 				UIState.toggle("build")
 			end,
-
 			Image = "rbxassetid://17368183719",
 			Text = "Build",
 			LayoutOrder = 3,
 		}),
-		Console = admin and e(SidebarButton, {
-			[React.Event.Activated] = function()
-				UIState.toggle("admin")
-			end,
-			Image = "rbxassetid://17368118782",
-			Text = "Console",
-			LayoutOrder = 4,
-		}) or nil,
+		-- Console = admin and e(SidebarButton, {
+		-- 	[React.Event.Activated] = function()
+		-- 		UIState.toggle("admin")
+		-- 	end,
+		-- 	Image = "rbxassetid://17368118782",
+		-- 	Text = "Console",
+		-- 	LayoutOrder = 4,
+		-- }) or nil,
 		Settings = TutorialCompleted and e(SidebarButton, {
 			OnMount = UIState.setSettingsButton,
 			[React.Event.Activated] = function()

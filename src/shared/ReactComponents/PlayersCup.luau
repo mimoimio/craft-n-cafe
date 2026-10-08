@@ -23,6 +23,23 @@ local statuses = {
 	[2] = "Nice",
 	[3] = "Perfect",
 }
+local sounds = {
+	espresso = "water",
+	water = "water",
+	milk = "water",
+	ice = "ice",
+	foam = "foam",
+	chocolate = "water",
+	teabag = "powder",
+	icecream = "splat",
+	matchapowder = "powder",
+	lemon = "splat",
+	boba = "splat",
+	carbonator = "bubbles",
+}
+local function getIngredientSound(ing: string): string?
+	return sounds[ing]
+end
 
 return function(props)
 	local xs, sm, md, lg, xl = useBreakpoint()
@@ -70,7 +87,35 @@ return function(props)
 		end
 		if not cup and prevCupRef.current then
 			SoundController.Sound("TrashcanToss")
+			prevCupRef.current = cup
+			print("trashed")
+			return
 		end
+
+		local prevCupDrink = CoffeeModule.Config[prevCupRef.current and prevCupRef.current.drinkId]
+		local newCupDrink = CoffeeModule.Config[cup and cup.drinkId]
+
+		local prevIngredients = {}
+		for i, ing in prevCupDrink and prevCupDrink.Ingredients or {} do
+			prevIngredients[ing] = true
+		end
+		local newIng = nil
+		for i, ing in newCupDrink and newCupDrink.Ingredients or {} do
+			if not prevIngredients[ing] then
+				newIng = ing
+				break
+			end
+		end
+		local newIngConfig = CoffeeModule.IngredientLookup[newIng]
+		if not newIngConfig then
+			prevCupRef.current = cup
+			print("not newIngConfig", newIng)
+			return
+		end
+
+		SoundController.Sound(getIngredientSound(newIngConfig.Id))
+
+		print("yeah")
 		prevCupRef.current = cup
 	end, { cup })
 

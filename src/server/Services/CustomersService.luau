@@ -424,7 +424,11 @@ function CustomersService.initialize()
 						end
 					end
 
-					if minOneCustomerWaiting and playerStats.PlayerPhase == "playing" then
+					if
+						minOneCustomerWaiting
+						and playerStats.PlayerPhase == "playing"
+						and playerStats.TutorialCompleted
+					then
 						GlobalState.tickCustomer(playerId)
 					end
 

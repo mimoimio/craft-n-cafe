@@ -15,6 +15,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Types = require(ReplicatedStorage.Shared.Types)
 local PlotExpansionsConfig = require(ReplicatedStorage.Shared.Configs.PlotExpansionsConfig)
 local WorkersConfig = require(ReplicatedStorage.Shared.Configs.WorkersConfig) -- NEW: Import Workers config
+local Toasts = require(ReplicatedStorage.Shared.ReactComponents.Toasts) -- Adjust path if needed
 
 local Primitives = ReplicatedStorage.Shared.ReactComponents.ui
 local VStack = require(Primitives.VStack)
@@ -31,7 +32,60 @@ local useEffect = React.useEffect
 local useSpring = ReactFlow.useSpring
 local useBreakpoint = require(script.Parent.Parent.Hooks.useBreakpoint)
 local BuildersIcon = require(script.Parent.Parent.Utils.BuildersIcon)
+local function ShopTabs(props: { mobile: boolean, setTab: (string) -> ()?, LayoutOrder: number?, level: number })
+	local toast = Toasts.useToast()
 
+	local function handleTab(tabName: string, reqLevel: number)
+		if props.level >= reqLevel then
+			if props.setTab then
+				props.setTab(tabName)
+			end
+		else
+			toast.open(`Unlocks at Level {reqLevel} 🔒`, 3, Color3.new(1, 0.3, 0.3))
+		end
+	end
+
+	return e(HStack, {
+		Size = UDim2.new(0, 0, 0, 0),
+		LayoutOrder = props.LayoutOrder,
+		AutomaticSize = Enum.AutomaticSize.XY,
+		VerticalFlex = "Fill",
+		HorizontalFlex = "Fill",
+		Spacing = UDim.new(0, props.mobile and 4 or 8),
+	}, {
+		e(SmallButton, {
+			Text = "Item",
+			LayoutOrder = 1,
+			[React.Event.Activated] = function()
+				handleTab("item", 1)
+			end,
+		}),
+		e(SmallButton, {
+			Text = "Upgrade",
+			LayoutOrder = 2,
+			BackgroundColor3 = props.level < 4 and Color3.new(0.4, 0.4, 0.4) or nil, -- Dim if locked
+			[React.Event.Activated] = function()
+				handleTab("upgrade", 4)
+			end,
+		}),
+		e(SmallButton, {
+			Text = "Expansion",
+			LayoutOrder = 3,
+			BackgroundColor3 = props.level < 4 and Color3.new(0.4, 0.4, 0.4) or nil,
+			[React.Event.Activated] = function()
+				handleTab("expansion", 4)
+			end,
+		}),
+		e(SmallButton, {
+			Text = "Staff",
+			LayoutOrder = 4,
+			BackgroundColor3 = props.level < 4 and Color3.new(0.4, 0.4, 0.4) or nil,
+			[React.Event.Activated] = function()
+				handleTab("staff", 4)
+			end,
+		}),
+	})
+end
 local DOWN_ICON = BuildersIcon["chevron-large-down"]
 local function Padding(props: {
 	All: UDim,
@@ -149,7 +203,7 @@ local function ItemModelViewport(props: {
 	local onMount = React.useCallback(function(rbx)
 		setViewportFrame(rbx)
 	end, {})
-	
+
 	return e("ViewportFrame", {
 		ZIndex = 1,
 		CurrentCamera = currentCamera,
@@ -287,7 +341,7 @@ local function CategoryRow(props: {
 			props.setCategory(selectedCategory)
 		end
 	end, { selectedCategory })
-	
+
 	useEffect(function()
 		if props.onSelecting then
 			props.onSelecting(selecting)
@@ -323,7 +377,7 @@ local function CategoryRow(props: {
 			setSelectedCategory(nil)
 		end,
 	}, {})
-	
+
 	return e("Frame", {
 		LayoutOrder = props.LayoutOrder,
 		Size = UDim2.new(1, 0, 0, props.mobile and 40 or 60),
@@ -417,7 +471,7 @@ local function ShopPanel()
 			unsubWorkers()
 		end
 	end, {})
-	
+
 	local unackedUnlocks, setUnackedUnlocks = useState({})
 	local prevLevelRef = useRef(nil)
 
@@ -447,7 +501,7 @@ local function ShopPanel()
 
 		prevLevelRef.current = currentLevel
 	end, { playerStats and playerStats.Level })
-	
+
 	local function getTotalOwned(itemId)
 		local count = playerInventory[itemId] or 0
 		for _, item in pairs(plotState.placedItems or {}) do
@@ -470,22 +524,22 @@ local function ShopPanel()
 
 	local selectedConfig = selectedItem and PlaceablesModule.GetConfig(selectedItem)
 	local detailsOverlay = nil
-	
+
 	useEffect(function()
 		setPos({ target = show and 0 or 1, damper = 1, speed = 10 })
 	end, { show })
-	
+
 	local allCleared = true
 	local itemButtons = {}
 
 	for _, config in ipairs(PlaceablesModule.Array) do
 		allCleared = allCleared and not unackedUnlocks[config.Id]
 	end
-	
+
 	useEffect(function()
 		UIState.setPanelCleared("shop", allCleared)
 	end, { allCleared })
-	
+
 	if not (playerStats and playerInventory and plotState) then
 		return nil
 	end
@@ -501,7 +555,7 @@ local function ShopPanel()
 		local btnColor = Color3.new(0.2, 0.7, 0.2)
 		local canBuy = true
 		local btnTextSize = mobile and 14 or 20
-		
+
 		if isLocked then
 			btnText = `Unlock at Lvl {selectedConfig.UnlockLevel}`
 			btnColor = Color3.new(0.4, 0.4, 0.4)
@@ -562,6 +616,9 @@ local function ShopPanel()
 				Spacing = UDim.new(0, 8),
 			}, {
 				BuyButton = e(SmallButton, {
+					OnMount = function(rbx)
+						UIState.setTutorialTarget("BuyButton", rbx)
+					end,
 					Size = UDim2.new(1, 0, 0, mobile and 40 or 60),
 					AutomaticSize = Enum.AutomaticSize.None,
 					BackgroundColor3 = btnColor,
@@ -649,7 +706,7 @@ local function ShopPanel()
 			}),
 		})
 	end
-	
+
 	-- NEW: Hire Worker Button logic
 	local workerCount = playerWorkers and #playerWorkers or 0
 	local nextWorkerTier = WorkersConfig[workerCount + 1]
@@ -707,9 +764,12 @@ local function ShopPanel()
 	-- Regular Catalog Items
 	for _, config in ipairs(PlaceablesModule.Array) do
 		local isLocked = playerStats.Level < config.UnlockLevel
-		
+
 		itemButtons[config.Id] = e(ItemButton, {
 			config = config,
+			OnMount = config.Id == "ice_station" and function(rbx)
+				UIState.setTutorialTarget("ShopItem_" .. config.Id, rbx)
+			end or nil,
 			Visible = tab == "item" and ((category == nil) or (category == config.Category)) or false,
 			isSelected = selectedItem == config.Id,
 			isLocked = isLocked,

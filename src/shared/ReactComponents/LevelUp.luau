@@ -109,11 +109,11 @@ local function LevelUp(props: {})
 		local state = GlobalState:getState()
 		local _playersStats = state.Stats[playerId]
 		setPlayersLevel(_playersStats and _playersStats.Level or 1)
-		if not player then
-			task.delay(0.1, function()
-				setPlayersLevel(6)
-			end)
-		end
+		-- if not player then
+		-- 	task.delay(0.1, function()
+		-- 		setPlayersLevel(6)
+		-- 	end)
+		-- end
 
 		local timer = task.spawn(function()
 			while task.wait() do

@@ -84,7 +84,9 @@ end
 
 -- NEW HOOK: Calculates a smooth sliding-window average rate over X seconds
 local function useRollingRate(currentValue: number?, windowSeconds: number)
-	local rate, setRate = React.useState(0)
+	-- FIX: useBinding prevents React from lagging out trying to render 60 times a second
+	local rateBinding, setRateBinding = React.useBinding(0)
+
 	local historyRef = React.useRef({})
 	local latestValueRef = React.useRef(currentValue)
 	local isFirstLoad = React.useRef(true)
@@ -126,14 +128,14 @@ local function useRollingRate(currentValue: number?, windowSeconds: number)
 				local dt = now - oldest.t
 				local diff = latestValueRef.current - oldest.v
 
-				if dt > 0.5 then
-					setRate(diff / dt)
+				-- Smooth calculation
+				if dt > 1 then
+					setRateBinding(diff / dt)
 				else
-					-- Fallback for the first half-second to prevent dividing by tiny numbers
-					setRate(diff)
+					setRateBinding(diff)
 				end
 			else
-				setRate(0)
+				setRateBinding(0)
 			end
 		end)
 
@@ -142,7 +144,7 @@ local function useRollingRate(currentValue: number?, windowSeconds: number)
 		end
 	end, { windowSeconds })
 
-	return rate
+	return rateBinding
 end
 
 local function CashRateCounter()
@@ -158,12 +160,13 @@ local function CashRateCounter()
 		return unsub
 	end, {})
 
-	-- Get the rolling average over the last 10 seconds
-	local avgRate = useRollingRate(cash, 10)
+	-- FIX: Increased window to 60 seconds so it doesn't instantly reset to 0 between slow customers
+	local avgRate = useRollingRate(cash, 60)
 
 	return e(SmallText, {
-		Text = `Cash: {Mionum.new(avgRate):toString()}/s`,
-		-- Text = `Cash: {Mionum.new((avgRate)):toString()}/s`,
+		Text = avgRate:map(function(rate)
+			return `Cash: {Mionum.new(rate):toString()}/s`
+		end),
 	})
 end
 
@@ -180,11 +183,13 @@ local function EXPRateCounter()
 		return unsub
 	end, {})
 
-	-- Get the rolling average over the last 10 seconds
-	local avgRate = useRollingRate(exp, 10)
+	-- FIX: Increased window to 60 seconds
+	local avgRate = useRollingRate(exp, 60)
 
 	return e(SmallText, {
-		Text = `EXP: {Mionum.new(avgRate):toString()}/s`,
+		Text = avgRate:map(function(rate)
+			return `EXP: {Mionum.new(rate):toString()}/s`
+		end),
 	})
 end
 
@@ -299,17 +304,16 @@ local function story(frame: Frame)
 
 	-- 6. Cleanup function when story unmounts
 	return function()
-		-- Serialize Plot for Dev Workflow
+		if expThread then
+			task.cancel(expThread)
+		end
+
+		-- -- Serialize Plot for Dev Workflow
 		playersPlotString = formatValue(GlobalState:getState().Plot[mockUserId], 1)
 		local PlotTemplate = ServerStorage:FindFirstChild("PlotTemplate")
 		if PlotTemplate and playersPlotString then
 			PlotTemplate.Source = `return \{\n{playersPlotString}\n}`
 		end
-
-		if expThread then
-			task.cancel(expThread)
-		end
-
 		-- Shutdown Client Controllers
 		PlacementController:setBuildMode(false)
 		PlacementController.cleanup()
