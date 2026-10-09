@@ -42,7 +42,12 @@ end
 
 local playerId = Players.LocalPlayer and tostring(Players.LocalPlayer.UserId) or "MockUser"
 
-local function ShopTabs(props: { mobile: boolean, setTab: (string) -> ()?, LayoutOrder: number?, level: number })
+local function ShopTabs(props: {
+	mobile: boolean,
+	setTab: (string) -> ()?,
+	LayoutOrder: number?,
+	level: number,
+})
 	local toast = Toasts.useToast()
 
 	local function handleTab(tabName: string, reqLevel: number)
@@ -66,35 +71,63 @@ local function ShopTabs(props: { mobile: boolean, setTab: (string) -> ()?, Layou
 		Spacing = UDim.new(0, props.mobile and 4 or 8),
 	}, {
 		e(SmallButton, {
-			Text = "Item",
 			LayoutOrder = 1,
+			Size = UDim2.new(1, 0, 0, 0),
 			[React.Event.Activated] = function()
 				handleTab("item", 1)
 			end,
+			BackgroundTransparency = props.tab == "item" and 0 or 0.6,
+		}, {
+			e(SmallText, {
+				Text = "Item",
+				TextTransparency = props.tab == "item" and 0 or 0.6,
+				TextStrokeTransparency = props.tab == "item" and 0 or 0.6,
+			}),
 		}),
 		e(SmallButton, {
-			Text = "Upgrade",
 			LayoutOrder = 2,
+			Size = UDim2.new(1, 0, 0, 0),
 			BackgroundColor3 = props.level < 4 and Color3.new(0.4, 0.4, 0.4) or nil,
 			[React.Event.Activated] = function()
 				handleTab("upgrade", 4)
 			end,
+			BackgroundTransparency = props.tab == "upgrade" and 0 or 0.6,
+		}, {
+			e(SmallText, {
+				Text = "Upgrade",
+				TextTransparency = props.tab == "upgrade" and 0 or 0.6,
+				TextStrokeTransparency = props.tab == "upgrade" and 0 or 0.6,
+			}),
 		}),
 		e(SmallButton, {
-			Text = "Expansion",
 			LayoutOrder = 3,
+			Size = UDim2.new(1, 0, 0, 0),
 			BackgroundColor3 = props.level < 4 and Color3.new(0.4, 0.4, 0.4) or nil,
 			[React.Event.Activated] = function()
 				handleTab("expansion", 4)
 			end,
+			BackgroundTransparency = props.tab == "expansion" and 0 or 0.6,
+		}, {
+			e(SmallText, {
+				Text = "Expansion",
+				TextTransparency = props.tab == "expansion" and 0 or 0.6,
+				TextStrokeTransparency = props.tab == "expansion" and 0 or 0.6,
+			}),
 		}),
 		e(SmallButton, {
-			Text = "Staff",
 			LayoutOrder = 4,
+			Size = UDim2.new(1, 0, 0, 0),
 			BackgroundColor3 = props.level < 4 and Color3.new(0.4, 0.4, 0.4) or nil,
 			[React.Event.Activated] = function()
 				handleTab("staff", 4)
 			end,
+			BackgroundTransparency = props.tab == "staff" and 0 or 0.6,
+		}, {
+			e(SmallText, {
+				Text = "Staff",
+				TextTransparency = props.tab == "staff" and 0 or 0.6,
+				TextStrokeTransparency = props.tab == "staff" and 0 or 0.6,
+			}),
 		}),
 	})
 end
@@ -198,7 +231,6 @@ local function ItemButton(props: {
 		end
 		currentCamera:ZoomToExtents(modelClone:GetBoundingBox())
 	end, { worldModel, currentCamera, modelClone })
-
 	return e(SmallButton, {
 		Size = UDim2.new(0, mobile and 60 or 80, 0, mobile and 60 or 80),
 		AutomaticSize = Enum.AutomaticSize.None,
@@ -218,12 +250,14 @@ local function ItemButton(props: {
 		e("Frame", {
 			Size = UDim2.fromScale(1, 1),
 			BackgroundColor3 = Color3.new(0, 0, 0),
-			BackgroundTransparency = 0.5,
+			BackgroundTransparency = isLocked and 0.5 or props.maxed and 0.8 or 1,
 			ZIndex = 4,
-			Visible = isLocked,
+			Visible = isLocked or props.maxed,
 		}, {
+			e("UICorner", { CornerRadius = UDim.new(0, 8) }),
+
 			e(SmallText, {
-				Text = "🔒",
+				Text = isLocked and "🔒" or "",
 				TextSize = 24,
 				Size = UDim2.fromScale(1, 1),
 				HorizontalAlignment = Enum.HorizontalAlignment.Center,
@@ -344,6 +378,7 @@ local function ShopPanel()
 	local playerInventory, setPlayerInventory = useState(nil)
 	local plotState, setPlotState = useState(nil)
 	local playerWorkers, setPlayerWorkers = useState(nil)
+	local amount, setAmount = useState(nil)
 
 	local xs, sm, md, lg, xl = useBreakpoint()
 	local mobile = xs or sm or md
@@ -415,20 +450,52 @@ local function ShopPanel()
 		prevLevelRef.current = currentLevel
 	end, { playerStats and playerStats.Level })
 
-	local function getTotalOwned(itemId)
-		local count = playerInventory[itemId] or 0
-		for _, item in pairs(plotState.placedItems or {}) do
-			if item.id == itemId then
-				count += 1
-			end
+	useEffect(function()
+		local unsub = GlobalState:subscribe(
+			Reflex.createSelector({
+				function(state: GlobalState.GlobalState)
+					return state.Plot[playerId] and state.Plot[playerId].placedItems or nil
+				end,
+				function(state: GlobalState.GlobalState)
+					return state.Plot[playerId] and state.Plot[playerId].spatialItems or nil
+				end,
+				function(state: GlobalState.GlobalState)
+					return state.Inventory[playerId] and state.Inventory[playerId] or nil
+				end,
+			}, function(placedItems, spatialItems, inventory)
+				local totalOwned = {}
+				for _, item in placedItems or {} do
+					totalOwned[item.id] = (totalOwned[item.id] or 0) + 1
+				end
+				for _, item in spatialItems or {} do
+					totalOwned[item.id] = (totalOwned[item.id] or 0) + 1
+				end
+				for id, _amount in inventory or {} do
+					totalOwned[id] = (totalOwned[id] or 0) + _amount
+				end
+				return totalOwned
+			end),
+			setAmount
+		)
+		local totalOwned = {}
+
+		local state = GlobalState:getState()
+
+		local placedItems = state.Plot[playerId] and state.Plot[playerId].placedItems or nil
+		local spatialItems = state.Plot[playerId] and state.Plot[playerId].spatialItems or nil
+		local inventory = state.Inventory[playerId] and state.Inventory[playerId] or nil
+		for _, item in placedItems or {} do
+			totalOwned[item.id] = (totalOwned[item.id] or 0) + 1
 		end
-		for _, item in pairs(plotState.spatialItems or {}) do
-			if item.id == itemId then
-				count += 1
-			end
+		for _, item in spatialItems or {} do
+			totalOwned[item.id] = (totalOwned[item.id] or 0) + 1
 		end
-		return count
-	end
+		for id, _amount in inventory or {} do
+			totalOwned[id] = (totalOwned[id] or 0) + _amount
+		end
+		setAmount(totalOwned)
+		return unsub
+	end, {})
 
 	local tab, setTab = useState("item")
 	local selectingCategory, setSelectingCategory = useBinding(nil)
@@ -458,7 +525,7 @@ local function ShopPanel()
 	end
 
 	if selectedConfig then
-		local totalOwned = getTotalOwned(selectedConfig.Id)
+		local totalOwned = amount and amount[selectedConfig.Id] or 0
 		local isMaxed = selectedConfig.MaxAllowed ~= math.huge and totalOwned >= selectedConfig.MaxAllowed
 		local canAfford = playerStats.Cash >= selectedConfig.Price
 		local isLocked = playerStats.Level < selectedConfig.UnlockLevel
@@ -616,7 +683,6 @@ local function ShopPanel()
 		})
 	end
 
-	-- Hire Worker Logic ... (Keep existing code)
 	local workerCount = playerWorkers and #playerWorkers or 0
 	local nextWorkerTier = WorkersConfig[workerCount + 1]
 	if tab == "staff" then
@@ -671,11 +737,11 @@ local function ShopPanel()
 
 	for _, config in ipairs(PlaceablesModule.Array) do
 		local isLocked = playerStats.Level < config.UnlockLevel
-
+		local maxed = amount and ((amount[config.Id] or 0) >= config.MaxAllowed) or nil
 		itemButtons[config.Id] = e(ItemButton, {
 			config = config,
 			Visible = tab == "item" and ((category == nil) or (category == config.Category)) or false,
-
+			maxed = maxed,
 			isSelected = selectedItem == config.Id,
 			isLocked = isLocked,
 			mobile = mobile,
@@ -770,7 +836,13 @@ local function ShopPanel()
 				{ Text = `Shop `, RichText = true, AutomaticSize = Enum.AutomaticSize.XY, LayoutOrder = 1 },
 				{ padding = e(Padding) }
 			),
-			Tabs = e(ShopTabs, { mobile = mobile, LayoutOrder = 2, setTab = setTab, level = playerStats.Level }),
+			Tabs = e(ShopTabs, {
+				mobile = mobile,
+				LayoutOrder = 2,
+				setTab = setTab,
+				tab = tab,
+				level = playerStats.Level,
+			}),
 			Categories = e(CategoryRow, {
 				mobile = mobile,
 				Visible = tab == "item",

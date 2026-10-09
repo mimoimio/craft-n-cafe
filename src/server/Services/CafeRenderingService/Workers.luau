@@ -29,9 +29,9 @@ local useRef = React.useRef
 -- local LOGENABLED = true
 local Log = LOGENABLED and warn or function() end
 
-local WORKER_WALK_SPEED = 4
+-- local WORKER_WALK_SPEED = 200
 -- LEAVE THIS HERE 14 IS FAST
--- local WORKER_WALK_SPEED = 4
+local WORKER_WALK_SPEED = 4
 -- local WORKER_WALK_SPEED = 14
 local STATION_DURATION = 0.1
 -- local STATION_DURATION = 1.5
@@ -177,17 +177,17 @@ local function Worker(props: {
 		end
 		clone:SetAttribute("FeetOffset", feetOffset)
 
-		local billboard = Instance.new("BillboardGui")
-		billboard.Size = UDim2.new(0, 100, 0, 30)
-		billboard.StudsOffset = Vector3.new(0, 3, 0)
-		local textLabel = Instance.new("TextLabel")
-		textLabel.Size = UDim2.new(1, 0, 1, 0)
-		textLabel.BackgroundTransparency = 1
-		textLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
-		textLabel.TextScaled = true
-		textLabel.Text = "Barista"
-		textLabel.Parent = billboard
-		billboard.Parent = clone:FindFirstChild("Head")
+		-- local billboard = Instance.new("BillboardGui")
+		-- billboard.Size = UDim2.new(4, 0, 1, 0)
+		-- billboard.StudsOffset = Vector3.new(0, 3, 0)
+		-- local textLabel = Instance.new("TextLabel")
+		-- textLabel.Size = UDim2.new(1, 0, 1, 0)
+		-- textLabel.BackgroundTransparency = 1
+		-- textLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
+		-- textLabel.TextScaled = true
+		-- textLabel.Text = "Barista"
+		-- textLabel.Parent = billboard
+		-- billboard.Parent = clone:FindFirstChild("Head")
 
 		local spawnPos = props.BaseModel.Part.Position + Vector3.new(0, props.BaseModel.Part.Size.Y / 2 + feetOffset, 0)
 		clone:PivotTo(CFrame.new(spawnPos))

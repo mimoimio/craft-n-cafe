@@ -92,6 +92,12 @@ local function CustomerPromptNode(props: {
 
 	-- 4. Check if the player is currently serving this specific customer
 	local isServing = props.CustomerData and props.CustomerData.servedBy == "player"
+	local someoneElseServing = props.CustomerData
+			and props.CustomerData.servedBy
+			and props.CustomerData.servedBy ~= "player"
+		or false
+	-- warn("someoneElseServing?", someoneElseServing and "yes" or "no")
+
 	local currentInput = useInputDevice()
 	local secondsWaited = props.CustomerData and props.CustomerData.secondsWaited or 0
 	local isQueuingOrWaiting = props.CustomerData
@@ -99,97 +105,99 @@ local function CustomerPromptNode(props: {
 	local color = secondsWaited < 10
 			and Color3.new(0, 1, 0.2):Lerp(Color3.new(1, 1, 0), math.clamp(secondsWaited / 10, 0, 1))
 		or Color3.new(1, 1, 0):Lerp(Color3.new(1, 0, 0), math.clamp((secondsWaited - 10) / 10, 0, 1))
-	return e(React.Fragment, {}, {
-		-- The Interactive Custom UI (Only shows when hovered and panels are closed)
-		PromptUI = e(ScreenPromptButton, {
-			ProximityPrompt = prompt,
-			Position = UDim2.new(1, -200, 1, -200),
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Size = UDim2.fromOffset(200, 50),
-			Visible = visible and shown,
-			Image = "rbxassetid://127657596958436",
-			ScaleType = Enum.ScaleType.Slice,
-			SliceCenter = Rect.new(8, 8, 92, 92),
-			BackgroundTransparency = 1,
-		}, {
-			-- e(SmallText, {
-			-- 	Size = UDim2.new(1, 0, 1, 0),
-			-- 	TextXAlignment = Enum.TextXAlignment.Center,
-			-- 	Text = prompt and prompt.ActionText or "",
-			-- }),
+	return not someoneElseServing
+			and e(React.Fragment, {}, {
+				-- The Interactive Custom UI (Only shows when hovered and panels are closed)
+				PromptUI = e(ScreenPromptButton, {
+					ProximityPrompt = prompt,
+					Position = UDim2.new(1, -200, 1, -200),
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					Size = UDim2.fromOffset(200, 50),
+					Visible = visible and shown,
+					Image = "rbxassetid://127657596958436",
+					ScaleType = Enum.ScaleType.Slice,
+					SliceCenter = Rect.new(8, 8, 92, 92),
+					BackgroundTransparency = 1,
+				}, {
+					-- e(SmallText, {
+					-- 	Size = UDim2.new(1, 0, 1, 0),
+					-- 	TextXAlignment = Enum.TextXAlignment.Center,
+					-- 	Text = prompt and prompt.ActionText or "",
+					-- }),
 
-			e(SmallText, {
-				Size = UDim2.new(1, 0, 1, 0),
-				TextXAlignment = Enum.TextXAlignment.Center,
-				Text = prompt and (BuildersIcon.GetPromptText(
-					currentInput == "Gamepad" and prompt.GamepadKeyCode or prompt.KeyboardKeyCode,
-					currentInput
-				) .. " " .. prompt.ActionText) or "",
-				RichText = true,
-			}),
-		}),
+					e(SmallText, {
+						Size = UDim2.new(1, 0, 1, 0),
+						TextXAlignment = Enum.TextXAlignment.Center,
+						Text = prompt and (BuildersIcon.GetPromptText(
+							currentInput == "Gamepad" and prompt.GamepadKeyCode or prompt.KeyboardKeyCode,
+							currentInput
+						) .. " " .. prompt.ActionText) or "",
+						RichText = true,
+					}),
+				}),
 
-		-- The Highlight (Shows when hovered, OR permanently stays on if currently serving!)
-		Highlight = props.Model and ReactRoblox.createPortal({
-			e("Highlight", {
-				Adornee = props.Model and props.Model.Parent and props.Model or nil,
-				Enabled = isServing or (visible and shown),
-				FillColor = Color3.new(1, 1, 1),
-				FillTransparency = 0.8,
-				OutlineColor = shown and Color3.new() or isServing and Color3.new(0.4, 1, 0.4) or nil, -- Green outline if serving
-				-- ref = warn,
-			}),
-		}, props.Model) or nil,
+				-- The Highlight (Shows when hovered, OR permanently stays on if currently serving!)
+				Highlight = props.Model and ReactRoblox.createPortal({
+					e("Highlight", {
+						Adornee = props.Model and props.Model.Parent and props.Model or nil,
+						Enabled = isServing or (visible and shown),
+						FillColor = Color3.new(1, 1, 1),
+						FillTransparency = 0.8,
+						OutlineColor = shown and Color3.new() or isServing and Color3.new(0.4, 1, 0.4) or nil, -- Green outline if serving
+						-- ref = warn,
+					}),
+				}, props.Model) or nil,
 
-		-- The Serving Indicator (Stays visible even if panels are open)
-		ServingBillboard = isServing and e("BillboardGui", {
-			Adornee = props.Model and props.Model.Parent and props.Model.PrimaryPart or nil,
-			Size = UDim2.fromOffset(200, 40),
-			ExtentsOffsetWorldSpace = Vector3.new(0, 0, 0), -- Floats safely above the customer model
-			AlwaysOnTop = true,
-			ref = function() end,
-			ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-		}, {
-			e(SmallText, {
-				Size = UDim2.new(1, 0, 1, 0),
-				Text = "Currently Serving",
-				TextXAlignment = Enum.TextXAlignment.Center,
-				TextYAlignment = Enum.TextYAlignment.Center,
-				TextColor3 = Color3.new(0.4, 1, 0.4), -- Matching green text
-				TextStrokeTransparency = 0,
-				ZIndex = 10,
-			}),
-		}) or nil,
-		WaitMeter = e("BillboardGui", {
-			Adornee = props.Model and props.Model.Parent and props.Model.PrimaryPart or nil,
-			Size = UDim2.fromScale(1, 1),
-			StudsOffset = Vector3.new(-2, 0, 0),
-			AlwaysOnTop = true,
-			ref = function() end,
-			ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-		}, {
-			isQueuingOrWaiting and e("ImageLabel", {
-				Image = "rbxassetid://144082822",
-				ScaleType = Enum.ScaleType.Fit,
-				ZIndex = 1,
-				Size = UDim2.new(1, 0, 1, 0),
-				BackgroundTransparency = 1,
-				-- ImageColor3 = color,
-			}, {
-				e("UIGradient", {
-					Color = ColorSequence.new(color, color:Lerp(Color3.new(0, 0, 0.9), 0.3)),
-					Rotation = 90,
+				-- The Serving Indicator (Stays visible even if panels are open)
+				ServingBillboard = isServing and e("BillboardGui", {
+					Adornee = props.Model and props.Model.Parent and props.Model.PrimaryPart or nil,
+					Size = UDim2.fromOffset(200, 40),
+					ExtentsOffsetWorldSpace = Vector3.new(0, 0, 0), -- Floats safely above the customer model
+					AlwaysOnTop = true,
+					ref = function() end,
+					ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+				}, {
+					e(SmallText, {
+						Size = UDim2.new(1, 0, 1, 0),
+						Text = "Currently Serving",
+						TextXAlignment = Enum.TextXAlignment.Center,
+						TextYAlignment = Enum.TextYAlignment.Center,
+						TextColor3 = Color3.new(0.4, 1, 0.4), -- Matching green text
+						TextStrokeTransparency = 0,
+						ZIndex = 10,
+					}),
+				}) or nil,
+				WaitMeter = e("BillboardGui", {
+					Adornee = props.Model and props.Model.Parent and props.Model.PrimaryPart or nil,
+					Size = UDim2.fromScale(1, 1),
+					StudsOffset = Vector3.new(-2, 0, 0),
+					AlwaysOnTop = true,
+					ref = function() end,
+					ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+				}, {
+					isQueuingOrWaiting and e("ImageLabel", {
+						Image = "rbxassetid://144082822",
+						ScaleType = Enum.ScaleType.Fit,
+						ZIndex = 1,
+						Size = UDim2.new(1, 0, 1, 0),
+						BackgroundTransparency = 1,
+						-- ImageColor3 = color,
+					}, {
+						e("UIGradient", {
+							Color = ColorSequence.new(color, color:Lerp(Color3.new(0, 0, 0.9), 0.3)),
+							Rotation = 90,
+						}),
+						e("UICorner", {
+							CornerRadius = UDim.new(1, 0),
+						}),
+						e("UIStroke", {
+							Thickness = 4,
+							Transparency = 0,
+						}),
+					}),
 				}),
-				e("UICorner", {
-					CornerRadius = UDim.new(1, 0),
-				}),
-				e("UIStroke", {
-					Thickness = 4,
-					Transparency = 0,
-				}),
-			}),
-		}),
-	})
+			})
+		or nil
 end
 
 return function()
