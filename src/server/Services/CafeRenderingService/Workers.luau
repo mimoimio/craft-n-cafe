@@ -1,4 +1,4 @@
--- CafeRenderingService/Workers.luau -- server
+-- ServerScriptService/Server/Services/CafeRenderingService/Workers.luau
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -11,6 +11,7 @@ local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local Types = require(ReplicatedStorage.Shared.Types)
 local CafeTypes = require(ReplicatedStorage.Shared.CafeTypes)
 local DrinkModelUtil = require(ReplicatedStorage.Shared.Utils.DrinkModelUtil)
+local WorkersConfig = require(ReplicatedStorage.Shared.Configs.WorkersConfig)
 
 local Grid = require(ReplicatedStorage.Shared.Grid)
 local Models = ReplicatedStorage.Shared.Models
@@ -29,16 +30,8 @@ local useRef = React.useRef
 -- local LOGENABLED = true
 local Log = LOGENABLED and warn or function() end
 
--- local WORKER_WALK_SPEED = 200
--- LEAVE THIS HERE 14 IS FAST
-local WORKER_WALK_SPEED = 4
--- local WORKER_WALK_SPEED = 14
-local STATION_DURATION = 0.1
--- local STATION_DURATION = 1.5
-
 local function getPlayer(playerId: string): Player?
 	if playerId == "MockUser" then
-		-- for UILabs story
 		return {
 			UserId = "MockUser",
 			Name = "MockUser",
@@ -140,9 +133,11 @@ local function Worker(props: {
 })
 	local rig, setRig = useState(nil)
 	local actionRef = useRef(nil)
+	local workerRef = useRef(props.WorkerData)
 
 	useEffect(function()
 		actionRef.current = props.WorkerData.action
+		workerRef.current = props.WorkerData
 	end, { props.WorkerData })
 
 	useEffect(function()
@@ -177,18 +172,6 @@ local function Worker(props: {
 		end
 		clone:SetAttribute("FeetOffset", feetOffset)
 
-		-- local billboard = Instance.new("BillboardGui")
-		-- billboard.Size = UDim2.new(4, 0, 1, 0)
-		-- billboard.StudsOffset = Vector3.new(0, 3, 0)
-		-- local textLabel = Instance.new("TextLabel")
-		-- textLabel.Size = UDim2.new(1, 0, 1, 0)
-		-- textLabel.BackgroundTransparency = 1
-		-- textLabel.TextColor3 = Color3.fromRGB(100, 200, 255)
-		-- textLabel.TextScaled = true
-		-- textLabel.Text = "Barista"
-		-- textLabel.Parent = billboard
-		-- billboard.Parent = clone:FindFirstChild("Head")
-
 		local spawnPos = props.BaseModel.Part.Position + Vector3.new(0, props.BaseModel.Part.Size.Y / 2 + feetOffset, 0)
 		clone:PivotTo(CFrame.new(spawnPos))
 
@@ -210,15 +193,6 @@ local function Worker(props: {
 
 		local worker = props.WorkerData
 		local action = worker.action
-
-		Log(`\n======================================`)
-		Log(`[Workers-AI] 🤖 STATE MACHINE RENDER TRIGGERED`)
-		Log(`Worker ID: {worker.id:sub(1, 8)}...`)
-		Log(`Current Action: {action}`)
-		Log(`Target Data: {tostring(worker.targetUuid)}`)
-		Log(`Assigned Customer: {tostring(worker.assignedCustomerUid)}`)
-		Log(`Recipe Queue Length: {#worker.recipeQueue}`)
-		Log(`======================================\n`)
 
 		if action == "idle" then
 			return
@@ -273,11 +247,6 @@ local function Worker(props: {
 		local physicalTargetUuid = worker.targetUuid
 		if action == "walkingToStation" then
 			physicalTargetUuid = props.Stations[worker.targetUuid]
-			Log(
-				`[Workers-AI] 🔍 Resolving Station Name '{worker.targetUuid}' -> Physical UUID: {tostring(
-					physicalTargetUuid
-				)}`
-			)
 		end
 
 		local targetCF = getTargetCFrame(props.BaseModel, props.PlotState, physicalTargetUuid, action)
@@ -288,12 +257,10 @@ local function Worker(props: {
 				)
 				return
 			elseif action == "trashing" then
-				Log(`[Workers-AI] 🗑️ Trash bin missing! Magically deleting cup and resetting to idle.`)
 				DrinksService.TrashCup(getPlayer(props.PlayerId), worker.id)
 				GlobalState.resetWorker(props.PlayerId, { workerUid = worker.id })
 				return
 			else
-				warn(`[Workers-AI] 🚨 Target UUID missing in PlotState! Forcing Wrong Order.`)
 				if worker.assignedCustomerUid then
 					local trashUuid = props.Stations and props.Stations["trash_station"]
 						or WorkersService.GetStationUuid(props.PlotState, "trash_station")
@@ -318,13 +285,11 @@ local function Worker(props: {
 
 		if humanoid and rootPart then
 			task.spawn(function()
-				Log(`[Workers-AI] 🚶‍♂️ Starting Pathfinding calculation...`)
 				local startX, startZ = Grid.worldToCell(rootPart.Position, plotPart.CFrame)
 				local endX, endZ = Grid.worldToCell(targetFloorPos, plotPart.CFrame)
 
 				local path = AStar.compute(startX, startZ, endX, endZ, props.PlotState, plotPart.Size.X)
 				if not path then
-					Log(`[Workers-AI] ⚠️ Standard path failed, attempting ghost path...`)
 					path = AStar.compute(startX, startZ, endX, endZ, props.PlotState, plotPart.Size.X, true)
 				end
 
@@ -332,29 +297,29 @@ local function Worker(props: {
 				local moveToFinished = false
 
 				if path then
-					Log(`[Workers-AI] 🗺️ Path found! Length: {#path} steps. Proceeding to tween.`)
 					local waypoints = {}
 					for _, node in ipairs(path) do
 						table.insert(waypoints, Grid.cellToWorld(node.x, node.z, plotPart.CFrame, plotPart.Size))
 					end
 					table.insert(waypoints, targetFloorPos)
 
+					local initialWalkSpeed = WorkersConfig.GetWalkSpeed(workerRef.current.walkSpeedLevel)
 					local walkAnim = ReplicatedStorage.Shared.Animations:FindFirstChild("Walk")
 					if animator and walkAnim then
-						Log(`[Workers-AI] 🎬 LoadAnimation: Creating Walk Track for {worker.id:sub(1, 8)}...`)
-						walkingAnimation = (animator :: Animator):LoadAnimation(walkAnim);
-						(walkingAnimation):AdjustSpeed(WORKER_WALK_SPEED / 8)
+						walkingAnimation = (animator :: Animator):LoadAnimation(walkAnim)
 						walkingAnimation.Priority = Enum.AnimationPriority.Movement
 						walkingAnimation.Looped = true
-						walkingAnimation:Play(0.1, 1, WORKER_WALK_SPEED / 8)
+						walkingAnimation:Play(0.1, 1, initialWalkSpeed / 8)
 					end
 
 					for i, wp in ipairs(waypoints) do
 						if not isNavigating then
-							Log(
-								`[Workers-AI] 🛑 Tween Interrupted! isNavigating = false. (Component unmounted or state changed)`
-							)
 							break
+						end
+
+						local currentWalkSpeed = WorkersConfig.GetWalkSpeed(workerRef.current.walkSpeedLevel)
+						if walkingAnimation then
+							walkingAnimation:AdjustSpeed(currentWalkSpeed / 8)
 						end
 
 						local startPos = rootPart.Position
@@ -362,7 +327,7 @@ local function Worker(props: {
 						local dist = (targetP - startPos).Magnitude
 
 						if dist > 0.1 then
-							local timeToTake = dist / WORKER_WALK_SPEED
+							local timeToTake = dist / currentWalkSpeed
 							local targetCFrame
 
 							if i == #waypoints then
@@ -406,15 +371,12 @@ local function Worker(props: {
 						end
 					end
 
-					-- THE FIX: Animation must be destroyed when the path loop finishes successfully!
 					if walkingAnimation then
-						Log(`[Workers-AI] 🏁 Destroying Walk Track (Path finished or aborted)`)
 						walkingAnimation:Stop()
 						walkingAnimation:Destroy()
 						walkingAnimation = nil
 					end
 				else
-					Log(`[Workers-AI] ❌ Path completely blocked! Failsafe Teleporting.`)
 					broke = true
 				end
 
@@ -427,39 +389,32 @@ local function Worker(props: {
 					return
 				end
 
-				Log(`[Workers-AI] 📍 Worker reached destination. Proceeding to execute state Action...`)
-
 				local player = getPlayer(props.PlayerId)
-
 				if not player then
 					return
 				end
 
 				if action == "walkingToCashier" then
-					Log(`[Workers-AI] 🔄 Dispatching TendCustomer`)
 					CustomersService.TendCustomer(player, worker.assignedCustomerUid, worker.id)
 				elseif action == "walkingToStation" then
 					local itemData = props.PlotState.placedItems[physicalTargetUuid]
 						or props.PlotState.spatialItems[physicalTargetUuid]
 					if itemData then
 						local stationId = itemData.id
+						local stationDuration = WorkersConfig.GetStationDuration(workerRef.current.craftSpeedLevel)
 
-						Log(`[Workers-AI] ⏳ Waiting at station {stationId} for {STATION_DURATION}s...`)
-						task.wait(STATION_DURATION)
+						task.wait(stationDuration)
 
 						if not isNavigating then
-							Log(`[Workers-AI] 🛑 Wait completed but isNavigating = false! Aborting dispatch.`)
 							return
 						end
 
-						-- FRESH FAILSAFE CHECK: Did the customer time out while we were waiting?
 						local freshCustomer = getCustomerByUid(props.PlayerId, worker.assignedCustomerUid)
 						if
 							not freshCustomer
 							or freshCustomer.customerAction ~= "waiting"
 							or freshCustomer.servedBy ~= worker.id
 						then
-							Log(`[Workers-AI] 🛑 Customer vanished while we were waiting! Aborting to trash.`)
 							local trashUuid = props.Stations and props.Stations["trash_station"]
 								or WorkersService.GetStationUuid(props.PlotState, "trash_station")
 							GlobalState.wrongOrder(props.PlayerId, {
@@ -471,13 +426,12 @@ local function Worker(props: {
 							return
 						end
 
-						Log(`[Workers-AI] ▶️ Wait finished, dispatching ingredient addition...`)
-
 						if stationId == "cup_station" then
 							GlobalState.getCup(props.PlayerId, worker.id)
 						else
 							local ingredient = stationId:gsub("_station$", "")
-							DrinksService.AddIngredient(player, ingredient, worker.id, 3)
+							local qualityScore = WorkersConfig.GetQualityScore(workerRef.current.qualityLevel)
+							DrinksService.AddIngredient(player, ingredient, worker.id, qualityScore)
 						end
 
 						if #worker.recipeQueue > 0 then
@@ -496,10 +450,8 @@ local function Worker(props: {
 						end
 					end
 				elseif action == "serving" then
-					Log(`[Workers-AI] 📦 Dispatching ServeCustomer`)
 					CustomersService.ServeCustomer(player, worker.assignedCustomerUid, worker.id)
 				elseif action == "trashing" then
-					Log(`[Workers-AI] 🗑️ Dispatching TrashCup and resetWorker`)
 					DrinksService.TrashCup(player, worker.id)
 					GlobalState.resetWorker(props.PlayerId, { workerUid = worker.id })
 				end
@@ -511,9 +463,7 @@ local function Worker(props: {
 			if activeTween then
 				activeTween:Cancel()
 			end
-			-- FIX: Redundancy check in case component unmounts mid-walk
 			if walkingAnimation then
-				Log(`[Workers-AI] 🧹 Destroying Walk Track (Cleanup Phase)`)
 				walkingAnimation:Stop()
 				walkingAnimation:Destroy()
 				walkingAnimation = nil

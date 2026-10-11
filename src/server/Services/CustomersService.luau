@@ -8,6 +8,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Promise = require(ReplicatedStorage.Packages.Promise)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 local LevelConfig = require(ReplicatedStorage.Shared.Configs.LevelConfig)
+local UpgradesConfig = require(ReplicatedStorage.Shared.Configs.UpgradesConfig)
 local Types = require(ReplicatedStorage.Shared.Types)
 local PlaceablesModule = require(ReplicatedStorage.Shared.PlaceablesModule)
 
@@ -139,7 +140,8 @@ function CustomersService.ServeCustomer(player: Player?, uid: string, workerUid:
 
 	if cup.drinkId == found.order then
 		local drinkConfig = CoffeeModule.Config[cup.drinkId]
-		local cashReward = drinkConfig and (drinkConfig.Price * cup.score // #drinkConfig.Ingredients)
+		local boostedPrice = UpgradesConfig.CalculateDrinkPrice(cup.drinkId, playersStats.Upgrades)
+		local cashReward = drinkConfig and (boostedPrice * cup.score // #drinkConfig.Ingredients)
 		local exp = playersStats.EXP + cup.status
 		local level = LevelConfig.GetLevel(exp)
 
@@ -381,7 +383,6 @@ function CustomersService.initialize()
 					for _, customer in playersCustomers do
 						local action = customer.customerAction
 
-						-- DELETED CASH REGISTER FAILSAFE: Boot customer immediately if their register is gone!
 						local cashierExists = true
 						if customer.targetCounterUuid then
 							if
@@ -410,7 +411,6 @@ function CustomersService.initialize()
 							continue
 						end
 
-						-- Normal loop logic
 						if
 							action == "walking"
 							or action == "entering"

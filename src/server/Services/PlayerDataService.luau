@@ -73,11 +73,11 @@ end
 local firstPlot = PlotConfig.FirstPlot
 local PROFILE_TEMPLATE: PlayerData = {
 	Stats = {
-		SfxVolume = 0.5,
+		SfxVolume = 0.8,
 		SfxOn = true,
-		MusicVolume = 0.5,
+		MusicVolume = 0.8,
 		MusicOn = true,
-		Cash = 30_000,
+		Cash = 300,
 		Level = 1,
 		EXP = 0,
 		CafeOpen = true,

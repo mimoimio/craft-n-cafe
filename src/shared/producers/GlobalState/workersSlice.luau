@@ -17,7 +17,6 @@ export type WorkersState = Types.WorkersState
 -- /// INITIALIZATION ///
 local initialState: WorkersState = {}
 
--- Helper to find a worker's array index safely
 local function findWorkerIndex(workers: { Types.WorkerEntity }, uid: string): number?
 	for i, worker in ipairs(workers) do
 		if worker.id == uid then
@@ -30,7 +29,16 @@ end
 -- /// REDUCERS ///
 local actions = {
 	startPlayerSession = function(state: WorkersState, playerId: string, data: PlayerData)
-		return Set(state, playerId, data.Workers or {})
+		local loadedWorkers = {}
+		for i, w in ipairs(data.Workers or {}) do
+			local worker = table.clone(w)
+			worker.name = worker.name or `Barista #{i}`
+			worker.walkSpeedLevel = worker.walkSpeedLevel or 1
+			worker.craftSpeedLevel = worker.craftSpeedLevel or 1
+			worker.qualityLevel = worker.qualityLevel or 1
+			table.insert(loadedWorkers, worker)
+		end
+		return Set(state, playerId, loadedWorkers)
 	end,
 
 	endPlayerSession = function(state: WorkersState, playerId: string)
@@ -40,14 +48,17 @@ local actions = {
 	hireCashier = function(state: WorkersState, playerId: string, payload: Types.HireWorkerPayload)
 		local workers = state[playerId] or {}
 
-		-- Initialize the Worker as an AI State Machine
 		local newWorker: Types.WorkerEntity = {
 			id = payload.id,
+			name = payload.name or `Barista #{#workers + 1}`,
 			action = "idle",
 			targetUuid = nil,
 			assignedCustomerUid = nil,
 			recipeQueue = {},
 			lastTend = 0,
+			walkSpeedLevel = 1,
+			craftSpeedLevel = 1,
+			qualityLevel = 1,
 		}
 
 		return Set(state, playerId, Array.insert(workers, #workers + 1, newWorker))
@@ -67,7 +78,34 @@ local actions = {
 		return Set(state, playerId, Array.removeIndex(workers, index))
 	end,
 
-	-- NEW AI ACTIONS:
+	upgradeWorker = function(state: WorkersState, playerId: string, payload: Types.UpgradeWorkerPayload)
+		local workers = state[playerId]
+		if not workers then
+			return state
+		end
+
+		local index = findWorkerIndex(workers, payload.workerUid)
+		if not index then
+			return state
+		end
+
+		return Set(
+			state,
+			playerId,
+			Array.update(workers, index, function(worker)
+				local new = table.clone(worker)
+				if payload.statType == "walkSpeed" then
+					new.walkSpeedLevel = (new.walkSpeedLevel or 1) + 1
+				elseif payload.statType == "craftSpeed" then
+					new.craftSpeedLevel = (new.craftSpeedLevel or 1) + 1
+				elseif payload.statType == "quality" then
+					new.qualityLevel = (new.qualityLevel or 1) + 1
+				end
+				return new
+			end)
+		)
+	end,
+
 	assignWorkerTask = function(state: WorkersState, playerId: string, payload: Types.AssignWorkerTaskPayload)
 		local workers = state[playerId]
 		if not workers then
@@ -273,7 +311,6 @@ local actions = {
 			playerId,
 			Array.update(workers, index, function(worker)
 				local new = table.clone(worker)
-				-- Remove the first item from the queue
 				if #new.recipeQueue > 0 then
 					new.recipeQueue = Array.removeIndex(new.recipeQueue, 1)
 				end

@@ -5,6 +5,7 @@ local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 local WorkersConfig = require(ReplicatedStorage.Shared.Configs.WorkersConfig)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
+local Types = require(ReplicatedStorage.Shared.Types)
 
 local WorkersService = {}
 
@@ -37,6 +38,56 @@ function WorkersService.HireWorker(player: Player)
 	local newWorkerId = HttpService:GenerateGUID(false)
 	GlobalState.hireCashier(playerId, {
 		id = newWorkerId,
+		name = nextTier.Title,
+	})
+end
+
+function WorkersService.UpgradeWorker(player: Player, payload: Types.UpgradeWorkerRemotePayload)
+	if type(payload) ~= "table" or type(payload.workerUid) ~= "string" or type(payload.statType) ~= "string" then
+		return
+	end
+
+	local playerId = tostring(player.UserId)
+	local state = GlobalState:getState()
+	local stats = state.Stats and state.Stats[playerId]
+	local workers = state.Workers and state.Workers[playerId]
+
+	if not stats or not workers then
+		return
+	end
+
+	local targetWorker = nil
+	for _, w in ipairs(workers) do
+		if w.id == payload.workerUid then
+			targetWorker = w
+			break
+		end
+	end
+
+	if not targetWorker then
+		return
+	end
+
+	local currentLevel = 1
+	if payload.statType == "walkSpeed" then
+		currentLevel = targetWorker.walkSpeedLevel or 1
+	elseif payload.statType == "craftSpeed" then
+		currentLevel = targetWorker.craftSpeedLevel or 1
+	elseif payload.statType == "quality" then
+		currentLevel = targetWorker.qualityLevel or 1
+	else
+		return
+	end
+
+	local _, nextEntry = WorkersConfig.GetNextUpgrade(payload.statType, currentLevel)
+	if not nextEntry or stats.Cash < nextEntry.Cost then
+		return
+	end
+
+	GlobalState.upgradeWorker(playerId, {
+		workerUid = targetWorker.id,
+		statType = payload.statType :: Types.WorkerStatType,
+		cost = nextEntry.Cost,
 	})
 end
 
@@ -77,7 +128,6 @@ function WorkersService.Tick()
 		return
 	end
 
-	-- FIX: Iterate through all active player IDs in Stats (supports both real players and MockUser sessions)
 	for playerId, _ in pairs(state.Stats) do
 		local customers = state.Customers[playerId]
 		local workers = state.Workers[playerId]
@@ -128,6 +178,12 @@ WorkersService._threads = {}
 
 function WorkersService.initialize()
 	table.insert(WorkersService._connections, Remotes.HireWorker.OnServerEvent:Connect(WorkersService.HireWorker))
+	if Remotes.UpgradeWorker then
+		table.insert(
+			WorkersService._connections,
+			Remotes.UpgradeWorker.OnServerEvent:Connect(WorkersService.UpgradeWorker)
+		)
+	end
 
 	table.insert(
 		WorkersService._threads,

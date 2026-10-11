@@ -164,6 +164,8 @@ return {
 	Play = CreateRemote("Play"),
 	SubmitReport = CreateRemote("SubmitReport"),
 	HireWorker = CreateRemote("HireWorker"),
+	BuyUpgrade = CreateRemote("BuyUpgrade"),
+	UpgradeWorker = CreateRemote("UpgradeWorker"),
 
 	-- Example usage for RemoteFunction:
 	-- GetServerData = CreateRemoteFunction("GetServerData"),

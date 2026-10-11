@@ -91,6 +91,7 @@ export type InventoryState = {
 	},
 }
 export type PlayerPhase = "mainMenu" | "playing"
+
 -- Stats
 export type StatsEntity = {
 	Cash: number,
@@ -114,6 +115,7 @@ export type StatsEntity = {
 	PendingSkipMixer: string?,
 	SkipTickets: number,
 	OwnedGamePasses: { [string]: boolean },
+	Upgrades: { [string]: number }?, -- Tracks global & ingredient upgrade levels
 }
 
 export type CupsState = {
@@ -138,14 +140,14 @@ export type CustomerEntity = {
 	customerId: string?,
 	order: string?,
 	targetCounterUuid: string?,
-	targetSeatUuid: string?, -- NEW: Tracks assigned seat
+	targetSeatUuid: string?,
 	customerAction: "entering" | "walking" | "queuing" | "waiting" | "sitting" | "leaving" | "paid" | "emptyHanded",
 	servedBy: ("player" | string)?,
 	actionStartTime: number,
 	secondsWaited: number,
 }
 
--- NEW: Worker Types
+-- Worker Types
 export type WorkerAction =
 	"idle"
 	| "walkingToCashier"
@@ -155,13 +157,19 @@ export type WorkerAction =
 	| "serving"
 	| "trashing"
 
+export type WorkerStatType = "walkSpeed" | "craftSpeed" | "quality"
+
 export type WorkerEntity = {
 	id: string,
+	name: string?,
 	action: WorkerAction,
 	targetUuid: string?,
 	assignedCustomerUid: string?,
 	recipeQueue: { string }, -- E.g. {"cup_station", "espresso_station", "milk_station"}
 	lastTend: number,
+	walkSpeedLevel: number?, -- Default 1
+	craftSpeedLevel: number?, -- Default 1
+	qualityLevel: number?, -- Default 1 (gives score 1, upgrades to 2 and 3)
 }
 
 export type WorkersState = {
@@ -182,7 +190,7 @@ export type CustomersState = {
 	},
 }
 
--- action payloads
+-- Action Payloads
 export type AddIngredientPayload = {
 	workerUid: string?,
 	ingredient: string,
@@ -194,12 +202,11 @@ export type ServeCustomerPayload = {
 	cash: number,
 	workerUid: string?,
 	customerId: string?,
-	targetSeatUuid: string?, -- NEW: Passed by server if they dine-in
+	targetSeatUuid: string?,
 	timestamp: number,
 	level: number,
 	EXP: number,
 }
--- NEW: Payload for when they finish eating
 export type FinishDiningPayload = {
 	customerUid: string,
 	timestamp: number,
@@ -212,7 +219,6 @@ export type TakeCustomerOrderPayload = {
 	workerUid: string?,
 	order: string,
 	timestamp: number,
-	-- NEW: Added so workersSlice can intercept this action and route the AI
 	recipeQueue: { string }?,
 	nextTargetUuid: string?,
 }
@@ -222,7 +228,7 @@ export type WrongOrderPayload = {
 	workerUid: string?,
 	customerId: string?,
 	timestamp: number,
-	nextTargetUuid: string?, -- NEW: UUID for the Trash Can so the worker walks there
+	nextTargetUuid: string?,
 }
 export type QueueCustomerPayload = {
 	customerUid: string,
@@ -243,12 +249,31 @@ export type BuyItemPayload = {
 	totalCost: number,
 }
 
--- Worker action payloads
+-- Upgrade Action Payloads
+export type BuyUpgradePayload = {
+	upgradeId: string,
+	cost: number,
+}
+export type BuyUpgradeRemotePayload = {
+	upgradeId: string,
+}
+
+-- Worker Action Payloads
 export type HireWorkerPayload = {
 	id: string,
+	name: string?,
 }
 export type FireWorkerPayload = {
 	workerUid: string,
+}
+export type UpgradeWorkerPayload = {
+	workerUid: string,
+	statType: WorkerStatType,
+	cost: number,
+}
+export type UpgradeWorkerRemotePayload = {
+	workerUid: string,
+	statType: WorkerStatType,
 }
 export type AssignWorkerTaskPayload = {
 	workerUid: string,
@@ -292,9 +317,10 @@ export type CombinedActions = {
 	setMusicVolume: (playerId: PlayerId, volume: number) -> (),
 	completeTutorial: (playerId: PlayerId) -> (),
 
-	-- Economy
+	-- Economy & Upgrades
 	buyItem: (playerId: PlayerId, payload: BuyItemPayload) -> (),
 	buyIngredient: (playerId: PlayerId, payload: BuyIngredientPayload) -> (),
+	buyUpgrade: (playerId: PlayerId, payload: BuyUpgradePayload) -> (),
 	playerReceivePayment: (playerId: PlayerId, payload: PlayerReceivePaymentPayload) -> (),
 
 	-- Plot Building
@@ -321,6 +347,7 @@ export type CombinedActions = {
 	-- Workers
 	hireCashier: (playerId: PlayerId, payload: HireWorkerPayload) -> (),
 	fireCashier: (playerId: PlayerId, payload: FireWorkerPayload) -> (),
+	upgradeWorker: (playerId: PlayerId, payload: UpgradeWorkerPayload) -> (),
 	assignWorkerTask: (playerId: PlayerId, payload: AssignWorkerTaskPayload) -> (),
 	updateWorkerAction: (playerId: PlayerId, payload: UpdateWorkerActionPayload) -> (),
 	setWorkerRecipe: (playerId: PlayerId, payload: SetWorkerRecipePayload) -> (),
@@ -328,7 +355,7 @@ export type CombinedActions = {
 	resetWorker: (playerId: PlayerId, payload: ResetWorkerPayload) -> (),
 }
 
---Coffee Modules
+-- Coffee Modules
 export type CoffeeModule = {
 	IngredientLookup: { [string]: IngredientConfig },
 	IngredientConfigs: { IngredientConfig },

@@ -52,7 +52,9 @@ local function ScreenGuiCircle(props: { TargetButton: GuiObject?, Color: Color3?
 		return nil
 	end
 
-	return e("ScreenGui", { DisplayOrder = 1010 }, {
+	return e("ScreenGui", {
+		DisplayOrder = 1010,
+	}, {
 		Wrapper = e("Frame", {
 			BackgroundTransparency = 1,
 			Position = time:map(posMap),
@@ -221,8 +223,7 @@ local function ShopTutorial()
 				MaxTextSize = 24,
 			}),
 		}),
-		Circle = circleTarget2D
-			and e(ScreenGuiCircle, { TargetButton = circleTarget2D, Color = Color3.new(1, 0.8, 0) }),
+		Circle = circleTarget2D and e(ScreenGuiCircle, { TargetButton = circleTarget2D, Color = Color3.new(1, 1, 1) }),
 	})
 end
 

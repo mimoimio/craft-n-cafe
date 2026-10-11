@@ -4,10 +4,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local PlaceablesModule = require(ReplicatedStorage.Shared.PlaceablesModule)
+local PlotExpansionsConfig = require(ReplicatedStorage.Shared.Configs.PlotExpansionsConfig)
+local UpgradesConfig = require(ReplicatedStorage.Shared.Configs.UpgradesConfig)
+local Types = require(ReplicatedStorage.Shared.Types)
 
 local ShopService = {}
 
-function ShopService.BuyItem(player: Player, payload: any) -- Use Types.BuyItemRemotePayload
+function ShopService.BuyItem(player: Player, payload: Types.BuyItemRemotePayload)
 	local playerId = tostring(player.UserId)
 	local amount = payload.amount or 1
 	if amount <= 0 then
@@ -63,15 +66,12 @@ function ShopService.BuyItem(player: Player, payload: any) -- Use Types.BuyItemR
 		end
 	end
 
-	-- All guards passed! Dispatch the purchase action
 	GlobalState.buyItem(playerId, {
 		itemId = config.Id,
 		amount = amount,
 		totalCost = totalCost,
 	})
 end
-
-local PlotExpansionsConfig = require(ReplicatedStorage.Shared.Configs.PlotExpansionsConfig)
 
 function ShopService.BuyPlotExpansion(player: Player)
 	local playerId = tostring(player.UserId)
@@ -85,7 +85,6 @@ function ShopService.BuyPlotExpansion(player: Player)
 
 	local currentSize = plotState.plotSize
 
-	-- Find the NEXT tier
 	local nextTier = nil
 	for i, tier in ipairs(PlotExpansionsConfig) do
 		if tier.Size > currentSize then
@@ -99,7 +98,6 @@ function ShopService.BuyPlotExpansion(player: Player)
 		return
 	end
 
-	-- Guards
 	if playerStats.Level < nextTier.UnlockLevel then
 		warn(`ShopService: {playerId} is too low level to expand.`)
 		return
@@ -109,18 +107,70 @@ function ShopService.BuyPlotExpansion(player: Player)
 		return
 	end
 
-	-- Dispatch! Deducts cash (Stats) and expands grid (Plot) simultaneously
 	GlobalState.expandPlot(playerId, {
 		newSize = nextTier.Size,
 		cost = nextTier.Cost,
 	})
 end
+
+function ShopService.BuyUpgrade(player: Player, payload: Types.BuyUpgradeRemotePayload)
+	if type(payload) ~= "table" or type(payload.upgradeId) ~= "string" then
+		return
+	end
+
+	local playerId = tostring(player.UserId)
+	local state = GlobalState:getState()
+	local playerStats = state.Stats and state.Stats[playerId]
+	if not playerStats then
+		return
+	end
+
+	local config = UpgradesConfig.GetConfig(payload.upgradeId)
+	if not config then
+		warn(`ShopService: Unknown upgradeId '{payload.upgradeId}'`)
+		return
+	end
+
+	-- Match Ingredient upgrade unlock level to its station's unlock level if available
+	local requiredLevel = config.UnlockLevel
+	if config.IngredientId then
+		local stationCfg = PlaceablesModule.GetConfig(config.IngredientId .. "_station")
+		if stationCfg then
+			requiredLevel = math.max(requiredLevel, stationCfg.UnlockLevel)
+		end
+	end
+
+	if playerStats.Level < requiredLevel then
+		return
+	end
+
+	local currentUpgrades = playerStats.Upgrades or {}
+	local currentLevel = currentUpgrades[config.Id] or 0
+	if currentLevel >= config.MaxLevel then
+		return
+	end
+
+	local nextLevel = currentLevel + 1
+	local cost = config.GetCost(nextLevel)
+	if playerStats.Cash < cost then
+		return
+	end
+
+	GlobalState.buyUpgrade(playerId, {
+		upgradeId = config.Id,
+		cost = cost,
+	})
+end
+
 ShopService._connections = {}
 
 function ShopService.initialize()
 	table.insert(ShopService._connections, Remotes.ExpandPlot.OnServerEvent:Connect(ShopService.BuyPlotExpansion))
 	if Remotes.BuyItem then
 		table.insert(ShopService._connections, Remotes.BuyItem.OnServerEvent:Connect(ShopService.BuyItem))
+	end
+	if Remotes.BuyUpgrade then
+		table.insert(ShopService._connections, Remotes.BuyUpgrade.OnServerEvent:Connect(ShopService.BuyUpgrade))
 	end
 end
 
