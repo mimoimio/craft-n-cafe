@@ -26,14 +26,14 @@ local genericPriceUpgrade: UpgradeEntry = {
 	MaxLevel = 10,
 	UnlockLevel = 4,
 	Description = function(level: number)
-		local pct = level * 15
+		local pct = level * 50
 		return `Increases all drink sale prices by +{pct}%`
 	end,
 	GetCost = function(nextLevel: number)
-		return math.floor(400 * (1.8 ^ (nextLevel - 1)))
+		return math.floor(400 * (1.1 ^ (nextLevel - 1)))
 	end,
 	GetBonus = function(level: number)
-		return 1 + (level * 0.15) -- Multiplier: 1.00, 1.15, 1.30...
+		return 1 + (level * 0.50) -- Multiplier: 1.00, 1.15, 1.30...
 	end,
 }
 

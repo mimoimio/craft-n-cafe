@@ -249,7 +249,8 @@ local actions = {
 
 		playersCustomers = table.clone(playersCustomers)
 		for i, customer in playersCustomers do
-			if customer.customerAction == "waiting" or customer.customerAction == "queuing" then
+			-- if customer.customerAction == "waiting" or customer.customerAction == "queuing" then
+			if customer.customerAction == "waiting" then
 				customer.secondsWaited = (customer.secondsWaited or 0) + 1
 			end
 		end

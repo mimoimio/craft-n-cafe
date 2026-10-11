@@ -1,8 +1,10 @@
+-- SpatialItemNode.luau
 local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local React = require(ReplicatedStorage.Packages.React)
 local useEffect = React.useEffect
+local useState = React.useState
 
 local Types = require(ReplicatedStorage.Shared.Types)
 local CafeTypes = require(ReplicatedStorage.Shared.CafeTypes)
@@ -10,9 +12,9 @@ local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 local Grid = require(ReplicatedStorage.Shared.Grid)
 local DrinksService = require(ServerScriptService.Server.Services.DrinksService)
 
-local useState = React.useState
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local Models = ReplicatedStorage.Shared.Models
+local PaintUtil = require(ReplicatedStorage.Shared.Utils.PaintUtil)
 
 local function SpatialItemNode(props: {
 	Uuid: string,
@@ -21,6 +23,7 @@ local function SpatialItemNode(props: {
 	PlayerId: string,
 })
 	local plotSizeNum, setPlotSizeNum = useState(32)
+	local modelClone, setModelClone = useState(nil)
 
 	useEffect(function()
 		local function selectPlotSize(state)
@@ -29,14 +32,17 @@ local function SpatialItemNode(props: {
 		end
 
 		local unsub = GlobalState:subscribe(selectPlotSize, setPlotSizeNum)
-
-		-- Initialize state immediately
 		setPlotSizeNum(selectPlotSize(GlobalState:getState()))
 
 		return unsub
 	end, { props.PlayerId })
+
+	local id = props.ItemData.id
+	local parentUuid = props.ItemData.parentUuid
+	local cframeDep = typeof(props.ItemData.cframe) == "table" and table.concat(props.ItemData.cframe, ",") or ""
+
 	useEffect(function()
-		local prefab = Models:FindFirstChild(props.ItemData.id)
+		local prefab = Models:FindFirstChild(id)
 		if not prefab then
 			return
 		end
@@ -50,16 +56,13 @@ local function SpatialItemNode(props: {
 			end
 		end
 
-		-- Disable existing prompts attached to the prefab
 		local pp = clone:FindFirstChildWhichIsA("ProximityPrompt", true)
 		if pp then
 			pp.Enabled = false
 		end
 
-		-- FIX: Capture originalCFrame to properly orient the bounding box later
 		local originalCFrame, itemSize = clone:GetBoundingBox()
 
-		-- FIX: Use the invisible Anchor for position, and Reflex for the Size
 		local anchor = props.BaseModel:FindFirstChild("Anchor")
 		local plotCFrame = anchor and anchor.CFrame or props.BaseModel.Part.CFrame
 		local plotSize = Vector3.new(plotSizeNum, 1, plotSizeNum)
@@ -72,9 +75,7 @@ local function SpatialItemNode(props: {
 		local targetCFrame = Grid.spatialToWorld(spatialCFrame, plotCFrame, plotSize)
 		local conn, conn2
 
-		-- [[ FUNCTIONAL ROUTING ]]
-		-- Enables tabletop ingredients and mini appliances!
-		local stationName = string.match(props.ItemData.id, "^(.+)_station$")
+		local stationName = string.match(id, "^(.+)_station$")
 
 		if stationName then
 			repeat
@@ -108,21 +109,9 @@ local function SpatialItemNode(props: {
 			newCenterPart:PivotTo(CFrame.new(originalCFrame.Position))
 			newCenterPart.Parent = clone
 			prompt.Parent = newCenterPart
-			-- prompt.HoldDuration = 3
 
 			local starttime = nil
 			local isIngredient = stationName ~= "cup" and stationName ~= "trash"
-			-- conn2 = isIngredient
-			-- 		and prompt.TriggerEnded:Connect(function(player)
-			-- 			if not starttime then
-			-- 				warn("Trigger Ended but no starttime")
-			-- 				return
-			-- 			end
-
-			-- 			local elapsed = workspace:GetServerTimeNow() - starttime
-			-- 			starttime = nil
-			-- 		end)
-			-- 	or nil
 
 			conn = prompt.Triggered:Connect(function(player: Player)
 				local playerId = tostring(player.UserId)
@@ -148,10 +137,9 @@ local function SpatialItemNode(props: {
 			end
 		until not found
 
-		-- Setup the new perfectly-snapped PrimaryPart bounding box
 		local part = Instance.new("Part")
 		part.Anchored = true
-		part.Color = Color3.new(1, 0, 0) -- Red outline in debug mode to distinguish from Grid items
+		part.Color = Color3.new(1, 0, 0)
 		part.Size = itemSize
 		part.CanCollide = false
 		part.CanTouch = false
@@ -159,10 +147,7 @@ local function SpatialItemNode(props: {
 		part.Transparency = 1
 		part.Parent = clone
 
-		-- FIX: Use the actual originalCFrame instead of `_`
 		part:PivotTo(originalCFrame)
-
-		-- 🎯 CRITICAL: Tag the model so the Delete Raycaster can find its UUID
 		clone:SetAttribute("Uuid", props.Uuid)
 
 		clone.PrimaryPart = part
@@ -176,7 +161,10 @@ local function SpatialItemNode(props: {
 				desc.Anchored = true
 			end
 		end
+
+		PaintUtil.ApplyColors(clone, props.ItemData.primaryColor, props.ItemData.secondaryColor)
 		clone.Parent = props.BaseModel and props.BaseModel.Parent and props.BaseModel.Spatial or nil
+		setModelClone(clone)
 
 		return function()
 			if conn then
@@ -188,8 +176,15 @@ local function SpatialItemNode(props: {
 			if clone and clone.Parent then
 				clone:Destroy()
 			end
+			setModelClone(nil)
 		end
-	end, { props.ItemData, props.BaseModel, props.PlayerId, plotSizeNum }) -- Re-run if plot size expands!
+	end, { id, parentUuid, cframeDep, props.BaseModel, props.PlayerId, plotSizeNum })
+
+	useEffect(function()
+		if modelClone then
+			PaintUtil.ApplyColors(modelClone, props.ItemData.primaryColor, props.ItemData.secondaryColor)
+		end
+	end, { modelClone, props.ItemData.primaryColor, props.ItemData.secondaryColor })
 
 	return nil
 end

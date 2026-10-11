@@ -12,6 +12,7 @@ local GlobalState = require(script.Parent.Parent.producers.GlobalState)
 local Grid = require(script.Parent.Parent.Grid)
 local InputAdapter = require(ReplicatedStorage.Shared.Controllers.InputAdapter)
 local PlacementVisualizer = require(script.Parent.Parent.PlacementVisualizer)
+local PaintUtil = require(ReplicatedStorage.Shared.Utils.PaintUtil)
 
 local self = {}
 
@@ -22,8 +23,12 @@ function self.new(plotPart: Part, itemPrefabsFolder: Folder)
 	self.visualizer = nil
 	self.buildModeActive = false
 	self.deleteModeActive = false
+	self.paintModeActive = false
 	self.currentItemId = nil
 	self.rotation = 0
+
+	self.primaryColor = nil
+	self.secondaryColor = nil
 
 	self.hoveredUuid = nil
 	local newHighlight
@@ -47,9 +52,12 @@ function self:setDeleteMode(isActive: boolean)
 	if not self.initialized then
 		return
 	end
-
 	self.deleteModeActive = isActive
+	self.paintModeActive = false
+
 	if isActive then
+		self.deleteHighlight.FillColor = Color3.new(1, 0, 0)
+		self.deleteHighlight.OutlineColor = Color3.new(1, 0, 0)
 		self.currentItemId = nil
 		if self.visualizer then
 			self.visualizer:setGhostItem(nil)
@@ -57,6 +65,36 @@ function self:setDeleteMode(isActive: boolean)
 	else
 		self.hoveredUuid = nil
 		self.deleteHighlight.Parent = nil
+	end
+end
+
+function self:setPaintMode(isActive: boolean)
+	if not self.initialized then
+		return
+	end
+	self.paintModeActive = isActive
+	self.deleteModeActive = false
+
+	if isActive then
+		self.deleteHighlight.FillColor = Color3.new(0, 0.5, 1) -- Blue highlight for painting
+		self.deleteHighlight.OutlineColor = Color3.new(0, 0.5, 1)
+		self.currentItemId = nil
+		if self.visualizer then
+			self.visualizer:setGhostItem(nil)
+		end
+	else
+		self.hoveredUuid = nil
+		self.deleteHighlight.Parent = nil
+	end
+end
+
+function self:setPaintColors(primary: string?, secondary: string?)
+	self.primaryColor = primary
+	self.secondaryColor = secondary
+
+	-- Apply colors to the ghost item in real time if placing
+	if self.visualizer and self.visualizer.ghostModel then
+		PaintUtil.ApplyColors(self.visualizer.ghostModel, self.primaryColor, self.secondaryColor)
 	end
 end
 
@@ -85,17 +123,21 @@ function self:selectItem(itemId: string?)
 	end
 	self.currentItemId = itemId
 
-	-- Only attempt to find the prefab if itemId is not nil
 	local prefab = nil
 	if itemId then
 		prefab = self.itemPrefabs:FindFirstChild(itemId)
 	end
 
-	-- Pass the prefab (or nil) to the visualizer to clear the ghost
 	if self.visualizer then
 		self.visualizer:setGhostItem(prefab)
+
+		-- Make sure the newly swapped ghost item receives our current colors
+		if self.visualizer.ghostModel then
+			PaintUtil.ApplyColors(self.visualizer.ghostModel, self.primaryColor, self.secondaryColor)
+		end
 	end
 end
+
 function self:rotateItem()
 	if not self.initialized then
 		return
@@ -108,8 +150,8 @@ function self:update(cursorWorldPos: Vector3)
 		return
 	end
 
-	-- [[ DELETE MODE HOVER LOGIC ]]
-	if self.deleteModeActive then
+	-- [[ DELETE & PAINT MODE HOVER LOGIC ]]
+	if self.deleteModeActive or self.paintModeActive then
 		local baseModel = self.plot.Parent
 		local hoveredUuid = InputAdapter.getHoveredItemUuid(baseModel)
 
@@ -159,7 +201,6 @@ function self:update(cursorWorldPos: Vector3)
 	local hitUuid = nil
 
 	if placementType == "Free" then
-		-- [[ SPATIAL PLACEMENT LOGIC ]]
 		local ignoreList = self.visualizer.ghostModel and { self.visualizer.ghostModel } or {}
 		local rayResult = InputAdapter.getSpatialRaycast(self.plot.Parent, ignoreList)
 
@@ -193,7 +234,6 @@ function self:update(cursorWorldPos: Vector3)
 			isFree = false
 		end
 	else
-		-- [[ EXISTING GRID LOGIC ]]
 		if itemTypeAttr == "Wall" then
 			resolvedItemType, rawGridX, rawGridZ = Grid.worldToEdge(cursorWorldPos, plotCFrame, finalRotation)
 		else
@@ -209,7 +249,7 @@ function self:update(cursorWorldPos: Vector3)
 
 		if itemTypeAttr == "Roof" then
 			dummyY = itemSize.Y + Grid.WALL_HEIGHT
-			mathItemType = "Solid" -- Prevent gridToWorld from double-elevating the ghost
+			mathItemType = "Solid"
 		end
 
 		local snappedSize = Vector3.new(rawX * Grid.SIZE, dummyY, rawZ * Grid.SIZE)
@@ -222,7 +262,6 @@ function self:update(cursorWorldPos: Vector3)
 
 		isFree = Grid.isAreaFree(plotState, resolvedItemType, gridX, gridZ, width, length)
 
-		-- Pass snappedSize instead of visualItemSize
 		targetCFrame = Grid.gridToWorld(mathItemType, gridX, gridZ, plotCFrame, plotSize, snappedSize, finalRotation)
 	end
 	self.visualizer:updateGhost(targetCFrame, isFree)
@@ -245,7 +284,6 @@ function self:placeItem(cursorWorldPos: Vector3)
 	local plotState = state.Plot and state.Plot[playerId]
 
 	if placementType == "Free" then
-		-- [[ SPATIAL PLACEMENT LOGIC ]]
 		local ignoreList = self.visualizer and self.visualizer.ghostModel and { self.visualizer.ghostModel } or {}
 		if Players.LocalPlayer and Players.LocalPlayer.Character then
 			table.insert(ignoreList, Players.LocalPlayer.Character)
@@ -281,10 +319,11 @@ function self:placeItem(cursorWorldPos: Vector3)
 			placementType = "Free",
 			cframe = relativeCFrame,
 			parentUuid = hitUuid,
+			primaryColor = self.primaryColor,
+			secondaryColor = self.secondaryColor,
 		})
 		return true
 	else
-		-- [[ EXISTING GRID LOGIC ]]
 		local resolvedItemType = "Solid"
 		local finalRotation = self.rotation
 		local rawGridX, rawGridZ
@@ -300,7 +339,6 @@ function self:placeItem(cursorWorldPos: Vector3)
 		local gridX, gridZ = Grid.clampToGrid(resolvedItemType, rawGridX, rawGridZ, width, length, plotSize)
 
 		if Grid.isAreaFree(plotState, resolvedItemType, gridX, gridZ, width, length) then
-			-- FIX: Explicitly send placementType so the server unions match!
 			Remotes.PlaceItem:FireServer({
 				itemId = self.currentItemId,
 				placementType = "Grid",
@@ -310,6 +348,8 @@ function self:placeItem(cursorWorldPos: Vector3)
 				width = width,
 				length = length,
 				rotation = finalRotation,
+				primaryColor = self.primaryColor,
+				secondaryColor = self.secondaryColor,
 			})
 			return true
 		end
@@ -333,10 +373,26 @@ function self:placeCurrent()
 
 	local hitPos = InputAdapter.getCursorWorldPosition(self.plot, targetElevation)
 	local success, uuid = self:placeItem(hitPos)
-	if success then
-		-- print("Successfully placed item with UUID:", uuid)
-	end
 	return success
+end
+
+function self:attemptPaintAtCursor()
+	if not self.initialized or not self.plot then
+		return false
+	end
+
+	local baseModel = self.plot.Parent
+	local hoveredUuid = InputAdapter.getHoveredItemUuid(baseModel)
+
+	if hoveredUuid then
+		Remotes.PaintItem:FireServer({
+			uuid = hoveredUuid,
+			primaryColor = self.primaryColor,
+			secondaryColor = self.secondaryColor,
+		})
+		return true
+	end
+	return false
 end
 
 function self:destroyItem(uuid: string)
@@ -364,78 +420,52 @@ function self:attemptDestroyAtCursor()
 end
 
 function self.initialize()
-	-- print("[PlacementController] initialize() called.")
-
 	self.initializePromise = Promise.new(function(resolve, reject, onCancel)
-		-- print("[PlacementController] Promise executor started.")
-
-		-- 1. Check if it's already there
 		local currentState = UIState:getState()
 		if currentState.cafeBase then
-			-- print("[PlacementController] cafeBase found immediately in UIState. Resolving.")
 			resolve(currentState.cafeBase)
 			return
 		end
 
-		-- print("[PlacementController] cafeBase not found in UIState. Starting UIState:wait()...")
-		-- 2. Wait for it to exist without yielding the thread
 		local waitPromise = UIState:wait(function(state: UIState.UIState)
 			return state.cafeBase
 		end, function(cafeBase)
-			-- print("[PlacementController] UIState:wait triggered. cafeBase present:", cafeBase ~= nil)
 			if cafeBase then
-				-- print("[PlacementController] Resolving from UIState:wait.")
 				resolve(cafeBase)
 				return true
 			end
 			return false
 		end)
 
-		-- 3. If PlacementController.cleanup() is called while we are still waiting
 		onCancel(function()
-			-- print("[PlacementController] initializePromise cancelled! Aborting waitPromise.")
 			if waitPromise.cancel then
 				waitPromise:cancel()
 			end
 		end)
 	end)
 		:andThen(function(cafeBase)
-			-- print("[PlacementController] .andThen reached. cafeBase:", cafeBase.Name)
-
-			-- Ensure we actually have the part before initializing
-			-- print("[PlacementController] Looking for 'Part' inside cafeBase...")
 			local initialPart = cafeBase:FindFirstChild("Part")
 
 			if not initialPart then
-				-- print("[PlacementController] 'Part' not found immediately, starting WaitForChild(10s)...")
 				initialPart = cafeBase:WaitForChild("Part", 10)
 			end
 
 			if not initialPart then
-				warn(
-					"[PlacementController] FATAL: 'Part' never loaded inside cafeBase after 10 seconds. Controller will fail."
-				)
-				return -- Prevent self.new(nil) from silently breaking the thread
+				warn("[PlacementController] FATAL: 'Part' never loaded.")
+				return
 			end
 
-			-- print("[PlacementController] 'Part' found. Calling self.new()...")
 			self.new(initialPart, ReplicatedStorage.Shared.Models)
-			-- print("[PlacementController] self.new() completed successfully.")
 
-			-- Listen directly to the Model's children for plot expansions
 			self.partAddedConn = cafeBase.ChildAdded:Connect(function(child)
 				if child.Name == "Part" and child:IsA("BasePart") then
-					-- print("[PlacementController] ChildAdded detected new 'Part'. Updating plot reference.")
 					self.plot = child
-
 					if self.visualizer then
 						self.visualizer.plot = child
 					end
-					-- print("[PlacementController] Plot expanded and synced!")
 				end
 			end)
 
-			-- print("[PlacementController] Binding RenderStepped and InputBegan...")
 			self.connection = RunService.RenderStepped:Connect(function()
 				if not self.plot then
 					return
@@ -463,6 +493,8 @@ function self.initialize()
 				elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
 					if self.deleteModeActive then
 						self:attemptDestroyAtCursor()
+					elseif self.paintModeActive then
+						self:attemptPaintAtCursor()
 					else
 						local targetElevation = nil
 						if self.currentItemId then
@@ -477,18 +509,13 @@ function self.initialize()
 					end
 				end
 			end)
-
-			-- print("[PlacementController] Initialization sequence fully complete.")
 		end)
 		:catch(function(err)
-			-- This will now only fire if the Promise is explicitly rejected, errored, or cancelled
-			warn("[PlacementController] Initialization failed, errored, or was cancelled:", err)
+			warn("[PlacementController] Initialization failed:", err)
 		end)
 end
 
 function self.cleanup()
-	-- print("[PlacementController] cleanup() called.")
-
 	if self.initializePromise then
 		self.initializePromise:cancel()
 	end
@@ -504,8 +531,6 @@ function self.cleanup()
 	if self.partAddedConn then
 		self.partAddedConn:Disconnect()
 	end
-
-	-- print("[PlacementController] cleanup() finished.")
 end
 
 return self

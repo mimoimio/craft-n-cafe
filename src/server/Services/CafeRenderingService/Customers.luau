@@ -28,7 +28,7 @@ local useState = React.useState
 local useRef = React.useRef
 
 -- local CUSTOMER_WALK_SPEED = 20
-local CUSTOMER_WALK_SPEED = 4
+local CUSTOMER_WALK_SPEED = 12
 
 local disappointed = {
 	"Where are the drinks?",

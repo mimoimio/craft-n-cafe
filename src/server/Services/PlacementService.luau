@@ -6,7 +6,7 @@ local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local Grid = require(ReplicatedStorage.Shared.Grid)
 local Types = require(ReplicatedStorage.Shared.Types)
 local Models = ReplicatedStorage.Shared.Models
-local PlaceablesModule = require(ReplicatedStorage.Shared.PlaceablesModule) -- NEW REQUIRE
+local PlaceablesModule = require(ReplicatedStorage.Shared.PlaceablesModule)
 
 local PlacementService = {}
 
@@ -19,7 +19,6 @@ function PlacementService.PlaceItem(player: Player, payload: Types.PlaceItemRemo
 		return
 	end
 
-	-- [[ 1. INVENTORY GUARD ]]
 	local config = PlaceablesModule.GetConfig(payload.itemId)
 	if not config then
 		warn(`Exploit prevented: Player {playerId} attempted to place an unconfigured item ({payload.itemId}).`)
@@ -34,14 +33,12 @@ function PlacementService.PlaceItem(player: Player, payload: Types.PlaceItemRemo
 		return
 	end
 
-	-- Check if they actually have this item in their inventory!
 	local stock = playerInventory[payload.itemId] or 0
 	if stock <= 0 then
 		warn(`Placement failed: Player {playerId} has 0 {payload.itemId} in inventory.`)
 		return
 	end
 
-	-- [[ 2. SPATIAL & GRID GUARDS ]]
 	local placementType = prefab:GetAttribute("PlacementType") or "Grid"
 	local plotSizeNum = plotState.plotSize
 	local plotSize = Vector3.new(plotSizeNum, 1, plotSizeNum)
@@ -63,10 +60,8 @@ function PlacementService.PlaceItem(player: Player, payload: Types.PlaceItemRemo
 		if not (playerbase and playerbase.Spatial) then
 			return
 		end
-		-- 1. Get the Anchor's World CFrame
 		local anchor = playerbase:FindFirstChild("Anchor")
 		local plotCFrame = anchor and anchor.CFrame or CFrame.new(0, 0, 0)
-		-- 2. Convert the relative payload CFrame back to World Space
 		local worldCFrame = Grid.spatialToWorld(payload.cframe, plotCFrame, plotSize)
 
 		local _, s = prefab:GetBoundingBox()
@@ -80,12 +75,13 @@ function PlacementService.PlaceItem(player: Player, payload: Types.PlaceItemRemo
 			return
 		end
 
-		-- Serialize to the State Payload
 		local statePayload: Types.PlaceItemPayload = {
 			itemId = payload.itemId,
 			placementType = "Free",
 			cframe = { payload.cframe:GetComponents() },
 			parentUuid = payload.parentUuid or "Plot",
+			primaryColor = payload.primaryColor,
+			secondaryColor = payload.secondaryColor,
 		}
 
 		GlobalState.placeItem(playerId, statePayload)
@@ -105,7 +101,6 @@ function PlacementService.PlaceItem(player: Player, payload: Types.PlaceItemRemo
 			return warn(`PlaceItem failed: not a number`)
 		end
 
-		-- Bounds Check
 		local clampedX, clampedZ =
 			Grid.clampToGrid(resolvedItemType, payload.startX, payload.startZ, width, length, plotSize)
 
@@ -114,7 +109,6 @@ function PlacementService.PlaceItem(player: Player, payload: Types.PlaceItemRemo
 			return
 		end
 
-		-- Collision Check
 		if not Grid.isAreaFree(plotState, resolvedItemType, payload.startX, payload.startZ, width, length) then
 			warn(`Exploit prevented: Player {playerId} attempted to place {payload.itemId} in an occupied space.`)
 			return
@@ -129,10 +123,31 @@ function PlacementService.PlaceItem(player: Player, payload: Types.PlaceItemRemo
 			width = width,
 			length = length,
 			rotation = payload.rotation,
+			primaryColor = payload.primaryColor,
+			secondaryColor = payload.secondaryColor,
 		}
 
 		GlobalState.placeItem(playerId, statePayload)
 	end
+end
+
+function PlacementService.PaintItem(player: Player, payload: Types.PaintItemRemotePayload)
+	local playerId = tostring(player.UserId)
+	local state = GlobalState:getState()
+	local plotState = state.Plot and state.Plot[playerId]
+	if not plotState then
+		return
+	end
+
+	-- Make sure they actually own this uuid before they can paint it!
+	local isGridItem = plotState.placedItems[payload.uuid] ~= nil
+	local isSpatialItem = plotState.spatialItems and plotState.spatialItems[payload.uuid] ~= nil
+
+	if not isGridItem and not isSpatialItem then
+		return
+	end
+
+	GlobalState.paintItem(playerId, payload)
 end
 
 function PlacementService.DestroyItem(player: Player, uuid: string)
@@ -144,13 +159,11 @@ function PlacementService.DestroyItem(player: Player, uuid: string)
 		return
 	end
 
-	-- 1. Find the target item
 	local item = plotState.placedItems[uuid] or plotState.spatialItems[uuid]
 	if not item then
 		return
 	end
 
-	-- 2. CASCADE REFUND: Find any child items sitting on this parent and refund them FIRST
 	if plotState.placedItems[uuid] and plotState.spatialItems then
 		for childUuid, childItem in pairs(plotState.spatialItems) do
 			if childItem.parentUuid == uuid then
@@ -162,17 +175,18 @@ function PlacementService.DestroyItem(player: Player, uuid: string)
 		end
 	end
 
-	-- 3. Finally, destroy and refund the parent item itself
 	GlobalState.destroyItem(playerId, {
 		uuid = uuid,
 		itemId = item.id,
 	})
 end
+
 PlacementService._connections = {}
 
 function PlacementService.initialize()
 	table.insert(PlacementService._connections, Remotes.PlaceItem.OnServerEvent:Connect(PlacementService.PlaceItem))
 	table.insert(PlacementService._connections, Remotes.DestroyItem.OnServerEvent:Connect(PlacementService.DestroyItem))
+	table.insert(PlacementService._connections, Remotes.PaintItem.OnServerEvent:Connect(PlacementService.PaintItem))
 end
 
 function PlacementService.cleanup()

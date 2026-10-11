@@ -11,6 +11,7 @@ local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local PlacementController = require(ReplicatedStorage.Shared.Controllers.PlacementController)
 local PlaceablesModule = require(ReplicatedStorage.Shared.PlaceablesModule)
+local PaintConfig = require(ReplicatedStorage.Shared.Configs.PaintConfig)
 local Types = require(ReplicatedStorage.Shared.Types)
 local BuildersIcon = require(ReplicatedStorage.Shared.Utils.BuildersIcon)
 
@@ -48,6 +49,7 @@ local function ItemButton(props: {
 	config: Types.PlaceableConfig,
 	count: number,
 	mobile: boolean,
+	Visible: boolean,
 })
 	local itemId = props.config.Id
 	local isSelected = props.isSelected
@@ -56,6 +58,7 @@ local function ItemButton(props: {
 	local worldModel, setWorldModel = useState(nil)
 	local modelClone, setModelClone = useState(nil)
 	local mobile = props.mobile
+
 	useEffect(function()
 		if not worldModel then
 			return
@@ -214,10 +217,16 @@ local function CategoryRow(props: {
 		}, children),
 	})
 end
+
 local function BuildPanel()
 	local visible, setVisible = useState(false)
 	local selectedItem, setSelectedItem = useState(nil)
 	local playerInventory, setPlayerInventory = useState(nil)
+
+	-- [[ NEW PAINT STATE ]]
+	local primaryColor, setPrimaryColor = useState(nil)
+	local secondaryColor, setSecondaryColor = useState(nil)
+	local activeChannel, setActiveChannel = useState("Primary")
 
 	local xs, sm, md, lg, xl = useBreakpoint()
 	local mobile = xs or sm or md
@@ -260,20 +269,27 @@ local function BuildPanel()
 	end, {})
 
 	local DELETEMODE = selectedItem == "DELETE_MODE"
+	local PAINTMODE = selectedItem == "PAINT_MODE"
 
 	-- 3. Handle Controller Side-Effects
 	useEffect(function()
 		if not visible then
 			return
 		end
+
+		PlacementController:setPaintColors(primaryColor, secondaryColor)
+
 		if DELETEMODE then
 			PlacementController:setDeleteMode(true)
+		elseif PAINTMODE then
+			PlacementController:setPaintMode(true)
 		else
 			PlacementController:setBuildMode(true)
 			PlacementController:setDeleteMode(false)
+			PlacementController:setPaintMode(false)
 			PlacementController:selectItem(selectedItem)
 		end
-	end, { visible, selectedItem })
+	end, { visible, selectedItem, primaryColor, secondaryColor })
 
 	local show, setShow = useState(true)
 	useEffect(function()
@@ -283,12 +299,13 @@ local function BuildPanel()
 		else
 			PlacementController:setBuildMode(false)
 			PlacementController:setDeleteMode(false)
+			PlacementController:setPaintMode(false)
 			PlacementController:selectItem(nil)
 			UIState.selectBuildItem(nil)
 		end
 	end, { visible })
 
-	-- [[ UPDATED: Gamepad Trigger Hooks (Added L2 for Rotate) ]]
+	-- [[ UPDATED: Gamepad Trigger Hooks ]]
 	useEffect(function()
 		if not visible or not selectedItem then
 			return
@@ -299,10 +316,12 @@ local function BuildPanel()
 				return
 			end
 
-			-- R2 -> Place / Delete
+			-- R2 -> Place / Delete / Paint
 			if input.KeyCode == Enum.KeyCode.ButtonR2 then
 				if DELETEMODE then
 					PlacementController:attemptDestroyAtCursor()
+				elseif PAINTMODE then
+					PlacementController:attemptPaintAtCursor()
 				else
 					PlacementController:placeCurrent()
 				end
@@ -315,9 +334,8 @@ local function BuildPanel()
 		return function()
 			conn:Disconnect()
 		end
-	end, { visible, selectedItem, DELETEMODE })
+	end, { visible, selectedItem, DELETEMODE, PAINTMODE })
 
-	-- Helper to inject the Gamepad Icon into the rich text strings
 	local function getActionLabel(keyCode: Enum.KeyCode, actionText: string)
 		if inputDevice == "Gamepad" then
 			local iconSize = mobile and 16 or 24
@@ -326,11 +344,12 @@ local function BuildPanel()
 		return actionText
 	end
 
-	-- 4. Generate Inventory Buttons
+	-- 4. Generate Inventory & Swatch Buttons
 	local itemButtons = {}
+	local swatchButtons = {}
 
 	useEffect(function()
-		if playerInventory and selectedItem and selectedItem ~= "DELETE_MODE" then
+		if playerInventory and selectedItem and not DELETEMODE and not PAINTMODE then
 			if (playerInventory[selectedItem] or 0) <= 0 then
 				UIState.selectBuildItem(nil)
 			end
@@ -340,6 +359,7 @@ local function BuildPanel()
 	local pos, setPos = useSpring({ start = 0, target = 0, damper = 1, speed = 10 })
 	local itemSelected = selectedItem and true or false
 	local category, setCategory = useState(nil)
+
 	useEffect(function()
 		if itemSelected then
 			GuiService.SelectedObject = nil
@@ -348,6 +368,7 @@ local function BuildPanel()
 			setShow(true)
 		end
 	end, { itemSelected })
+
 	useEffect(function()
 		setPos({ target = show and 0 or 1, damper = 1, speed = 10 })
 	end, { show })
@@ -370,6 +391,56 @@ local function BuildPanel()
 				})
 			end
 		end
+	end
+
+	-- Default/Clear Swatch Button
+	swatchButtons["Default"] = e(SmallButton, {
+		Size = UDim2.new(0, mobile and 30 or 40, 0, mobile and 30 or 40),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		LayoutOrder = 0,
+		[React.Event.Activated] = function()
+			if activeChannel == "Primary" then
+				setPrimaryColor(nil)
+			else
+				setSecondaryColor(nil)
+			end
+		end,
+	}, {
+		e(SmallText, {
+			Text = "X",
+			TextColor3 = Color3.new(1, 0, 0),
+			TextScaled = true,
+			BackgroundTransparency = 1,
+			Size = UDim2.fromScale(1, 1),
+		}),
+		(activeChannel == "Primary" and primaryColor == nil or activeChannel == "Secondary" and secondaryColor == nil)
+				and e("UIStroke", { Thickness = 3, Color = Color3.new(0, 1, 0) })
+			or nil,
+	})
+
+	-- Swatches
+	local orderCounter = 1
+	for name, color in pairs(PaintConfig.Swatches) do
+		swatchButtons[name] = e(SmallButton, {
+			Size = UDim2.new(0, mobile and 30 or 40, 0, mobile and 30 or 40),
+			BackgroundColor3 = color,
+			LayoutOrder = orderCounter,
+			[React.Event.Activated] = function()
+				if activeChannel == "Primary" then
+					setPrimaryColor(name)
+				else
+					setSecondaryColor(name)
+				end
+			end,
+		}, {
+			(
+				activeChannel == "Primary" and primaryColor == name
+				or activeChannel == "Secondary" and secondaryColor == name
+			)
+					and e("UIStroke", { Thickness = 3, Color = Color3.new(0, 1, 0) })
+				or nil,
+		})
+		orderCounter += 1
 	end
 
 	return e("Frame", {
@@ -397,24 +468,22 @@ local function BuildPanel()
 				Image = "",
 				AutomaticSize = Enum.AutomaticSize.None,
 				Size = UDim2.new(0, mobile and 40 or 60, 0, mobile and 40 or 60),
-				-- BackgroundTransparency = not DELETEMODE and 0.9 or nil,
 				BackgroundColor3 = Color3.new(1, 0.058823, 0.058823),
 				[React.Event.Activated] = function()
 					UIState.toggle("none")
 				end,
 				Position = UDim2.new(0.5, 0, 0, 0),
 				AnchorPoint = Vector2.new(0.5, 0),
-				LayoutOrder = 2,
+				LayoutOrder = 3,
 				Padding = { All = UDim.new() },
 			}, {
-				e("UIStroke", { Thickness = 2, Transparency = not DELETEMODE and 0.4 or nil }),
-
+				e("UIStroke", { Thickness = 2, Transparency = (not DELETEMODE and not PAINTMODE) and 0.4 or nil }),
 				e("ImageLabel", {
 					ZIndex = 1,
 					Image = "rbxassetid://17368208554",
 					ScaleType = Enum.ScaleType.Fit,
 					Size = UDim2.fromScale(1, 1),
-					ImageTransparency = not DELETEMODE and 0.4 or nil,
+					ImageTransparency = (not DELETEMODE and not PAINTMODE) and 0.4 or nil,
 					BackgroundTransparency = 1,
 				}),
 			}),
@@ -470,7 +539,6 @@ local function BuildPanel()
 					Padding = { All = UDim.new() },
 				}, {
 					e("UIStroke", { Thickness = 2, Transparency = not DELETEMODE and 0.4 or nil }),
-
 					e("ImageLabel", {
 						ZIndex = 1,
 						Image = "rbxassetid://17368204793",
@@ -491,12 +559,49 @@ local function BuildPanel()
 						TextStrokeTransparency = not DELETEMODE and 0.4 or nil,
 					}),
 				}),
+
+				-- [[ NEW PAINT TOOL ]]
+				PaintTool = e(SmallButton, {
+					Image = "",
+					AutomaticSize = Enum.AutomaticSize.None,
+					Size = UDim2.new(0, mobile and 40 or 60, 0, mobile and 40 or 60),
+					BackgroundTransparency = not PAINTMODE and 0.9 or nil,
+					BackgroundColor3 = PAINTMODE and Color3.new(0.2, 0.6, 1) or Color3.new(0.4, 0.7, 1),
+					[React.Event.Activated] = function()
+						local is = UIState:getState().buildItemId ~= "PAINT_MODE" and "PAINT_MODE" or nil
+						UIState.selectBuildItem(is)
+					end,
+					LayoutOrder = 3,
+					Padding = { All = UDim.new() },
+				}, {
+					e("UIStroke", { Thickness = 2, Transparency = not PAINTMODE and 0.4 or nil }),
+					e("ImageLabel", {
+						ZIndex = 1,
+						Image = "rbxassetid://18609516625", -- Generic Brush/Palette Icon
+						ScaleType = Enum.ScaleType.Fit,
+						Size = UDim2.fromScale(1, 1),
+						ImageTransparency = not PAINTMODE and 0.4 or nil,
+						BackgroundTransparency = 1,
+					}),
+					e(SmallText, {
+						TextSize = mobile and 12 or 24,
+						Text = `paint`,
+						Size = UDim2.fromScale(1, 1),
+						RichText = true,
+						AutomaticSize = Enum.AutomaticSize.XY,
+						HorizontalAlignment = Enum.HorizontalAlignment.Center,
+						TextXAlignment = Enum.TextXAlignment.Center,
+						TextTransparency = not PAINTMODE and 0.4 or nil,
+						TextStrokeTransparency = not PAINTMODE and 0.4 or nil,
+					}),
+				}),
+
 				Rotate = e(SmallButton, {
 					Image = "",
 					OverlayTextSize = 8,
 					Size = UDim2.new(0, mobile and 40 or 60, 0, mobile and 40 or 60),
 					AutomaticSize = Enum.AutomaticSize.None,
-					LayoutOrder = 3,
+					LayoutOrder = 4,
 					[React.Event.Activated] = function()
 						PlacementController:rotateItem()
 					end,
@@ -521,16 +626,19 @@ local function BuildPanel()
 					}),
 				}),
 
-				-- [[ UNIFORM STYLE FOR PLACE/DESTROY ]]
+				-- [[ UNIFORM STYLE FOR PLACE/DESTROY/PAINT ]]
 				Place = (inputDevice == "Touch" or inputDevice == "Gamepad") and selectedItem and e(SmallButton, {
 					Image = "",
 					AutomaticSize = Enum.AutomaticSize.None,
 					Size = UDim2.new(0, mobile and 40 or 60, 0, mobile and 40 or 60),
-					LayoutOrder = 4,
-					BackgroundColor3 = DELETEMODE and Color3.new(0.8, 0.2, 0.2) or Color3.new(0.2, 0.7, 0.2),
+					LayoutOrder = 5,
+					BackgroundColor3 = DELETEMODE and Color3.new(0.8, 0.2, 0.2)
+						or (PAINTMODE and Color3.new(0.2, 0.6, 1) or Color3.new(0.2, 0.7, 0.2)),
 					[React.Event.Activated] = function()
 						if DELETEMODE then
 							PlacementController:attemptDestroyAtCursor()
+						elseif PAINTMODE then
+							PlacementController:attemptPaintAtCursor()
 						else
 							PlacementController:placeCurrent()
 						end
@@ -540,7 +648,8 @@ local function BuildPanel()
 					e("UIStroke", { Thickness = 2 }),
 					e("ImageLabel", {
 						ZIndex = 1,
-						Image = DELETEMODE and "rbxassetid://17368204793" or "rbxassetid://103478691850846",
+						Image = DELETEMODE and "rbxassetid://17368204793"
+							or (PAINTMODE and "rbxassetid://18609516625" or "rbxassetid://103478691850846"),
 						ScaleType = Enum.ScaleType.Fit,
 						Size = UDim2.fromScale(1, 1),
 						BackgroundTransparency = 1,
@@ -548,7 +657,10 @@ local function BuildPanel()
 					}),
 					e(SmallText, {
 						TextSize = mobile and 12 or 24,
-						Text = getActionLabel(Enum.KeyCode.ButtonR2, DELETEMODE and "destroy" or "place"),
+						Text = getActionLabel(
+							Enum.KeyCode.ButtonR2,
+							DELETEMODE and "destroy" or (PAINTMODE and "paint" or "place")
+						),
 						Size = UDim2.fromScale(1, 1),
 						RichText = true,
 						AutomaticSize = Enum.AutomaticSize.XY,
@@ -586,14 +698,51 @@ local function BuildPanel()
 				mobile = mobile,
 				setCategory = setCategory,
 			}),
+
+			-- [[ SWATCH PANEL INJECTED ABOVE INVENTORY ]]
+			Swatches = (selectedItem and not DELETEMODE) and e(VStack, {
+				Size = UDim2.new(1, 0, 0, 0),
+				AutomaticSize = Enum.AutomaticSize.Y,
+				LayoutOrder = 2,
+				Spacing = UDim.new(0, 4),
+			}, {
+				Tabs = e(HStack, {
+					Size = UDim2.new(1, 0, 0, 30),
+					Spacing = UDim.new(0, 10),
+				}, {
+					PrimaryTab = e(SmallButton, {
+						Text = "Primary Color",
+						Size = UDim2.new(0.5, -5, 1, 0),
+						BackgroundColor3 = activeChannel == "Primary" and Color3.new(0.2, 0.6, 1) or nil,
+						[React.Event.Activated] = function()
+							setActiveChannel("Primary")
+						end,
+					}),
+					SecondaryTab = e(SmallButton, {
+						Text = "Secondary Color",
+						Size = UDim2.new(0.5, -5, 1, 0),
+						BackgroundColor3 = activeChannel == "Secondary" and Color3.new(0.2, 0.6, 1) or nil,
+						[React.Event.Activated] = function()
+							setActiveChannel("Secondary")
+						end,
+					}),
+				}),
+				Grid = e(HStack, {
+					Size = UDim2.new(1, 0, 0, 0),
+					AutomaticSize = Enum.AutomaticSize.Y,
+					Wraps = true,
+					Spacing = UDim.new(0, 4),
+				}, swatchButtons),
+			}) or nil,
+
 			ScrollingFrame = e("ScrollingFrame", {
 				Selectable = false,
-				Size = UDim2.new(1, 0, 1, selectedItem and -90 or -40),
+				Size = UDim2.new(1, 0, 1, selectedItem and -130 or -40),
 				AutomaticCanvasSize = Enum.AutomaticSize.Y,
 				CanvasSize = UDim2.new(1, 0, 0, 0),
 				BackgroundTransparency = 1,
 				ScrollBarThickness = 4,
-				LayoutOrder = 2,
+				LayoutOrder = 3,
 			}, {
 				e(HStack, {
 					Size = UDim2.new(1, 0, 0, 0),

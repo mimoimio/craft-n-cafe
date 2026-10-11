@@ -36,7 +36,7 @@ local function ScreenGuiCircle(props: { TargetButton: GuiObject?, Color: Color3?
 	end, {})
 
 	local sizeMap = useCallback(function(t)
-		local pulse = math.sin(t * 5) * 5
+		local pulse = math.sin(t * 5) * 40
 		return UDim2.fromOffset(60 + pulse, 60 + pulse)
 	end, {})
 

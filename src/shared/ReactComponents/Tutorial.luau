@@ -172,6 +172,7 @@ local function PointerBeam(props: { Adornee: PVInstance? })
 		Adornee = props.Adornee,
 		AlwaysOnTop = true,
 		Size = UDim2.new(0, 1000, 0, 1000),
+		StudsOffset = Vector3.new(0,3,0)
 	}, {
 		Holder = e("Frame", {
 			Size = UDim2.new(0, 50, 0, 50),

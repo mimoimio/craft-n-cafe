@@ -167,7 +167,7 @@ local function CustomerPromptNode(props: {
 						ZIndex = 10,
 					}),
 				}) or nil,
-				WaitMeter = e("BillboardGui", {
+				WaitMeter = isServing and e("BillboardGui", {
 					Adornee = props.Model and props.Model.Parent and props.Model.PrimaryPart or nil,
 					Size = UDim2.fromScale(1, 1),
 					StudsOffset = Vector3.new(-2, 0, 0),
@@ -195,7 +195,7 @@ local function CustomerPromptNode(props: {
 							Transparency = 0,
 						}),
 					}),
-				}),
+				}) or nil,
 			})
 		or nil
 end

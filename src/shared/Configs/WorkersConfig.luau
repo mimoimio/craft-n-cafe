@@ -18,26 +18,25 @@ export type StatUpgradeConfig = {
 }
 
 local WorkersConfig = {
-	-- Hiring Tiers (kept at root array indices for backwards compatibility)
 	[1] = {
 		Cost = 500,
-		UnlockLevel = 3,
-		Title = "Novice Barista",
+		UnlockLevel = 5,
+		Title = "Barista",
 	},
 	[2] = {
-		Cost = 2500,
-		UnlockLevel = 8,
-		Title = "Experienced Barista",
+		Cost = 600,
+		UnlockLevel = 6,
+		Title = "Barista",
 	},
 	[3] = {
-		Cost = 10000,
-		UnlockLevel = 15,
-		Title = "Senior Barista",
+		Cost = 700,
+		UnlockLevel = 7,
+		Title = "Barista",
 	},
 	[4] = {
-		Cost = 35000,
-		UnlockLevel = 25,
-		Title = "Master Barista",
+		Cost = 800,
+		UnlockLevel = 9,
+		Title = "Barista",
 	},
 
 	-- Individual Worker Stat Upgrades
@@ -51,9 +50,9 @@ local WorkersConfig = {
 			Levels = {
 				[1] = { Value = 6, Cost = 0 },
 				[2] = { Value = 9, Cost = 250 },
-				[3] = { Value = 12, Cost = 600 },
-				[4] = { Value = 15, Cost = 1500 },
-				[5] = { Value = 18, Cost = 3500 },
+				[3] = { Value = 12, Cost = 400 },
+				[4] = { Value = 15, Cost = 500 },
+				[5] = { Value = 18, Cost = 600 },
 			},
 		},
 		craftSpeed = {
@@ -64,10 +63,10 @@ local WorkersConfig = {
 			end,
 			Levels = {
 				[1] = { Value = 1.5, Cost = 0 },
-				[2] = { Value = 1.2, Cost = 300 },
-				[3] = { Value = 0.9, Cost = 750 },
-				[4] = { Value = 0.6, Cost = 1800 },
-				[5] = { Value = 0.3, Cost = 4000 },
+				[2] = { Value = 1.2, Cost = 200 },
+				[3] = { Value = 0.9, Cost = 300 },
+				[4] = { Value = 0.6, Cost = 400 },
+				[5] = { Value = 0.3, Cost = 500 },
 			},
 		},
 		quality = {
@@ -78,8 +77,8 @@ local WorkersConfig = {
 			end,
 			Levels = {
 				[1] = { Value = 1, Cost = 0 }, -- Starts at 1 ("Good Enough")
-				[2] = { Value = 2, Cost = 1000 }, -- Upgrades to 2 ("Nice")
-				[3] = { Value = 3, Cost = 3000 }, -- Upgrades to 3 ("Perfect")
+				[2] = { Value = 2, Cost = 400	 }, -- Upgrades to 2 ("Nice")
+				[3] = { Value = 3, Cost = 800 }, -- Upgrades to 3 ("Perfect")
 			},
 		},
 	},

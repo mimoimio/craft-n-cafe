@@ -14,6 +14,7 @@ local DrinksService = require(ServerScriptService.Server.Services.DrinksService)
 
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local Models = ReplicatedStorage.Shared.Models
+local PaintUtil = require(ReplicatedStorage.Shared.Utils.PaintUtil)
 
 local function PlacedItemNode(props: {
 	Uuid: string,
@@ -22,9 +23,10 @@ local function PlacedItemNode(props: {
 	GridSize: number,
 	PlayerId: string,
 })
-	-- 1. Native Reflex Subscription Pattern
 	local plotSizeNum, setPlotSizeNum = useState(32)
+	local modelClone, setModelClone = useState(nil) -- Track the clone for dynamic repainting
 
+	-- 1. Native Reflex Subscription Pattern
 	useEffect(function()
 		local function selectPlotSize(state)
 			local plotState = state.Plot and state.Plot[props.PlayerId]
@@ -32,18 +34,20 @@ local function PlacedItemNode(props: {
 		end
 
 		local unsub = GlobalState:subscribe(selectPlotSize, setPlotSizeNum)
-
-		-- Initialize state immediately
 		setPlotSizeNum(selectPlotSize(GlobalState:getState()))
 
 		return unsub
 	end, { props.PlayerId })
 
-	-- 2. Physical Rendering
+	-- 2. Physical Rendering (Mount/Positioning)
+	-- NOTICE: Dependencies are decoupled from the full ItemData so color changes don't re-clone!
+	local x, z, r, w, l = props.ItemData.x, props.ItemData.z, props.ItemData.r, props.ItemData.w, props.ItemData.l
+	local itemType, id = props.ItemData.itemType, props.ItemData.id
+
 	useEffect(function()
-		local prefab = Models:FindFirstChild(props.ItemData.id)
+		local prefab = Models:FindFirstChild(id)
 		if not prefab then
-			warn("prefab not found", props.ItemData.id)
+			warn("prefab not found", id)
 			return
 		end
 
@@ -55,31 +59,17 @@ local function PlacedItemNode(props: {
 		end
 
 		local originalCFrame, itemSize = Grid.getModelBounds(clone)
-
-		-- FIX: Use the invisible Anchor for position, and Reflex state for the Size!
 		local anchor = props.BaseModel:FindFirstChild("Anchor")
 		local plotCFrame = anchor and anchor.CFrame or props.BaseModel.Part.CFrame
 		local plotSize = Vector3.new(plotSizeNum, 1, plotSizeNum)
 
-		-- ALWAYS get the unrotated footprint for the base snappedSize Vector3
-		-- This prevents double-swapping when passed into gridToWorld
 		local rawX, rawZ = Grid.getFootprint(itemSize, 0)
 		local snappedSize = Vector3.new(rawX * Grid.SIZE, itemSize.Y, rawZ * Grid.SIZE)
 
-		local targetCFrame = Grid.gridToWorld(
-			props.ItemData.itemType,
-			props.ItemData.x,
-			props.ItemData.z,
-			plotCFrame,
-			plotSize,
-			snappedSize,
-			props.ItemData.r
-		)
+		local targetCFrame = Grid.gridToWorld(itemType, x, z, plotCFrame, plotSize, snappedSize, r)
 
 		local conn = nil
-
-		-- [[ FUNCTIONAL ROUTING ]]
-		local stationName = string.match(props.ItemData.id, "^(.+)_station$")
+		local stationName = string.match(id, "^(.+)_station$")
 
 		if stationName then
 			repeat
@@ -113,21 +103,9 @@ local function PlacedItemNode(props: {
 			newCenterPart:PivotTo(CFrame.new(originalCFrame.Position))
 			newCenterPart.Parent = clone
 			prompt.Parent = newCenterPart
-			-- prompt.HoldDuration = 3
 
 			local starttime = nil
 			local isIngredient = stationName ~= "cup" and stationName ~= "trash"
-			-- conn2 = isIngredient
-			-- 		and prompt.TriggerEnded:Connect(function(player)
-			-- 			if not starttime then
-			-- 				warn("Trigger Ended but no starttime")
-			-- 				return
-			-- 			end
-
-			-- 			local elapsed = workspace:GetServerTimeNow() - starttime
-			-- 			starttime = nil
-			-- 		end)
-			-- 	or nil
 
 			conn = prompt.Triggered:Connect(function(player: Player)
 				local playerId = tostring(player.UserId)
@@ -153,7 +131,6 @@ local function PlacedItemNode(props: {
 			end
 		until not found
 
-		-- Setup the new perfectly-snapped PrimaryPart
 		local part = Instance.new("Part")
 		part.Anchored = true
 		part.Color = Color3.new(0, 0, 1)
@@ -162,7 +139,7 @@ local function PlacedItemNode(props: {
 		part.CanTouch = false
 		part.CanQuery = false
 		part.Transparency = 1
-		part:PivotTo(originalCFrame) -- this is important
+		part:PivotTo(originalCFrame)
 		part.Parent = clone
 
 		for i, desc: BasePart in clone:GetDescendants() do
@@ -171,20 +148,34 @@ local function PlacedItemNode(props: {
 				desc.Anchored = true
 			end
 		end
+
 		clone:SetAttribute("Uuid", props.Uuid)
 		clone.PrimaryPart = part
 		clone:PivotTo(targetCFrame)
 		clone.Name = props.Uuid
 		part:Destroy()
+
+		-- Apply initial colors immediately to prevent a 1-frame flash
+		PaintUtil.ApplyColors(clone, props.ItemData.primaryColor, props.ItemData.secondaryColor)
+
 		clone.Parent = props.BaseModel.Grid
+		setModelClone(clone)
 
 		return function()
 			if conn then
 				conn:Disconnect()
 			end
 			clone:Destroy()
+			setModelClone(nil)
 		end
-	end, { props.ItemData, props.BaseModel, props.PlayerId, plotSizeNum }) -- Re-run if plot size expands!
+	end, { id, x, z, r, w, l, itemType, props.BaseModel, props.PlayerId, plotSizeNum })
+
+	-- 3. Dynamic Repainting (Zero Interruption!)
+	useEffect(function()
+		if modelClone then
+			PaintUtil.ApplyColors(modelClone, props.ItemData.primaryColor, props.ItemData.secondaryColor)
+		end
+	end, { modelClone, props.ItemData.primaryColor, props.ItemData.secondaryColor })
 
 	return nil
 end

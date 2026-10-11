@@ -284,9 +284,9 @@ local function story(frame: Frame)
 	GlobalState.startPlayerSession(mockUserId, {
 		Plot = getPlot(),
 		Stats = {
-			EXP = 1,
-			Level = 1,
-			Cash = 300,
+			EXP = 10000,
+			Level = 10000,
+			Cash = 300000,
 			TutorialCompleted = false,
 			CafeOpen = true,
 			PlayerPhase = "playing",

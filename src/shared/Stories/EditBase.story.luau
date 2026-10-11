@@ -310,6 +310,38 @@ local function story(frame: Frame)
 		Workers = {},
 		Cups = {},
 	})
+	GlobalState.startPlayerSession("4", {
+		Plot = getPlot(),
+		Stats = {
+			EXP = 19999,
+			Level = 19999,
+			Cash = 500000,
+			TutorialCompleted = false,
+			CafeOpen = true,
+			PlayerPhase = "playing",
+		},
+		Inventory = inventory,
+		Ingredients = {},
+		Customers = {},
+		Workers = {},
+		Cups = {},
+	})
+	GlobalState.startPlayerSession("5", {
+		Plot = getPlot(),
+		Stats = {
+			EXP = 19999,
+			Level = 19999,
+			Cash = 500000,
+			TutorialCompleted = false,
+			CafeOpen = true,
+			PlayerPhase = "playing",
+		},
+		Inventory = inventory,
+		Ingredients = {},
+		Customers = {},
+		Workers = {},
+		Cups = {},
+	})
 
 	-- 2. Mock EXP Loop
 	local exploop = function()

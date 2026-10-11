@@ -36,6 +36,8 @@ local actions = {
 				id = payload.itemId,
 				parentUuid = payload.parentUuid or "Plot",
 				cframe = payload.cframe,
+				primaryColor = payload.primaryColor,
+				secondaryColor = payload.secondaryColor,
 			}
 
 			nextPlayerPlot.spatialItems = Set(playerPlot.spatialItems or {}, generatedUuid, newItem)
@@ -43,18 +45,15 @@ local actions = {
 			-- [[ HALF-GRID PLACEMENT LOGIC ]]
 			local newGrid = Dictionary.copy(playerPlot.grid)
 
-			-- UPDATED: Treat Floor/Roof as Solid for footprint calculation
 			local mappedType = (payload.itemType == "Floor" or payload.itemType == "Roof") and "Solid"
 				or payload.itemType
 			local startX, endX, startZ, endZ =
 				Grid.getHalfGridBounds(mappedType, payload.startX, payload.startZ, payload.width, payload.length)
 
-			-- NEW: Fetch the specific collision layer
 			local layer = Grid.getLayer(payload.itemType)
 
 			for hx = startX, endX do
 				for hz = startZ, endZ do
-					-- WRITE WITH LAYER PREFIX
 					newGrid[`{layer}_{hx}_{hz}`] = generatedUuid
 				end
 			end
@@ -67,6 +66,8 @@ local actions = {
 				w = payload.width,
 				l = payload.length,
 				r = payload.rotation,
+				primaryColor = payload.primaryColor,
+				secondaryColor = payload.secondaryColor,
 			}
 
 			nextPlayerPlot.grid = newGrid
@@ -75,6 +76,38 @@ local actions = {
 
 		return Set(state, playerId, nextPlayerPlot)
 	end,
+
+	paintItem = function(state: { [string]: PlotState }, playerId: string, payload: Types.PaintItemPayload)
+		local playerPlot = state[playerId]
+		if not playerPlot then
+			return state
+		end
+
+		local uuid = payload.uuid
+		local isGridItem = playerPlot.placedItems[uuid] ~= nil
+		local isSpatialItem = playerPlot.spatialItems and playerPlot.spatialItems[uuid] ~= nil
+
+		if not isGridItem and not isSpatialItem then
+			return state
+		end
+
+		local nextPlayerPlot = Dictionary.copy(playerPlot)
+
+		if isGridItem then
+			local updatedItem = Dictionary.copy(playerPlot.placedItems[uuid])
+			updatedItem.primaryColor = payload.primaryColor
+			updatedItem.secondaryColor = payload.secondaryColor
+			nextPlayerPlot.placedItems = Set(playerPlot.placedItems, uuid, updatedItem)
+		elseif isSpatialItem then
+			local updatedItem = Dictionary.copy(playerPlot.spatialItems[uuid])
+			updatedItem.primaryColor = payload.primaryColor
+			updatedItem.secondaryColor = payload.secondaryColor
+			nextPlayerPlot.spatialItems = Set(playerPlot.spatialItems, uuid, updatedItem)
+		end
+
+		return Set(state, playerId, nextPlayerPlot)
+	end,
+
 	expandPlot = function(state: { [string]: PlotState }, playerId: string, payload: Types.ExpandPlotPayload)
 		local playerPlot = state[playerId]
 		if not playerPlot then
@@ -86,6 +119,7 @@ local actions = {
 
 		return Set(state, playerId, nextPlayerPlot)
 	end,
+
 	destroyItem = function(state: { [string]: PlotState }, playerId: string, payload: Types.DestroyItemPayload)
 		local playerPlot = state[playerId]
 		if not playerPlot then
@@ -104,22 +138,15 @@ local actions = {
 
 		if isGridItem then
 			local itemData = playerPlot.placedItems[uuid]
-
-			-- 1. Free up the Half-Grid memory
 			local newGrid = Dictionary.copy(playerPlot.grid)
-
-			-- UPDATED: Treat Floor/Roof as Solid for footprint calculation
 			local mappedType = (itemData.itemType == "Floor" or itemData.itemType == "Roof") and "Solid"
 				or itemData.itemType
 			local startX, endX, startZ, endZ =
 				Grid.getHalfGridBounds(mappedType, itemData.x, itemData.z, itemData.w, itemData.l)
-
-			-- NEW: Fetch the specific collision layer
 			local layer = Grid.getLayer(itemData.itemType)
 
 			for hx = startX, endX do
 				for hz = startZ, endZ do
-					-- DELETE WITH LAYER PREFIX
 					newGrid[`{layer}_{hx}_{hz}`] = nil
 				end
 			end
@@ -127,14 +154,12 @@ local actions = {
 			nextPlayerPlot.grid = newGrid
 			nextPlayerPlot.placedItems = RemoveKey(playerPlot.placedItems, uuid)
 
-			-- 2. CASCADE DELETE: Remove all Spatial Items sitting on this Grid item
 			if nextPlayerPlot.spatialItems then
 				nextPlayerPlot.spatialItems = Dictionary.filter(nextPlayerPlot.spatialItems, function(sItem)
 					return sItem.parentUuid ~= uuid
 				end)
 			end
 		elseif isSpatialItem then
-			-- Free items have no grid footprint to clean up, just remove them
 			nextPlayerPlot.spatialItems = RemoveKey(playerPlot.spatialItems, uuid)
 		end
 

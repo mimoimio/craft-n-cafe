@@ -14,6 +14,7 @@ local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Types = require(ReplicatedStorage.Shared.Types)
 local PlotExpansionsConfig = require(ReplicatedStorage.Shared.Configs.PlotExpansionsConfig)
 local WorkersConfig = require(ReplicatedStorage.Shared.Configs.WorkersConfig)
+local UpgradesConfig = require(ReplicatedStorage.Shared.Configs.UpgradesConfig)
 
 local Primitives = ReplicatedStorage.Shared.ReactComponents.ui
 local VStack = require(Primitives.VStack)
@@ -21,8 +22,6 @@ local HStack = require(Primitives.HStack)
 local SmallButton = require(Primitives.SmallButton)
 local SmallText = require(Primitives.SmallText)
 local RedDot = require(script.Parent.RedDot).RedDot
-
--- FIX: Import Toasts
 local Toasts = require(script.Parent.Parent.ReactComponents.Toasts)
 
 local e = React.createElement
@@ -45,6 +44,7 @@ local playerId = Players.LocalPlayer and tostring(Players.LocalPlayer.UserId) or
 local function ShopTabs(props: {
 	mobile: boolean,
 	setTab: (string) -> ()?,
+	tab: string,
 	LayoutOrder: number?,
 	level: number,
 })
@@ -101,21 +101,6 @@ local function ShopTabs(props: {
 		}),
 		e(SmallButton, {
 			LayoutOrder = 3,
-			Size = UDim2.new(1, 0, 0, 0),
-			BackgroundColor3 = props.level < 4 and Color3.new(0.4, 0.4, 0.4) or nil,
-			[React.Event.Activated] = function()
-				handleTab("expansion", 4)
-			end,
-			BackgroundTransparency = props.tab == "expansion" and 0 or 0.6,
-		}, {
-			e(SmallText, {
-				Text = "Expansion",
-				TextTransparency = props.tab == "expansion" and 0 or 0.6,
-				TextStrokeTransparency = props.tab == "expansion" and 0 or 0.6,
-			}),
-		}),
-		e(SmallButton, {
-			LayoutOrder = 4,
 			Size = UDim2.new(1, 0, 0, 0),
 			BackgroundColor3 = props.level < 4 and Color3.new(0.4, 0.4, 0.4) or nil,
 			[React.Event.Activated] = function()
@@ -190,6 +175,7 @@ end
 local function ItemButton(props: {
 	isSelected: boolean,
 	isLocked: boolean,
+	maxed: boolean?,
 	config: Types.PlaceableConfig,
 	mobile: boolean,
 	cleared: boolean,
@@ -231,6 +217,7 @@ local function ItemButton(props: {
 		end
 		currentCamera:ZoomToExtents(modelClone:GetBoundingBox())
 	end, { worldModel, currentCamera, modelClone })
+
 	return e(SmallButton, {
 		Size = UDim2.new(0, mobile and 60 or 80, 0, mobile and 60 or 80),
 		AutomaticSize = Enum.AutomaticSize.None,
@@ -240,7 +227,7 @@ local function ItemButton(props: {
 		Padding = { All = UDim.new() },
 		Image = "",
 		Visible = props.Visible,
-		OnMount = props.OnMount, -- Pass it straight into your SmallButton so the UIState gets the real GuiObject
+		OnMount = props.OnMount,
 		Selectable = props.selectingCategory and props.selectingCategory:map(function(is)
 			return not is
 		end) or nil,
@@ -255,7 +242,6 @@ local function ItemButton(props: {
 			Visible = isLocked or props.maxed,
 		}, {
 			e("UICorner", { CornerRadius = UDim.new(0, 8) }),
-
 			e(SmallText, {
 				Text = isLocked and "🔒" or "",
 				TextSize = 24,
@@ -367,6 +353,105 @@ local function CategoryRow(props: {
 			Size = UDim2.new(1, 0, 0, 0),
 			Position = UDim2.new(0, 0, 1, 0),
 		}, children),
+	})
+end
+
+local function WorkerManagementCard(props: {
+	worker: Types.WorkerEntity,
+	index: number,
+	playerCash: number,
+	Visible: boolean,
+	LayoutOrder: number,
+})
+	local worker = props.worker
+	local statKeys: { Types.WorkerStatType } = { "walkSpeed", "craftSpeed", "quality" }
+	local statButtons = {}
+
+	for idx, statKey in ipairs(statKeys) do
+		local statCfg = WorkersConfig.StatUpgrades[statKey]
+		local currentLevel = if statKey == "walkSpeed"
+			then (worker.walkSpeedLevel or 1)
+			elseif statKey == "craftSpeed" then (worker.craftSpeedLevel or 1)
+			else (worker.qualityLevel or 1)
+
+		local maxLevel = #statCfg.Levels
+		local currentVal = statCfg.Levels[math.clamp(currentLevel, 1, maxLevel)].Value
+		local _, nextEntry = WorkersConfig.GetNextUpgrade(statKey, currentLevel)
+
+		local isMaxed = nextEntry == nil
+		local canAfford = nextEntry and (props.playerCash >= nextEntry.Cost) or false
+
+		local btnColor = Color3.new(0.2, 0.65, 0.3)
+		local btnLabel = ""
+
+		if isMaxed then
+			btnColor = Color3.new(0.35, 0.35, 0.35)
+			btnLabel = `<b>{statCfg.DisplayName}</b> (MAX)\n<font size="12">{statCfg.FormatValue(currentVal)}</font>`
+		else
+			if not canAfford then
+				btnColor = Color3.new(0.65, 0.25, 0.25)
+			end
+			btnLabel =
+				`<b>{statCfg.DisplayName}</b> Lvl {currentLevel}/{maxLevel}\n<font size="12">{statCfg.FormatValue(currentVal)} ➔ {statCfg.FormatValue(
+					nextEntry.Value
+				)} (${nextEntry.Cost})</font>`
+		end
+
+		statButtons[statKey] = e(SmallButton, {
+			LayoutOrder = idx,
+			Size = UDim2.new(1, 0, 0, 48),
+			AutomaticSize = Enum.AutomaticSize.None,
+			BackgroundColor3 = btnColor,
+			[React.Event.Activated] = function()
+				if not isMaxed and canAfford and Remotes.UpgradeWorker then
+					Remotes.UpgradeWorker:FireServer({
+						workerUid = worker.id,
+						statType = statKey,
+					})
+				end
+			end,
+		}, {
+			e(SmallText, {
+				Text = btnLabel,
+				RichText = true,
+				Size = UDim2.new(1, 0, 1, 0),
+				TextXAlignment = Enum.TextXAlignment.Center,
+				TextYAlignment = Enum.TextYAlignment.Center,
+			}),
+		})
+	end
+
+	return e("Frame", {
+		Size = UDim2.new(1, -8, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundColor3 = Color3.new(0.18, 0.18, 0.22),
+		BackgroundTransparency = 0.15,
+		Visible = props.Visible,
+		LayoutOrder = props.LayoutOrder,
+	}, {
+		Corner = e("UICorner", { CornerRadius = UDim.new(0, 8) }),
+		Stroke = e("UIStroke", { Thickness = 2, Color = Color3.new(0.4, 0.6, 0.9) }),
+		Content = e(VStack, {
+			Size = UDim2.new(1, 0, 0, 0),
+			AutomaticSize = Enum.AutomaticSize.Y,
+			Padding = { All = UDim.new(0, 8) },
+			Spacing = UDim.new(0, 6),
+		}, {
+			Header = e(SmallText, {
+				LayoutOrder = 0,
+				-- Text = `<b>{worker.name or ("Barista #" .. props.index)}</b> <font size="12" color="rgb(180,220,255)">({worker.action})</font>`,
+				Text = `{worker.name or ("Barista #" .. props.index)}`,
+				RichText = true,
+				Size = UDim2.new(1, 0, 0, 24),
+				TextXAlignment = Enum.TextXAlignment.Left,
+			}),
+			StatsList = e(VStack, {
+				LayoutOrder = 1,
+				Size = UDim2.new(1, 0, 0, 0),
+				AutomaticSize = Enum.AutomaticSize.Y,
+				Spacing = UDim.new(0, 4),
+			}, statButtons),
+		}),
 	})
 end
 
@@ -599,12 +684,17 @@ local function ShopPanel()
 					LayoutOrder = 4,
 					OnMount = function(rbx)
 						UIState.setTutorialTarget("BuyButton", rbx)
-					end, -- TAGGED FOR TUTORIAL
-					[React.Event.Activated] = function()
-						if canBuy then
-							Remotes.BuyItem:FireServer({ itemId = selectedConfig.Id, amount = 1 })
+						if rbx then
+						GuiService.SelectedObject = rbx
 						end
 					end,
+					[React.Event.Activated] = function()
+						if canBuy then
+							Remotes.BuyItem:FireServer({ 
+								itemId = selectedConfig.Id, amount = 1 })
+						end
+					end,
+					
 				}, {
 					e("UIStroke", { Thickness = 2 }),
 					e(SmallText, {
@@ -641,7 +731,9 @@ local function ShopPanel()
 		})
 	end
 
-	-- Plot Expansion Logic ... (Keep existing code)
+	-- ==========================================
+	-- UPGRADE TAB (Plot Expansion + Global & Ingredient Upgrades)
+	-- ==========================================
 	local currentSize = plotState.plotSize or 32
 	local nextTier = nil
 	for _, tier in ipairs(PlotExpansionsConfig) do
@@ -650,6 +742,7 @@ local function ShopPanel()
 			break
 		end
 	end
+
 	if nextTier then
 		local canAfford = playerStats.Cash >= nextTier.Cost
 		local levelMet = playerStats.Level >= nextTier.UnlockLevel
@@ -660,81 +753,219 @@ local function ShopPanel()
 			statusText = `(Unlocks Lvl {nextTier.UnlockLevel})`
 			bgColor = Color3.new(0.4, 0.4, 0.4)
 		elseif not canAfford then
-			statusText = `(TOO EXPENSIVE)`
+			statusText = `(${nextTier.Cost} - Not Enough Cash)`
 			bgColor = Color3.new(0.6, 0.2, 0.2)
 		end
 
 		itemButtons["PLOT_EXPANSION"] = e(SmallButton, {
-			Size = UDim2.new(1, -8, 0, 60),
+			Size = UDim2.new(1, -8, 0, 64),
+			AutomaticSize = Enum.AutomaticSize.None,
 			BackgroundColor3 = bgColor,
-			LayoutOrder = -1,
+			LayoutOrder = -10,
 			[React.Event.Activated] = function()
 				if canAfford and levelMet then
 					Remotes.ExpandPlot:FireServer()
 				end
 			end,
-			Visible = tab == "expansion",
+			Visible = tab == "upgrade",
 		}, {
 			e("UIStroke", { Thickness = 2, Color = Color3.new(1, 0.8, 0) }),
 			e(SmallText, {
-				Text = `⭐️ Expand Cafe to {nextTier.Size}x{nextTier.Size} ⭐️\n{statusText}`,
-				HorizontalAlignment = Enum.HorizontalAlignment.Center,
+				Text = `Expand Cafe`,
+				-- Text = ` <b>Expand Cafe to {nextTier.Size}x{nextTier.Size}</b> \n<font size="13">{statusText}</font>`,
+				RichText = true,
+				Size = UDim2.new(1, 0, 1, 0),
+				TextXAlignment = Enum.TextXAlignment.Center,
+				TextYAlignment = Enum.TextYAlignment.Center,
+			}),
+		})
+	else
+		itemButtons["PLOT_EXPANSION_MAX"] = e(SmallButton, {
+			Size = UDim2.new(1, -8, 0, 64),
+			AutomaticSize = Enum.AutomaticSize.None,
+			BackgroundColor3 = Color3.new(0.35, 0.35, 0.35),
+			LayoutOrder = -10,
+			Visible = tab == "upgrade",
+		}, {
+			e("UIStroke", { Thickness = 2, Color = Color3.new(0.7, 0.7, 0.7) }),
+			e(SmallText, {
+				Text = ` <b>Max Cafe Size Reached ({currentSize}x{currentSize})</b> `,
+				RichText = true,
+				Size = UDim2.new(1, 0, 1, 0),
+				TextXAlignment = Enum.TextXAlignment.Center,
+				TextYAlignment = Enum.TextYAlignment.Center,
 			}),
 		})
 	end
 
-	local workerCount = playerWorkers and #playerWorkers or 0
-	local nextWorkerTier = WorkersConfig[workerCount + 1]
-	if tab == "staff" then
-		if nextWorkerTier then
-			local canAfford = playerStats.Cash >= nextWorkerTier.Cost
-			local levelMet = playerStats.Level >= nextWorkerTier.UnlockLevel
-			local statusText = `(💲{nextWorkerTier.Cost})`
-			local bgColor = Color3.new(0.2, 0.5, 0.8)
+	local playerUpgrades = playerStats.Upgrades or {}
+	for idx, upg in ipairs(UpgradesConfig.Array) do
+		local currentLevel = playerUpgrades[upg.Id] or 0
+		local isMaxed = currentLevel >= upg.MaxLevel
+		local nextLevel = currentLevel + 1
+		local cost = not isMaxed and upg.GetCost(nextLevel) or 0
 
-			if not levelMet then
-				statusText = `(Unlocks Lvl {nextWorkerTier.UnlockLevel})`
-				bgColor = Color3.new(0.4, 0.4, 0.4)
-			elseif not canAfford then
-				statusText = `(TOO EXPENSIVE)`
-				bgColor = Color3.new(0.6, 0.2, 0.2)
+		local reqLevel = upg.UnlockLevel
+		if upg.IngredientId then
+			local stationCfg = PlaceablesModule.GetConfig(upg.IngredientId .. "_station")
+			if stationCfg then
+				reqLevel = math.max(reqLevel, stationCfg.UnlockLevel)
 			end
-
-			itemButtons["HIRE_WORKER"] = e(SmallButton, {
-				Size = UDim2.new(1, -8, 0, 80),
-				BackgroundColor3 = bgColor,
-				LayoutOrder = -1,
-				[React.Event.Activated] = function()
-					if canAfford and levelMet then
-						Remotes.HireWorker:FireServer()
-					end
-				end,
-				Visible = tab == "staff",
-			}, {
-				e("UIStroke", { Thickness = 2, Color = Color3.new(0.5, 0.8, 1) }),
-				e(SmallText, {
-					Text = `👨‍🍳 Hire {nextWorkerTier.Title} 👨‍🍳\n{statusText}\n<font size="12">Current Staff: {workerCount}</font>`,
-					RichText = true,
-					HorizontalAlignment = Enum.HorizontalAlignment.Center,
-				}),
-			})
-		else
-			itemButtons["MAX_WORKERS"] = e(SmallButton, {
-				Size = UDim2.new(1, -8, 0, 80),
-				BackgroundColor3 = Color3.new(0.4, 0.4, 0.4),
-				LayoutOrder = -1,
-				Visible = tab == "staff",
-			}, {
-				e("UIStroke", { Thickness = 2, Color = Color3.new(0.8, 0.8, 0.8) }),
-				e(SmallText, {
-					Text = `👨‍🍳 Maximum Staff Reached! 👨‍🍳\n<font size="12">Current Staff: {workerCount}</font>`,
-					RichText = true,
-					HorizontalAlignment = Enum.HorizontalAlignment.Center,
-				}),
-			})
 		end
+
+		local levelMet = playerStats.Level >= reqLevel
+		local canAfford = playerStats.Cash >= cost
+
+		local bgColor = Color3.new(0.2, 0.65, 0.3)
+		local actionLabel = `${cost}`
+
+		if isMaxed then
+			bgColor = Color3.new(0.35, 0.35, 0.35)
+			actionLabel = "MAXED"
+		elseif not levelMet then
+			bgColor = Color3.new(0.4, 0.4, 0.4)
+			actionLabel = `Unlocks Lvl {reqLevel}`
+		elseif not canAfford then
+			bgColor = Color3.new(0.65, 0.25, 0.25)
+			actionLabel = `${cost}`
+		end
+
+		local descText = upg.Description(math.max(currentLevel, 1))
+
+		itemButtons["UPG_" .. upg.Id] = e("Frame", {
+			Size = UDim2.new(1, 0, 0, 72),
+			AutomaticSize = Enum.AutomaticSize.None,
+			-- BackgroundColor3 = bgColor,
+			LayoutOrder = idx,
+			Visible = tab == "upgrade",
+		}, {
+			e(HStack, {
+				VerticalFlex = "None",
+				HorizontalFlex = "Fill",
+				Spacing = UDim.new(0,8),
+				Padding = { All = UDim.new(0,8), }
+			}, {
+				e(SmallText, {
+					-- Text = `<b>{upg.DisplayName}</b>\n<b>{actionLabel}</b>\n<font size="12">{descText}</font>`,
+					Text = `<font size="12">{descText}</font>`,
+					RichText = true,
+					Size = UDim2.new(1, 0, 1, 0),
+					TextXAlignment = Enum.TextXAlignment.Left,
+					TextYAlignment = Enum.TextYAlignment.Center,
+					AutomaticSize = Enum.AutomaticSize.XY,
+					TextWrapped = true
+				}),
+				e(SmallButton, {
+					Size = UDim2.new(1, 60, 0, 56),
+					AutomaticSize = Enum.AutomaticSize.XY,
+					BackgroundColor3 = bgColor,
+					LayoutOrder = idx,
+					Visible = tab == "upgrade",
+					[React.Event.Activated] = function()
+						if not isMaxed and levelMet and canAfford and Remotes.BuyUpgrade then
+							Remotes.BuyUpgrade:FireServer({ upgradeId = upg.Id })
+						end
+					end,
+					-- Rounded = false,
+					Padding = {All = UDim.new(0,0)}
+				}, {
+					e("UIStroke", { Thickness = 2, Color = Color3.new(0.85, 0.85, 0.85) }),
+					e(HStack, {
+						VerticalFlex = Enum.UIFlexAlignment.None,
+						HorizontalFlex = Enum.UIFlexAlignment.None,
+						VerticalAlignment = Enum.VerticalAlignment.Center,
+						HorizontalAlignment = Enum.HorizontalAlignment.Center,
+						Size = UDim2.new(1,0,1,0),
+						AutomaticSize = Enum.AutomaticSize.XY,
+						-- BackgroundTransparency = 0,
+					}, {
+						e(SmallText, {
+							Text = `{actionLabel}`,
+							RichText = true,
+							-- BackgroundTransparency = 0,
+							Size = UDim2.new(0, 0, 0, 0),
+							Position = UDim2.new(0.5,0,0.5,0),
+							AnchorPoint = Vector2.new(0.5,0.5)
+						}),
+					}),
+				})
+			})
+		})
 	end
 
+	-- ==========================================
+	-- STAFF TAB (Hire Button + Individual Worker Cards)
+	-- ==========================================
+	local workerCount = playerWorkers and #playerWorkers or 0
+	local nextWorkerTier = WorkersConfig[workerCount + 1]
+
+	if nextWorkerTier then
+		local canAfford = playerStats.Cash >= nextWorkerTier.Cost
+		local levelMet = playerStats.Level >= nextWorkerTier.UnlockLevel
+		local statusText = `(${nextWorkerTier.Cost})`
+		local bgColor = Color3.new(0.2, 0.5, 0.8)
+
+		if not levelMet then
+			statusText = `(Unlocks Lvl {nextWorkerTier.UnlockLevel})`
+			bgColor = Color3.new(0.4, 0.4, 0.4)
+		elseif not canAfford then
+			statusText = `(TOO EXPENSIVE)`
+			bgColor = Color3.new(0.6, 0.2, 0.2)
+		end
+
+		itemButtons["HIRE_WORKER"] = e(SmallButton, {
+			Size = UDim2.new(1, -8, 0, 76),
+			AutomaticSize = Enum.AutomaticSize.None,
+			BackgroundColor3 = bgColor,
+			LayoutOrder = -10,
+			[React.Event.Activated] = function()
+				if canAfford and levelMet then
+					Remotes.HireWorker:FireServer()
+				end
+			end,
+			Visible = tab == "staff",
+		}, {
+			e("UIStroke", { Thickness = 2, Color = Color3.new(0.5, 0.8, 1) }),
+			e(SmallText, {
+				Text = `Hire a Barista (${nextWorkerTier and nextWorkerTier.Cost or 0 })`,
+				RichText = true,
+				Size = UDim2.new(1, 0, 1, 0),
+				TextXAlignment = Enum.TextXAlignment.Center,
+				TextYAlignment = Enum.TextYAlignment.Center,
+			}),
+		})
+	else
+		itemButtons["MAX_WORKERS"] = e(SmallButton, {
+			Size = UDim2.new(1, -8, 0, 64),
+			AutomaticSize = Enum.AutomaticSize.None,
+			BackgroundColor3 = Color3.new(0.4, 0.4, 0.4),
+			LayoutOrder = -10,
+			Visible = tab == "staff",
+		}, {
+			e("UIStroke", { Thickness = 2, Color = Color3.new(0.8, 0.8, 0.8) }),
+			e(SmallText, {
+				Text = `Maximum Staff Reached!`,
+				RichText = true,
+				Size = UDim2.new(1, 0, 1, 0),
+				TextXAlignment = Enum.TextXAlignment.Center,
+				TextYAlignment = Enum.TextYAlignment.Center,
+			}),
+		})
+	end
+
+	for idx, worker in ipairs(playerWorkers or {}) do
+		itemButtons["WORKER_CARD_" .. worker.id] = e(WorkerManagementCard, {
+			worker = worker,
+			index = idx,
+			playerCash = playerStats.Cash,
+			Visible = tab == "staff",
+			LayoutOrder = idx,
+		})
+	end
+
+	-- ==========================================
+	-- ITEM TAB (Regular Placeable Catalog)
+	-- ==========================================
 	for _, config in ipairs(PlaceablesModule.Array) do
 		local isLocked = playerStats.Level < config.UnlockLevel
 		local maxed = amount and ((amount[config.Id] or 0) >= config.MaxAllowed) or nil
@@ -748,7 +979,7 @@ local function ShopPanel()
 			cleared = not unackedUnlocks[config.Id],
 			OnMount = config.Id == "ice_station" and function(rbx)
 				UIState.setTutorialTarget("ShopItem_" .. config.Id, rbx)
-			end or nil, -- TAGGED FOR TUTORIAL
+			end or nil,
 			[React.Event.Activated] = function()
 				setSelectedItem(config.Id)
 				if unackedUnlocks[config.Id] then
@@ -868,6 +1099,7 @@ local function ShopPanel()
 					Spacing = UDim.new(0, 8),
 					VerticalAlignment = Enum.VerticalAlignment.Top,
 					HorizontalAlignment = Enum.HorizontalAlignment.Left,
+					Padding = {Right = UDim.new(0,12)}
 				}, {
 					Items = e(React.Fragment, nil, itemButtons),
 				}),

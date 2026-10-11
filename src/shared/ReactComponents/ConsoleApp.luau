@@ -68,14 +68,9 @@ local function ConsoleApp()
 		local lines = {}
 		for key, slice in currentGlobalState do
 			if
-				false
-				-- key == "Plot"
-				-- or key == "Tables"
-				-- or key == "Drinks"
+				-- false
+				key == "Plot"
 				-- or key == "DiscoveredDrinks"
-				-- or key == "Mixers"
-				-- or key == "Ingredients"
-				-- or key == "Cashiers"
 				-- or key == "Stats"
 			then
 				continue

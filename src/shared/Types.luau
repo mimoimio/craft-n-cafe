@@ -11,6 +11,8 @@ export type PlacedItem = {
 	w: GridStud,
 	l: GridStud,
 	r: number,
+	primaryColor: string?, -- NEW: Preset ID or Hex string
+	secondaryColor: string?, -- NEW: Preset ID or Hex string
 }
 export type PlotState = {
 	[PlayerId]: {
@@ -26,6 +28,8 @@ export type SpatialItem = {
 	id: string,
 	parentUuid: string,
 	cframe: { number }, -- Array of 12 numbers for DataStore serialization
+	primaryColor: string?, -- NEW
+	secondaryColor: string?, -- NEW
 }
 
 export type GridPlacementPayload = {
@@ -37,6 +41,8 @@ export type GridPlacementPayload = {
 	width: GridStud,
 	length: GridStud,
 	rotation: number,
+	primaryColor: string?, -- NEW
+	secondaryColor: string?, -- NEW
 }
 export type GridPlacementRemotePayload = {
 	itemId: string,
@@ -45,6 +51,8 @@ export type GridPlacementRemotePayload = {
 	width: GridStud,
 	length: GridStud,
 	rotation: number,
+	primaryColor: string?, -- NEW
+	secondaryColor: string?, -- NEW
 }
 
 export type FreePlacementStatePayload = {
@@ -52,6 +60,8 @@ export type FreePlacementStatePayload = {
 	placementType: "Free",
 	cframe: { number },
 	parentUuid: string,
+	primaryColor: string?, -- NEW
+	secondaryColor: string?, -- NEW
 }
 export type ExpandPlotPayload = {
 	newSize: number,
@@ -63,11 +73,26 @@ export type FreePlacementRemotePayload = {
 	placementType: "Free",
 	cframe: CFrame,
 	parentUuid: string,
+	primaryColor: string?, -- NEW
+	secondaryColor: string?, -- NEW
 }
 export type BuyItemRemotePayload = {
 	itemId: string,
 	amount: number,
 }
+
+-- NEW PAINT PAYLOADS
+export type PaintItemPayload = {
+	uuid: string,
+	primaryColor: string?,
+	secondaryColor: string?,
+}
+export type PaintItemRemotePayload = {
+	uuid: string,
+	primaryColor: string?,
+	secondaryColor: string?,
+}
+
 export type PlaceItemPayload = GridPlacementPayload | FreePlacementStatePayload
 export type PlaceItemRemotePayload = GridPlacementRemotePayload | FreePlacementRemotePayload
 export type DestroyItemPayload = {
@@ -327,6 +352,7 @@ export type CombinedActions = {
 	placeItem: (playerId: string, payload: PlaceItemPayload) -> (),
 	destroyItem: (playerId: string, payload: DestroyItemPayload) -> (),
 	expandPlot: (playerId: PlayerId, payload: ExpandPlotPayload) -> (),
+	paintItem: (playerId: PlayerId, payload: PaintItemPayload) -> (), -- NEW
 
 	-- Cups & Ingredients
 	getCup: (playerId: PlayerId, workerUid: string?) -> (),

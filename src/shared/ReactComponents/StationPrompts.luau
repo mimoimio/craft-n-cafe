@@ -142,6 +142,22 @@ local function TimingBar(props: {
 			task.spawn(function()
 				local validatedScore = Remotes.UseStation:InvokeServer(itemId, value)
 				if validatedScore == 1 then
+					setScoreText("Good Enough")
+					setTextY({
+						start = 0,
+						target = -80,
+						info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
+					})
+					setTextScale({
+						start = 0.5,
+						target = 1.2,
+						info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
+					})
+					setTextTransparency({
+						start = 0,
+						target = 1,
+						info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.In),
+					})
 					setRot({
 						start = 4,
 						target = 0,
