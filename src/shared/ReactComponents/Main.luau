@@ -151,9 +151,10 @@ local function MainMenu(props)
 				end
 			end,
 			OnMount = OnMount,
+			HoverScale = true,
 		}, {
 			e(SmallText, {
-				Text = cafeBase and "Play" or "Wait",
+				Text = cafeBase and "Play" or "Loading...",
 				Size = UDim2.new(1, 0, 1, 0),
 				TextYAlignment = "Center",
 				TextXAlignment = "Center",

@@ -27,7 +27,7 @@ local genericPriceUpgrade: UpgradeEntry = {
 	UnlockLevel = 4,
 	Description = function(level: number)
 		local pct = level * 50
-		return `Increases all drink sale prices by +{pct}%`
+		return `Sale bonus +{pct}%`
 	end,
 	GetCost = function(nextLevel: number)
 		return math.floor(400 * (1.1 ^ (nextLevel - 1)))
@@ -50,15 +50,16 @@ for _, ingConfig in ipairs(CoffeeModule.IngredientConfigs or {}) do
 		Id = upgradeId,
 		Category = "Ingredient",
 		IngredientId = ingConfig.Id,
-		DisplayName = `Premium {ingConfig.DisplayName}`,
+		DisplayName = `{ingConfig.DisplayName}`,
 		MaxLevel = 5,
 		UnlockLevel = 4,
 		Description = function(level: number)
 			local totalBonus = level * bonusPerLevel
-			return `+${totalBonus} value per {ingConfig.DisplayName} used (Base: ${basePrice})`
+			-- return `+${totalBonus} value per {ingConfig.DisplayName} used (Base: ${basePrice})`
+			return `{ingConfig.DisplayName} lvl {level}`
 		end,
 		GetCost = function(nextLevel: number)
-			return math.floor((basePrice * 25) * (1.7 ^ (nextLevel - 1)))
+			return math.floor((basePrice * 50) * (1.7 ^ (nextLevel - 1)))
 		end,
 		GetBonus = function(level: number)
 			return level * bonusPerLevel

@@ -126,9 +126,9 @@ local function LevelUp(props: {})
 		end
 	end, {})
 
-	useEffect(function()
-		warn("playersLevel", playersLevel)
-	end, { playersLevel })
+	-- useEffect(function()
+	-- 	warn("playersLevel", playersLevel)
+	-- end, { playersLevel })
 
 	local prevLevelRef = useRef(nil)
 	local shown, setShown = useState(false)

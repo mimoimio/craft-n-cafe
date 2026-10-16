@@ -262,87 +262,28 @@ local function story(frame: Frame)
 		Workers = {},
 		Cups = {},
 	})
-	GlobalState.startPlayerSession("1", {
-		Plot = getPlot(),
-		Stats = {
-			EXP = 19999,
-			Level = 19999,
-			Cash = 500000,
-			TutorialCompleted = false,
-			CafeOpen = true,
-			PlayerPhase = "playing",
-		},
-		Inventory = inventory,
-		Ingredients = {},
-		Customers = {},
-		Workers = {},
-		Cups = {},
-	})
-	GlobalState.startPlayerSession("2", {
-		Plot = getPlot(),
-		Stats = {
-			EXP = 19999,
-			Level = 19999,
-			Cash = 500000,
-			TutorialCompleted = false,
-			CafeOpen = true,
-			PlayerPhase = "playing",
-		},
-		Inventory = inventory,
-		Ingredients = {},
-		Customers = {},
-		Workers = {},
-		Cups = {},
-	})
-	GlobalState.startPlayerSession("3", {
-		Plot = getPlot(),
-		Stats = {
-			EXP = 19999,
-			Level = 19999,
-			Cash = 500000,
-			TutorialCompleted = false,
-			CafeOpen = true,
-			PlayerPhase = "playing",
-		},
-		Inventory = inventory,
-		Ingredients = {},
-		Customers = {},
-		Workers = {},
-		Cups = {},
-	})
-	GlobalState.startPlayerSession("4", {
-		Plot = getPlot(),
-		Stats = {
-			EXP = 19999,
-			Level = 19999,
-			Cash = 500000,
-			TutorialCompleted = false,
-			CafeOpen = true,
-			PlayerPhase = "playing",
-		},
-		Inventory = inventory,
-		Ingredients = {},
-		Customers = {},
-		Workers = {},
-		Cups = {},
-	})
-	GlobalState.startPlayerSession("5", {
-		Plot = getPlot(),
-		Stats = {
-			EXP = 19999,
-			Level = 19999,
-			Cash = 500000,
-			TutorialCompleted = false,
-			CafeOpen = true,
-			PlayerPhase = "playing",
-		},
-		Inventory = inventory,
-		Ingredients = {},
-		Customers = {},
-		Workers = {},
-		Cups = {},
-	})
-
+	for i = 1, 5 do
+		GlobalState.startPlayerSession(tostring(i), {
+			Plot = getPlot(),
+			Stats = {
+				EXP = 19999,
+				Level = 19999,
+				Cash = 500000,
+				TutorialCompleted = false,
+				CafeOpen = true,
+				PlayerPhase = "playing",
+			},
+			Inventory = inventory,
+			Ingredients = {},
+			Customers = {},
+			Workers = {},
+			Cups = {},
+		})
+		GlobalState.expandPlot(tostring(i), {
+			newSize = 72,
+			cost = 0,
+		})
+	end
 	-- 2. Mock EXP Loop
 	local exploop = function()
 		while task.wait(1) do

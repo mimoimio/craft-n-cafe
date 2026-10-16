@@ -122,8 +122,14 @@ local function count()
 end
 
 local function ToastProvider(props)
-	local Toasts, setToasts =
-		React.useState({} :: { { message: string, id: number, duration: number, color: Color3? } })
+	local Toasts, setToasts = React.useState({} :: {
+		{
+			message: string,
+			id: number,
+			duration: number,
+			color: Color3?,
+		}
+	})
 
 	-- Copy passed children correctly from React.Children symbol
 	local children = {}

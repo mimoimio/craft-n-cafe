@@ -95,8 +95,8 @@ local function WarningsOverlay()
 				Size = UDim2.new(1, 0, 1, 0),
 				TextXAlignment = Enum.TextXAlignment.Center,
 				TextYAlignment = Enum.TextYAlignment.Center,
-			})
-		})
+			}),
+		}),
 	})
 end
 

@@ -77,7 +77,7 @@ local WorkersConfig = {
 			end,
 			Levels = {
 				[1] = { Value = 1, Cost = 0 }, -- Starts at 1 ("Good Enough")
-				[2] = { Value = 2, Cost = 400	 }, -- Upgrades to 2 ("Nice")
+				[2] = { Value = 2, Cost = 400 }, -- Upgrades to 2 ("Nice")
 				[3] = { Value = 3, Cost = 800 }, -- Upgrades to 3 ("Perfect")
 			},
 		},

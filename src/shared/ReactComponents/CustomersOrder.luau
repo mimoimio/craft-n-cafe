@@ -17,7 +17,7 @@ local SmallText = require(ReplicatedStorage.Shared.ReactComponents.ui.SmallText)
 local useBreakpoint = require(ReplicatedStorage.Shared.Hooks.useBreakpoint)
 
 local player = Players.LocalPlayer
-local playerId = player and tostring(player.UserId) or ""
+local playerId = player and tostring(player.UserId) or "MockUser"
 
 return function(props)
 	local config, setConfig = useState(nil)
@@ -54,11 +54,24 @@ return function(props)
 			end
 		end
 
+		local t
 		if not player then
-			setConfig(CoffeeModule.Config.chocolatesyrup)
+			t=task.defer(function()
+				while task.wait(1) do
+					setConfig(function(prev)
+						return not prev and CoffeeModule.Config.chocolatesyrup or nil
+					end)
+				end
+			end)
 		end
 
-		return unsub
+		return function ()
+			unsub()
+			if t then
+				task.cancel(t)
+			end
+			
+		end
 	end)
 
 	local visible, setVisible = useState(nil)
@@ -79,13 +92,14 @@ return function(props)
 		damper = 1,
 	})
 
+	
 	useEffect(function()
 		if config then
 			-- SoundController.Sound("talk player")
 			setPosition({
 				target = 0,
 				speed = 10,
-				damper = 1,
+				damper = .8,
 			})
 			return
 		end
@@ -103,7 +117,8 @@ return function(props)
 		Image = "rbxassetid://82823552269615",
 		ScaleType = Enum.ScaleType.Crop,
 		Position = position:map(function(n)
-			return UDim2.new(0.5, 0, n, 30)
+			return UDim2.new(n, 0, 0, 30)
+			-- return UDim2.new(0.5, 0, n, 30)
 		end),
 		ZIndex = -1,
 	}, {

@@ -268,6 +268,14 @@ local AppWrapper = function()
 				end,
 				Text = "Buy register",
 			}),
+			e(SmallButton, {
+				[React.Event.Activated] = function()
+					GlobalState.playerReceivePayment("MockUser", {
+						Cash = 10_000,
+					})
+				end,
+				Text = "Add 10k",
+			}),
 		}),
 	})
 end
@@ -284,8 +292,10 @@ local function story(frame: Frame)
 	GlobalState.startPlayerSession(mockUserId, {
 		Plot = getPlot(),
 		Stats = {
-			EXP = 10000,
-			Level = 10000,
+			-- EXP = 10000,
+			-- Level = 10000,
+			EXP = 1,
+			Level = 1,
 			Cash = 300000,
 			TutorialCompleted = false,
 			CafeOpen = true,
@@ -312,12 +322,12 @@ local function story(frame: Frame)
 		end
 	end
 
-	-- local expThread = task.defer(exploop)
-	local expThread = task.defer(function()
-		GlobalState.hireCashier(mockUserId, {
-			id = "son",
-		})
-	end)
+	local expThread = task.defer(exploop)
+	-- local expThread = task.defer(function()
+	-- 	GlobalState.hireCashier(mockUserId, {
+	-- 		id = "son",
+	-- 	})
+	-- end)
 
 	-- 3. Initialize REAL Services (They now seamlessly support MockUser via our updates!)
 	CafeRenderingService.initialize()

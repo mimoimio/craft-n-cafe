@@ -34,7 +34,9 @@ function SidebarButton(props)
 		[React.Event.Activated] = props[React.Event.Activated],
 		Padding = { All = UDim.new(0, 0) },
 		LayoutOrder = props.LayoutOrder,
+		BackgroundTransparency = 1,
 		OnMount = props.OnMount,
+		HoverScale = true,
 	}, {
 
 		e(SmallText, {

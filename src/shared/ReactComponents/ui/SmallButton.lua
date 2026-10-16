@@ -69,10 +69,11 @@ local function SmallButton(props)
 		end or nil,
 		[React.Event.MouseEnter] = function()
 			setScale({
-				target = 1.05,
+				target = 1.1,
 				speed = 40,
 				damper = 0.8,
 			})
+
 			-- SoundController.Sound("Plink")
 		end,
 		[React.Event.MouseLeave] = function()

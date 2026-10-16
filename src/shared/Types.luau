@@ -132,13 +132,7 @@ export type StatsEntity = {
 	TutorialCompleted: boolean,
 	CustomersServed: number,
 	Level: number,
-	RollCooldown: number,
 
-	Luck: number,
-	CafeCapacity: number,
-
-	PendingSkipMixer: string?,
-	SkipTickets: number,
 	OwnedGamePasses: { [string]: boolean },
 	Upgrades: { [string]: number }?, -- Tracks global & ingredient upgrade levels
 }

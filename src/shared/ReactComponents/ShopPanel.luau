@@ -860,6 +860,7 @@ local function ShopPanel()
 					AutomaticSize = Enum.AutomaticSize.XY,
 					BackgroundColor3 = bgColor,
 					LayoutOrder = idx,
+					HoverScale = true,
 					Visible = tab == "upgrade",
 					[React.Event.Activated] = function()
 						if not isMaxed and levelMet and canAfford and Remotes.BuyUpgrade then

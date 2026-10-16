@@ -2,6 +2,9 @@
   "name": "Craft n Cafe",
   "tree": {
     "$className": "DataModel",
+    "ReplicatedFirst": {
+      "$path": "ReplicatedFirst"
+    },
     "ReplicatedStorage": {
       "Shared": {
         "$path": "src/shared"

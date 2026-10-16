@@ -16,7 +16,7 @@ local SmallText = require(ReplicatedStorage.Shared.ReactComponents.ui.SmallText)
 local useBreakpoint = require(ReplicatedStorage.Shared.Hooks.useBreakpoint)
 
 local player = Players.LocalPlayer
-local playerId = player and tostring(player.UserId) or ""
+local playerId = player and tostring(player.UserId) or "MockUser"
 
 local statuses = {
 	[1] = "Good Enough",
@@ -45,27 +45,29 @@ return function(props)
 	local xs, sm, md, lg, xl = useBreakpoint()
 	local mobile = xs or sm or md
 
-	local mdTextSize, smTextSize = mobile and 16 or 44, mobile and 10 or 12
+	local mdTextSize, smTextSize = mobile and 16 or 32, mobile and 10 or 12
 	local cup: Types.CupEntity?, setCup: (cup: Types.CupEntity) -> nil = useState(nil)
-
+	-- warn(`cup {cup}`, cup)
 	useEffect(function()
 		local unsub = GlobalState:subscribe(function(state: GlobalState.GlobalState)
-			return state.Cups[playerId] and state.Cups[playerId].player or nil
+			local cup = state.Cups[playerId] and state.Cups[playerId].player or nil
+			return cup
 		end, setCup)
 
 		local state = GlobalState:getState()
 		local playersCup = state.Customers[playerId] and state.Cups[playerId].player
 		setCup(playersCup)
 
-		-- if not player then
-		-- 	setCup({
-		-- 		drinkId = "shavedice",
-		-- 		score = 5,
-		-- 	})
-		-- end
+		if not player then
+			setCup({
+				drinkId = "shavedice",
+				score = 3,
+				status = 3,
+			})
+		end
 
 		return unsub
-	end)
+	end, {})
 
 	local visible, setVisible = useState(nil)
 	useEffect(function()
@@ -115,7 +117,6 @@ return function(props)
 
 		SoundController.Sound(getIngredientSound(newIngConfig.Id))
 
-		print("yeah")
 		prevCupRef.current = cup
 	end, { cup })
 
@@ -127,12 +128,12 @@ return function(props)
 	}, {
 		e(SmallText, {
 			Size = UDim2.new(1, 0, 0, 0),
-			Position = UDim2.new(1, 0, 0, 0 ),
+			Position = UDim2.new(1, -40, 0, 40),
 			AnchorPoint = Vector2.new(1, 0),
 			-- BackgroundTransparency = 0.4,
 
 			Text = config
-					and `<font size="{mdTextSize}">Drink in hand: {config and config.DisplayName or ""}\n${cup.score} ({statuses[cup.status]})</font>`
+					and `<font size="{mdTextSize}">Drink in hand: {config and config.DisplayName or ""}\n${cup.score} {cup.score >= 3 and `({statuses[cup.status]})` or ""}</font>`
 				or "",
 			TextXAlignment = Enum.TextXAlignment.Right,
 			TextYAlignment = Enum.TextYAlignment.Top,
