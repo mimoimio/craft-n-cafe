@@ -53,7 +53,9 @@ local actions = {
 				break
 			end
 		end
-		if not index then return state end
+		if not index then
+			return state
+		end
 
 		return Set(
 			state,
@@ -79,7 +81,9 @@ local actions = {
 				break
 			end
 		end
-		if not index then return state end
+		if not index then
+			return state
+		end
 
 		return Set(
 			state,
@@ -87,7 +91,7 @@ local actions = {
 			Update(playersCustomers, index, function(customer: Types.CustomerEntity)
 				local new = table.clone(customer)
 				-- This locks the customer so the Failsafe passes!
-				new.servedBy = payload.workerUid 
+				new.servedBy = payload.workerUid
 				return new
 			end)
 		)
@@ -95,8 +99,10 @@ local actions = {
 
 	takeCustomerOrder = function(state: CustomersState, playerId: string, payload: Types.TakeCustomerOrderPayload)
 		local playersCustomers = state[playerId]
-		if not playersCustomers then return state end
-		
+		if not playersCustomers then
+			return state
+		end
+
 		local index
 		for i, customer in playersCustomers do
 			if customer.id == payload.customerUid then
@@ -104,8 +110,10 @@ local actions = {
 				break
 			end
 		end
-		if not index then return state end
-		
+		if not index then
+			return state
+		end
+
 		return Set(
 			state,
 			playerId,
@@ -131,7 +139,9 @@ local actions = {
 				break
 			end
 		end
-		if not index then return state end
+		if not index then
+			return state
+		end
 
 		return Set(
 			state,
@@ -143,7 +153,7 @@ local actions = {
 					new.customerAction = "sitting"
 					new.targetSeatUuid = payload.targetSeatUuid
 				else
-					new.customerAction = "paid" 
+					new.customerAction = "paid"
 				end
 
 				new.servedBy = nil
@@ -163,7 +173,9 @@ local actions = {
 				break
 			end
 		end
-		if not index then return state end
+		if not index then
+			return state
+		end
 
 		return Set(
 			state,
@@ -172,7 +184,7 @@ local actions = {
 				local new = table.clone(customer)
 				new.customerAction = "leaving"
 				new.actionStartTime = payload.timestamp
-				new.targetSeatUuid = nil 
+				new.targetSeatUuid = nil
 				return new
 			end)
 		)
@@ -188,7 +200,9 @@ local actions = {
 				break
 			end
 		end
-		if not index then return state end
+		if not index then
+			return state
+		end
 
 		local newCustomers = Update(playersCustomers, index, function(customer: Types.CustomerEntity)
 			local new = table.clone(customer)
@@ -212,7 +226,9 @@ local actions = {
 				break
 			end
 		end
-		if not index then return state end
+		if not index then
+			return state
+		end
 
 		local newCustomers = Update(playersCustomers, index, function(customer: Types.CustomerEntity)
 			local new = table.clone(customer)
@@ -245,7 +261,9 @@ local actions = {
 
 	tickCustomer = function(state: CustomersState, playerId)
 		local playersCustomers = state[playerId]
-		if not playersCustomers then return state end
+		if not playersCustomers then
+			return state
+		end
 
 		playersCustomers = table.clone(playersCustomers)
 		for i, customer in playersCustomers do

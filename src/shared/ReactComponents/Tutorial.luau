@@ -172,7 +172,7 @@ local function PointerBeam(props: { Adornee: PVInstance? })
 		Adornee = props.Adornee,
 		AlwaysOnTop = true,
 		Size = UDim2.new(0, 1000, 0, 1000),
-		StudsOffset = Vector3.new(0,3,0)
+		StudsOffset = Vector3.new(0, 3, 0),
 	}, {
 		Holder = e("Frame", {
 			Size = UDim2.new(0, 50, 0, 50),
@@ -294,7 +294,8 @@ local function Tutorial()
 	-- warn("completed", completed)
 	-- warn("customersServed", customersServed)
 	if completed or customersServed >= 2 then
-		stepText = "Tutorial Complete! You're ready to run the cafe!"
+		stepText = ""
+		-- stepText = "Tutorial Complete! You're ready to run the cafe!"
 
 		-- Fire Completion only once
 		if not completed then
@@ -363,7 +364,8 @@ local function Tutorial()
 				beamTarget3D = findTargetModel("cup_station")
 			elseif nextIngredient then
 				local ingConfig = CoffeeModule.IngredientLookup[nextIngredient]
-				stepText = `Go to the {ingConfig and ingConfig.DisplayName or nextIngredient} station.`
+				stepText =
+					`Walk to the {ingConfig and ingConfig.DisplayName or nextIngredient} station and add {ingConfig and ingConfig.DisplayName or nextIngredient}.`
 				-- Dynamically find the station for the needed ingredient!
 				beamTarget3D = findTargetModel(nextIngredient .. "_station")
 			end

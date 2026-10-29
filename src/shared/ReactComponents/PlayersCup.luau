@@ -115,7 +115,9 @@ return function(props)
 			return
 		end
 
-		SoundController.Sound(getIngredientSound(newIngConfig.Id))
+		SoundController.Sound(getIngredientSound(newIngConfig.Id), {
+			PlaybackSpeed = math.random() * 0.2 + 0.9,
+		})
 
 		prevCupRef.current = cup
 	end, { cup })

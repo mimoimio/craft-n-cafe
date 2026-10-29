@@ -156,13 +156,15 @@ local function ShopTutorial()
 	local stepText = ""
 	local circleTarget2D = nil
 	local panel = uiStates.panel
+	local selectedShopItem = uiStates.shopItemId
 	local targets = uiStates.tutorialTargets or {}
 
 	if totalIceStations == 0 then
 		if panel ~= "shop" then
-			stepText = "You reached Level 3! Let's buy an Ice Station."
+			stepText = "You Unlocked Building! Let's buy an Ice Station."
 			circleTarget2D = targets["ShopButton"]
-		elseif not targets["BuyButton"] then
+		elseif selectedShopItem ~= "ice_station" or not targets["BuyButton"] then
+			-- Falls back here if they select another item, or if the buy button hasn't mounted yet
 			stepText = "Select the Ice Station from the catalog."
 			circleTarget2D = targets["ShopItem_ice_station"]
 		else

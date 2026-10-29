@@ -19,7 +19,7 @@ function LevelConfig.GetExpOnLevel(lvl: number): number
 		return 0
 	end
 	-- local exp = (1.6 ^ lvl) * 2 // 1 * lvl + 2
-	local exp = lvl ^ 2 * 30
+	local exp = lvl ^ 2 * 10
 	-- local exp = (2.5 ^ lvl) * 2 // 1 + 4 * 3 * lvl
 	return exp
 end

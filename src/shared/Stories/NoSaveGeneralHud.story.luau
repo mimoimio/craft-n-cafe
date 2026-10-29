@@ -322,12 +322,12 @@ local function story(frame: Frame)
 		end
 	end
 
-	local expThread = task.defer(exploop)
-	-- local expThread = task.defer(function()
-	-- 	GlobalState.hireCashier(mockUserId, {
-	-- 		id = "son",
-	-- 	})
-	-- end)
+	-- local expThread = task.defer(exploop)
+	local expThread = task.defer(function()
+		GlobalState.hireCashier(mockUserId, {
+			id = "son",
+		})
+	end)
 
 	-- 3. Initialize REAL Services (They now seamlessly support MockUser via our updates!)
 	CafeRenderingService.initialize()

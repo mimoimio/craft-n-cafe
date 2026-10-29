@@ -167,6 +167,7 @@ return {
 	BuyUpgrade = CreateRemote("BuyUpgrade"),
 	UpgradeWorker = CreateRemote("UpgradeWorker"),
 	PaintItem = CreateRemote("PaintItem"),
+	FetchReports = CreateRemote("FetchReports"),
 
 	-- Example usage for RemoteFunction:
 	-- GetServerData = CreateRemoteFunction("GetServerData"),

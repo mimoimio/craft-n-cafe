@@ -269,20 +269,20 @@ local function story(frame: Frame)
 			local state = GlobalState:getState()
 			local playersStats = state.Stats[mockUserId]
 			if playersStats then
-				local exp = playersStats.EXP + 1
+				local exp = playersStats.EXP + 1 * 3
 				local level = LevelConfig.GetLevel(exp)
-				exp += level * 5
+				-- exp += level * 5
 				GlobalState._addExp(mockUserId, exp, level)
 			end
 		end
 	end
 
-	-- local expThread = task.defer(exploop)
-	local expThread = task.defer(function()
-		GlobalState.hireCashier(mockUserId, {
-			id = "son",
-		})
-	end)
+	local expThread = task.defer(exploop)
+	-- local expThread = task.defer(function()
+	-- 	GlobalState.hireCashier(mockUserId, {
+	-- 		id = "son",
+	-- 	})
+	-- end)
 
 	-- 3. Initialize REAL Services (They now seamlessly support MockUser via our updates!)
 	CafeRenderingService.initialize()

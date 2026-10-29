@@ -139,8 +139,9 @@ local function MainMenu(props)
 		VerticalAlignment = Enum.VerticalAlignment.Center,
 	}, {
 		e(SmallText, {
-			Text = cafeBase and "Cafe Builder" or "Loading Plot...",
+			Text = cafeBase and "Build a Cafe" or "Loading Plot...",
 			TextXAlignment = "Center",
+			TextSize = 56,
 		}),
 
 		e(SmallButton, {

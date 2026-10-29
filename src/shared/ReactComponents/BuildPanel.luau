@@ -50,6 +50,7 @@ local function ItemButton(props: {
 	count: number,
 	mobile: boolean,
 	Visible: boolean,
+	OnMount: ((GuiObject) -> ())?,
 })
 	local itemId = props.config.Id
 	local isSelected = props.isSelected
@@ -94,6 +95,7 @@ local function ItemButton(props: {
 		BackgroundColor3 = isSelected and Color3.new(0, 1, 0) or nil,
 		Padding = { All = UDim.new() },
 		Visible = props.Visible,
+		OnMount = props.OnMount,
 	}, {
 		e("ImageLabel", {
 			ZIndex = 1,
@@ -374,7 +376,7 @@ local function BuildPanel()
 	end, { show })
 
 	if not playerInventory then
-		return
+		return nil
 	end
 
 	for itemId, count in pairs(playerInventory) do
@@ -388,6 +390,11 @@ local function BuildPanel()
 					count = count,
 					mobile = mobile,
 					Visible = (category == nil) or category == config.Category,
+					OnMount = if itemId == "ice_station"
+						then function(rbx)
+							UIState.setTutorialTarget("BuildItem_ice_station", rbx)
+						end
+						else nil,
 				})
 			end
 		end
@@ -443,91 +450,210 @@ local function BuildPanel()
 		orderCounter += 1
 	end
 
-	return e("Frame", {
-		Size = pos:map(function(n)
-			return UDim2.new(n, (1 - n) * (mobile and 360 or 480), 1, 0)
-		end),
-		Position = pos:map(function(n)
-			return UDim2.new((1 + n), 0, 0, 0)
-		end),
-		AnchorPoint = Vector2.new(1, 0),
-		BackgroundTransparency = 1,
-		Active = true,
-		Visible = visible,
-	}, {
-		e("Frame", {
-			Position = UDim2.new(0, 0, 0.5, 0),
-			AutomaticSize = Enum.AutomaticSize.XY,
-			AnchorPoint = Vector2.new(1, 0.5),
+	return e(React.Fragment, nil, {
+		-- MAIN PANEL (Inventory + Side buttons for Close & Hide)
+		MainPanel = e("Frame", {
+			Size = pos:map(function(n)
+				return UDim2.new(n, (1 - n) * (mobile and 360 or 480), 1, 0)
+			end),
+			Position = pos:map(function(n)
+				return UDim2.new((1 + n), 0, 0, 0)
+			end),
+			AnchorPoint = Vector2.new(1, 0),
 			BackgroundTransparency = 1,
 			Active = true,
-			Size = UDim2.new(0, 0, 1, 0),
-			ZIndex = 4,
+			Visible = visible,
+			ZIndex = 3,
 		}, {
-			Close = e(SmallButton, {
-				Image = "",
-				AutomaticSize = Enum.AutomaticSize.None,
-				Size = UDim2.new(0, mobile and 40 or 60, 0, mobile and 40 or 60),
-				BackgroundColor3 = Color3.new(1, 0.058823, 0.058823),
-				[React.Event.Activated] = function()
-					UIState.toggle("none")
-				end,
-				Position = UDim2.new(0.5, 0, 0, 0),
-				AnchorPoint = Vector2.new(0.5, 0),
-				LayoutOrder = 3,
-				Padding = { All = UDim.new() },
-			}, {
-				e("UIStroke", { Thickness = 2, Transparency = (not DELETEMODE and not PAINTMODE) and 0.4 or nil }),
-				e("ImageLabel", {
-					ZIndex = 1,
-					Image = "rbxassetid://17368208554",
-					ScaleType = Enum.ScaleType.Fit,
-					Size = UDim2.fromScale(1, 1),
-					ImageTransparency = (not DELETEMODE and not PAINTMODE) and 0.4 or nil,
-					BackgroundTransparency = 1,
-				}),
-			}),
-			e(VStack, {
+			SideButtons = e("Frame", {
 				Position = UDim2.new(0, 0, 0.5, 0),
 				AutomaticSize = Enum.AutomaticSize.XY,
-				AnchorPoint = Vector2.new(0, 0.5),
+				AnchorPoint = Vector2.new(1, 0.5),
 				BackgroundTransparency = 1,
-				BackgroundColor3 = Color3.new(0.1, 0.1, 0.1),
 				Active = true,
-				VerticalFlex = Enum.UIFlexAlignment.None,
-				HorizontalFlex = Enum.UIFlexAlignment.None,
-				Visible = visible,
-				Spacing = UDim.new(0, 8),
-				Size = UDim2.new(0, 0, 0, 0),
+				Size = UDim2.new(0, 0, 1, 0),
 				ZIndex = 4,
 			}, {
-				HideButton = e(SmallButton, {
+				Close = e(SmallButton, {
 					Image = "",
-					[React.Event.Activated] = function()
-						setShow(function(prev)
-							return not prev
-						end)
-					end,
-					Position = UDim2.new(0, 0, 0.5, 0),
-					Size = UDim2.new(0, mobile and 40 or 60, 0, mobile and 40 or 60),
 					AutomaticSize = Enum.AutomaticSize.None,
-					AnchorPoint = Vector2.new(1, 0.5),
-					LayoutOrder = 1,
+					Size = UDim2.new(0, mobile and 40 or 60, 0, mobile and 40 or 60),
+					BackgroundColor3 = Color3.new(1, 0.058823, 0.058823),
+					[React.Event.Activated] = function()
+						UIState.toggle("none")
+					end,
+					Position = UDim2.new(0.5, 0, 0, 0),
+					AnchorPoint = Vector2.new(0.5, 0),
+					LayoutOrder = 3,
 					Padding = { All = UDim.new() },
 				}, {
-					e("UIStroke", { Thickness = 2 }),
+					e("UIStroke", { Thickness = 2, Transparency = (not DELETEMODE and not PAINTMODE) and 0.4 or nil }),
 					e("ImageLabel", {
 						ZIndex = 1,
-						Image = show and "rbxassetid://15403015683" or "rbxassetid://15403018096",
+						Image = "rbxassetid://17368208554",
 						ScaleType = Enum.ScaleType.Fit,
 						Size = UDim2.fromScale(1, 1),
+						ImageTransparency = (not DELETEMODE and not PAINTMODE) and 0.4 or nil,
 						BackgroundTransparency = 1,
 					}),
 				}),
+				VStackGroup = e(VStack, {
+					Position = UDim2.new(0, 0, 0.5, 0),
+					AutomaticSize = Enum.AutomaticSize.XY,
+					AnchorPoint = Vector2.new(0, 0.5),
+					BackgroundTransparency = 1,
+					BackgroundColor3 = Color3.new(0.1, 0.1, 0.1),
+					Active = true,
+					VerticalFlex = Enum.UIFlexAlignment.None,
+					HorizontalFlex = Enum.UIFlexAlignment.None,
+					Visible = visible,
+					Spacing = UDim.new(0, 8),
+					Size = UDim2.new(0, 0, 0, 0),
+					ZIndex = 4,
+				}, {
+					HideButton = e(SmallButton, {
+						Image = "",
+						[React.Event.Activated] = function()
+							setShow(function(prev)
+								return not prev
+							end)
+						end,
+						Position = UDim2.new(0, 0, 0.5, 0),
+						Size = UDim2.new(0, mobile and 40 or 60, 0, mobile and 40 or 60),
+						AutomaticSize = Enum.AutomaticSize.None,
+						AnchorPoint = Vector2.new(1, 0.5),
+						LayoutOrder = 1,
+						Padding = { All = UDim.new() },
+					}, {
+						e("UIStroke", { Thickness = 2 }),
+						e("ImageLabel", {
+							ZIndex = 1,
+							Image = show and "rbxassetid://15403015683" or "rbxassetid://15403018096",
+							ScaleType = Enum.ScaleType.Fit,
+							Size = UDim2.fromScale(1, 1),
+							BackgroundTransparency = 1,
+						}),
+					}),
+				}),
+			}),
+			Background = e("ImageLabel", {
+				Image = "rbxassetid://103478691850846",
+				ScaleType = Enum.ScaleType.Slice,
+				SliceCenter = Rect.new(8, 8, 92, 92),
+				AnchorPoint = Vector2.new(0, 0),
+				Size = UDim2.new(1, 0, 1, 0),
+				Position = UDim2.new(0, 0, 0, 0),
+				BackgroundTransparency = 1,
+				ImageColor3 = Color3.new(0.6, 0.6, 0.6),
+				ImageTransparency = 0.2,
+				Visible = visible,
+				ZIndex = 1,
+			}),
+			InventoryArea = e(VStack, {
+				Size = UDim2.new(0, (mobile and 360 or 480), 1, 0),
+				Position = UDim2.new(0.5, 0, 0, 0),
+				AnchorPoint = Vector2.new(0.5, 0),
+				Active = true,
+				Padding = { All = UDim.new(0, 10) },
+				Visible = visible,
+				ZIndex = 2,
+			}, {
+				Header = e(SmallText, { Text = "Inventory", Size = UDim2.new(1, 0, 0, 30), LayoutOrder = 1 }),
+
+				Categories = e(CategoryRow, {
+					mobile = mobile,
+					setCategory = setCategory,
+				}),
+
+				ScrollingFrame = e("ScrollingFrame", {
+					Selectable = false,
+					Size = UDim2.new(1, 0, 1, selectedItem and -130 or -40),
+					AutomaticCanvasSize = Enum.AutomaticSize.Y,
+					CanvasSize = UDim2.new(1, 0, 0, 0),
+					BackgroundTransparency = 1,
+					ScrollBarThickness = 4,
+					LayoutOrder = 3,
+				}, {
+					e(HStack, {
+						Size = UDim2.new(1, 0, 0, 0),
+						AutomaticSize = Enum.AutomaticSize.XY,
+						Wraps = true,
+						Spacing = UDim.new(0, 8),
+						VerticalAlignment = Enum.VerticalAlignment.Center,
+						HorizontalAlignment = Enum.HorizontalAlignment.Left,
+					}, {
+						Items = e(React.Fragment, nil, itemButtons),
+					}),
+				}),
+			}),
+		}),
+
+		-- MIDDLE CONTAINER (Swatches + Toolbar wrapped vertically)
+		MiddleContainer = e(VStack, {
+			Position = UDim2.new(0.5, 0, 1, mobile and -40 or -200),
+			AnchorPoint = Vector2.new(0.5, 1),
+			AutomaticSize = Enum.AutomaticSize.XY,
+			VerticalAlignment = Enum.VerticalAlignment.Bottom,
+			HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			Spacing = UDim.new(0, 16),
+			Visible = visible,
+			Size = UDim2.new(0, 0, 0, 0),
+			ZIndex = 10,
+		}, {
+			Swatches = (selectedItem and not DELETEMODE) and e(VStack, {
+				-- Size = UDim2.new(0, mobile and 320 or 420, 0, 0),
+				Size = UDim2.new(0, 0, 0, 0),
+				AutomaticSize = Enum.AutomaticSize.XY,
+				LayoutOrder = 1,
+				HorizontalAlignment = Enum.HorizontalAlignment.Center,
+				HorizontalFlex = "Fill",
+				Spacing = UDim.new(0, 8),
+			}, {
+				Tabs = e(HStack, {
+					Spacing = UDim.new(0, 10),
+					Size = UDim2.new(0, 0, 0, 0),
+					AutomaticSize = Enum.AutomaticSize.XY,
+					HorizontalFlex = "Fill",
+					HorizontalAlignment = Enum.HorizontalAlignment.Center,
+				}, {
+					PrimaryTab = e(SmallButton, {
+						Text = "Primary Color",
+						Size = UDim2.new(0.5, 0, 0, 40),
+						BackgroundColor3 = activeChannel == "Primary" and Color3.new(0.2, 0.6, 1) or nil,
+						[React.Event.Activated] = function()
+							setActiveChannel("Primary")
+						end,
+					}),
+					SecondaryTab = e(SmallButton, {
+						Text = "Secondary Color",
+						Size = UDim2.new(0.5, 0, 0, 40),
+						BackgroundColor3 = activeChannel == "Secondary" and Color3.new(0.2, 0.6, 1) or nil,
+						[React.Event.Activated] = function()
+							setActiveChannel("Secondary")
+						end,
+					}),
+				}),
+				Grid = e(HStack, {
+					Size = UDim2.new(0, 0, 0, 0),
+					AutomaticSize = Enum.AutomaticSize.XY,
+					Wraps = true,
+					Spacing = UDim.new(0, 4),
+					HorizontalAlignment = Enum.HorizontalAlignment.Center,
+				}, swatchButtons),
+			}) or nil,
+
+			Toolbar = e(HStack, {
+				Size = UDim2.new(0, 0, 0, 0),
+				AutomaticSize = Enum.AutomaticSize.XY,
+				HorizontalAlignment = Enum.HorizontalAlignment.Center,
+
+				Spacing = UDim.new(0, 16),
+				LayoutOrder = 2,
+			}, {
 				Delete = e(SmallButton, {
 					Image = "",
 					AutomaticSize = Enum.AutomaticSize.None,
-					Size = UDim2.new(0, mobile and 40 or 60, 0, mobile and 40 or 60),
+					Size = UDim2.new(0, 40, 0, 40),
 					BackgroundTransparency = not DELETEMODE and 0.9 or nil,
 					BackgroundColor3 = DELETEMODE and Color3.new(1, 0.058823, 0.058823)
 						or Color3.new(1, 0.341176, 0.341176),
@@ -535,7 +661,7 @@ local function BuildPanel()
 						local is = UIState:getState().buildItemId ~= "DELETE_MODE" and "DELETE_MODE" or nil
 						UIState.selectBuildItem(is)
 					end,
-					LayoutOrder = 2,
+					LayoutOrder = 1,
 					Padding = { All = UDim.new() },
 				}, {
 					e("UIStroke", { Thickness = 2, Transparency = not DELETEMODE and 0.4 or nil }),
@@ -560,7 +686,6 @@ local function BuildPanel()
 					}),
 				}),
 
-				-- [[ NEW PAINT TOOL ]]
 				PaintTool = e(SmallButton, {
 					Image = "",
 					AutomaticSize = Enum.AutomaticSize.None,
@@ -571,13 +696,13 @@ local function BuildPanel()
 						local is = UIState:getState().buildItemId ~= "PAINT_MODE" and "PAINT_MODE" or nil
 						UIState.selectBuildItem(is)
 					end,
-					LayoutOrder = 3,
+					LayoutOrder = 2,
 					Padding = { All = UDim.new() },
 				}, {
 					e("UIStroke", { Thickness = 2, Transparency = not PAINTMODE and 0.4 or nil }),
 					e("ImageLabel", {
 						ZIndex = 1,
-						Image = "rbxassetid://18609516625", -- Generic Brush/Palette Icon
+						Image = "rbxassetid://18609516625",
 						ScaleType = Enum.ScaleType.Fit,
 						Size = UDim2.fromScale(1, 1),
 						ImageTransparency = not PAINTMODE and 0.4 or nil,
@@ -601,7 +726,7 @@ local function BuildPanel()
 					OverlayTextSize = 8,
 					Size = UDim2.new(0, mobile and 40 or 60, 0, mobile and 40 or 60),
 					AutomaticSize = Enum.AutomaticSize.None,
-					LayoutOrder = 4,
+					LayoutOrder = 3,
 					[React.Event.Activated] = function()
 						PlacementController:rotateItem()
 					end,
@@ -626,14 +751,16 @@ local function BuildPanel()
 					}),
 				}),
 
-				-- [[ UNIFORM STYLE FOR PLACE/DESTROY/PAINT ]]
 				Place = (inputDevice == "Touch" or inputDevice == "Gamepad") and selectedItem and e(SmallButton, {
 					Image = "",
 					AutomaticSize = Enum.AutomaticSize.None,
 					Size = UDim2.new(0, mobile and 40 or 60, 0, mobile and 40 or 60),
-					LayoutOrder = 5,
+					LayoutOrder = 4,
 					BackgroundColor3 = DELETEMODE and Color3.new(0.8, 0.2, 0.2)
 						or (PAINTMODE and Color3.new(0.2, 0.6, 1) or Color3.new(0.2, 0.7, 0.2)),
+					OnMount = function(rbx)
+						UIState.setTutorialTarget("PlaceButton", rbx)
+					end,
 					[React.Event.Activated] = function()
 						if DELETEMODE then
 							PlacementController:attemptDestroyAtCursor()
@@ -668,92 +795,6 @@ local function BuildPanel()
 						TextXAlignment = Enum.TextXAlignment.Center,
 					}),
 				}) or nil,
-			}),
-		}),
-		e("ImageLabel", {
-			Image = "rbxassetid://103478691850846",
-			ScaleType = Enum.ScaleType.Slice,
-			SliceCenter = Rect.new(8, 8, 92, 92),
-			AnchorPoint = Vector2.new(0, 0),
-			Size = UDim2.new(1, 0, 1, 0),
-			Position = UDim2.new(0, 0, 0, 0),
-			BackgroundTransparency = 1,
-			ImageColor3 = Color3.new(0.6, 0.6, 0.6),
-			ImageTransparency = 0.2,
-			Visible = visible,
-			ZIndex = 1,
-		}),
-		e(VStack, {
-			Size = UDim2.new(0, (mobile and 360 or 480), 1, 0),
-			Position = UDim2.new(0.5, 0, 0, 0),
-			AnchorPoint = Vector2.new(0.5, 0),
-			Active = true,
-			Padding = { All = UDim.new(0, 10) },
-			Visible = visible,
-			ZIndex = 2,
-		}, {
-			Header = e(SmallText, { Text = "Inventory", Size = UDim2.new(1, 0, 0, 30), LayoutOrder = 1 }),
-
-			Categories = e(CategoryRow, {
-				mobile = mobile,
-				setCategory = setCategory,
-			}),
-
-			-- [[ SWATCH PANEL INJECTED ABOVE INVENTORY ]]
-			Swatches = (selectedItem and not DELETEMODE) and e(VStack, {
-				Size = UDim2.new(1, 0, 0, 0),
-				AutomaticSize = Enum.AutomaticSize.Y,
-				LayoutOrder = 2,
-				Spacing = UDim.new(0, 4),
-			}, {
-				Tabs = e(HStack, {
-					Size = UDim2.new(1, 0, 0, 30),
-					Spacing = UDim.new(0, 10),
-				}, {
-					PrimaryTab = e(SmallButton, {
-						Text = "Primary Color",
-						Size = UDim2.new(0.5, -5, 1, 0),
-						BackgroundColor3 = activeChannel == "Primary" and Color3.new(0.2, 0.6, 1) or nil,
-						[React.Event.Activated] = function()
-							setActiveChannel("Primary")
-						end,
-					}),
-					SecondaryTab = e(SmallButton, {
-						Text = "Secondary Color",
-						Size = UDim2.new(0.5, -5, 1, 0),
-						BackgroundColor3 = activeChannel == "Secondary" and Color3.new(0.2, 0.6, 1) or nil,
-						[React.Event.Activated] = function()
-							setActiveChannel("Secondary")
-						end,
-					}),
-				}),
-				Grid = e(HStack, {
-					Size = UDim2.new(1, 0, 0, 0),
-					AutomaticSize = Enum.AutomaticSize.Y,
-					Wraps = true,
-					Spacing = UDim.new(0, 4),
-				}, swatchButtons),
-			}) or nil,
-
-			ScrollingFrame = e("ScrollingFrame", {
-				Selectable = false,
-				Size = UDim2.new(1, 0, 1, selectedItem and -130 or -40),
-				AutomaticCanvasSize = Enum.AutomaticSize.Y,
-				CanvasSize = UDim2.new(1, 0, 0, 0),
-				BackgroundTransparency = 1,
-				ScrollBarThickness = 4,
-				LayoutOrder = 3,
-			}, {
-				e(HStack, {
-					Size = UDim2.new(1, 0, 0, 0),
-					AutomaticSize = Enum.AutomaticSize.XY,
-					Wraps = true,
-					Spacing = UDim.new(0, 8),
-					VerticalAlignment = Enum.VerticalAlignment.Center,
-					HorizontalAlignment = Enum.HorizontalAlignment.Left,
-				}, {
-					Items = e(React.Fragment, nil, itemButtons),
-				}),
 			}),
 		}),
 	})

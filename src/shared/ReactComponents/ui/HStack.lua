@@ -47,6 +47,7 @@ local function HStack(props)
 		BackgroundColor3 = props.BackgroundColor3,
 		LayoutOrder = props.LayoutOrder,
 		ZIndex = props.ZIndex,
+		Visible = props.Visible,
 		ref = props.OnMount,
 		Active = props.Active,
 	}, elements)

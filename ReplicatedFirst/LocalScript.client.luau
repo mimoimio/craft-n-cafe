@@ -101,6 +101,16 @@ local function story(frame: ScreenGui)
 	local progressTween = TweenService:Create(barFill, barTweenInfo, { Size = UDim2.fromScale(1, 1) })
 	progressTween:Play()
 
+	-- Real preload progress replaces the looping preview animation once available
+	local realProgress = false
+	local function setProgress(alpha: number)
+		if not realProgress then
+			realProgress = true
+			progressTween:Cancel()
+		end
+		barFill.Size = UDim2.fromScale(math.clamp(alpha, 0, 1), 1)
+	end
+
 	-- Animation: Gentle pulse effect on the subtitle text
 	local textTweenInfo = TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true)
 	local pulseTween = TweenService:Create(subtitle, textTweenInfo, { TextTransparency = 0.6 })
@@ -112,9 +122,19 @@ local function story(frame: ScreenGui)
 		progressTween:Cancel()
 		pulseTween:Cancel()
 		bg:Destroy()
+	end, setProgress
+end
+
+local _, setProgress = story(sg)
+local player = game.Players.LocalPlayer
+sg.Parent = player:WaitForChild("PlayerGui")
+
+local function updateProgress()
+	local alpha = sg:GetAttribute("PreloadProgress")
+	if typeof(alpha) == "number" then
+		setProgress(alpha)
 	end
 end
 
-story(sg)
-local player = game.Players.LocalPlayer
-sg.Parent = player:WaitForChild("PlayerGui")
+sg:GetAttributeChangedSignal("PreloadProgress"):Connect(updateProgress)
+updateProgress()

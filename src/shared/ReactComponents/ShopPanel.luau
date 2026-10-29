@@ -392,9 +392,9 @@ local function WorkerManagementCard(props: {
 				btnColor = Color3.new(0.65, 0.25, 0.25)
 			end
 			btnLabel =
-				`<b>{statCfg.DisplayName}</b> Lvl {currentLevel}/{maxLevel}\n<font size="12">{statCfg.FormatValue(currentVal)} ➔ {statCfg.FormatValue(
-					nextEntry.Value
-				)} (${nextEntry.Cost})</font>`
+				`<b>{statCfg.DisplayName}</b> Lvl {currentLevel}/{maxLevel}\n<font size="12">{statCfg.FormatValue(
+					currentVal
+				)} ➔ {statCfg.FormatValue(nextEntry.Value)} (${nextEntry.Cost})</font>`
 		end
 
 		statButtons[statKey] = e(SmallButton, {
@@ -459,8 +459,14 @@ local function ShopPanel()
 	local visible, setVisible = useState(false)
 	local selectedItem, setSelectedItem = useState(nil)
 
+	-- [[ ADD THIS HOOK ]]
+	useEffect(function()
+		UIState.selectShopItem(selectedItem)
+	end, { selectedItem })
+
 	local playerStats, setPlayerStats = useState(nil)
 	local playerInventory, setPlayerInventory = useState(nil)
+
 	local plotState, setPlotState = useState(nil)
 	local playerWorkers, setPlayerWorkers = useState(nil)
 	local amount, setAmount = useState(nil)
@@ -685,16 +691,17 @@ local function ShopPanel()
 					OnMount = function(rbx)
 						UIState.setTutorialTarget("BuyButton", rbx)
 						if rbx then
-						GuiService.SelectedObject = rbx
+							GuiService.SelectedObject = rbx
 						end
 					end,
 					[React.Event.Activated] = function()
 						if canBuy then
-							Remotes.BuyItem:FireServer({ 
-								itemId = selectedConfig.Id, amount = 1 })
+							Remotes.BuyItem:FireServer({
+								itemId = selectedConfig.Id,
+								amount = 1,
+							})
 						end
 					end,
-					
 				}, {
 					e("UIStroke", { Thickness = 2 }),
 					e(SmallText, {
@@ -842,8 +849,8 @@ local function ShopPanel()
 			e(HStack, {
 				VerticalFlex = "None",
 				HorizontalFlex = "Fill",
-				Spacing = UDim.new(0,8),
-				Padding = { All = UDim.new(0,8), }
+				Spacing = UDim.new(0, 8),
+				Padding = { All = UDim.new(0, 8) },
 			}, {
 				e(SmallText, {
 					-- Text = `<b>{upg.DisplayName}</b>\n<b>{actionLabel}</b>\n<font size="12">{descText}</font>`,
@@ -853,7 +860,7 @@ local function ShopPanel()
 					TextXAlignment = Enum.TextXAlignment.Left,
 					TextYAlignment = Enum.TextYAlignment.Center,
 					AutomaticSize = Enum.AutomaticSize.XY,
-					TextWrapped = true
+					TextWrapped = true,
 				}),
 				e(SmallButton, {
 					Size = UDim2.new(1, 60, 0, 56),
@@ -868,7 +875,7 @@ local function ShopPanel()
 						end
 					end,
 					-- Rounded = false,
-					Padding = {All = UDim.new(0,0)}
+					Padding = { All = UDim.new(0, 0) },
 				}, {
 					e("UIStroke", { Thickness = 2, Color = Color3.new(0.85, 0.85, 0.85) }),
 					e(HStack, {
@@ -876,7 +883,7 @@ local function ShopPanel()
 						HorizontalFlex = Enum.UIFlexAlignment.None,
 						VerticalAlignment = Enum.VerticalAlignment.Center,
 						HorizontalAlignment = Enum.HorizontalAlignment.Center,
-						Size = UDim2.new(1,0,1,0),
+						Size = UDim2.new(1, 0, 1, 0),
 						AutomaticSize = Enum.AutomaticSize.XY,
 						-- BackgroundTransparency = 0,
 					}, {
@@ -885,12 +892,12 @@ local function ShopPanel()
 							RichText = true,
 							-- BackgroundTransparency = 0,
 							Size = UDim2.new(0, 0, 0, 0),
-							Position = UDim2.new(0.5,0,0.5,0),
-							AnchorPoint = Vector2.new(0.5,0.5)
+							Position = UDim2.new(0.5, 0, 0.5, 0),
+							AnchorPoint = Vector2.new(0.5, 0.5),
 						}),
 					}),
-				})
-			})
+				}),
+			}),
 		})
 	end
 
@@ -928,7 +935,7 @@ local function ShopPanel()
 		}, {
 			e("UIStroke", { Thickness = 2, Color = Color3.new(0.5, 0.8, 1) }),
 			e(SmallText, {
-				Text = `Hire a Barista (${nextWorkerTier and nextWorkerTier.Cost or 0 })`,
+				Text = `Hire a Barista (${nextWorkerTier and nextWorkerTier.Cost or 0})`,
 				RichText = true,
 				Size = UDim2.new(1, 0, 1, 0),
 				TextXAlignment = Enum.TextXAlignment.Center,
@@ -1100,7 +1107,7 @@ local function ShopPanel()
 					Spacing = UDim.new(0, 8),
 					VerticalAlignment = Enum.VerticalAlignment.Top,
 					HorizontalAlignment = Enum.HorizontalAlignment.Left,
-					Padding = {Right = UDim.new(0,12)}
+					Padding = { Right = UDim.new(0, 12) },
 				}, {
 					Items = e(React.Fragment, nil, itemButtons),
 				}),

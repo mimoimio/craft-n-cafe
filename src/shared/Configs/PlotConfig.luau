@@ -32,6 +32,5 @@ PlotConfig.FirstPlot = plot and plot.grid and plot.nextId and plot.placedItems a
 		plotSize = 32,
 		nextId = 1,
 	}
--- warn("plot", plot)
--- warn("PlotConfig.FirstPlot", PlotConfig.FirstPlot)
+
 return PlotConfig

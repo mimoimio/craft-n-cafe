@@ -1,4 +1,3 @@
--- Shared/producers/UIState.luau
 --!strict
 local GuiService = game:GetService("GuiService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -17,6 +16,7 @@ export type UIState = {
 	panel: string,
 	viewportSize: Vector2,
 	buildItemId: string?,
+	shopItemId: string?, -- ADDED
 	cafeBase: CafeTypes.CafeBase,
 	tutorialTargets: { [string]: GuiObject },
 	reportTargetId: string?,
@@ -26,6 +26,7 @@ export type UIActions = {
 	toggle: (panel: string) -> (),
 	setViewportSize: (viewportSize: Vector2) -> (),
 	selectBuildItem: (itemId: string) -> (),
+	selectShopItem: (itemId: string?) -> (), -- ADDED
 	setCafeBase: (cafeBase: CafeTypes.CafeBase) -> (),
 	setTutorialTarget: (id: string, rbx: GuiObject?) -> (),
 	setReportTargetId: (userId: string?) -> (),
@@ -35,6 +36,7 @@ local initialState: UIState = {
 	panel = "none",
 	panelCleared = {},
 	buildItemId = nil,
+	shopItemId = nil, -- ADDED
 	playerPhase = "mainMenu",
 	reportTargetId = nil,
 	tutorialTargets = {},
@@ -90,6 +92,9 @@ local producer = Reflex.createProducer(initialState, {
 	end,
 	selectBuildItem = function(state: UIState, itemId: string)
 		return Set(state, "buildItemId", itemId)
+	end,
+	selectShopItem = function(state: UIState, itemId: string?) -- ADDED
+		return Set(state, "shopItemId", itemId)
 	end,
 	setCafeBase = function(state: UIState, cafeBase: CafeTypes.CafeBase)
 		return Set(state, "cafeBase", cafeBase)
