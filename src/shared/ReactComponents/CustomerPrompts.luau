@@ -206,6 +206,7 @@ return function()
 
 	-- Listen for Tags
 	useEffect(function()
+		
 		local function updateInstances()
 			setInstances(CollectionService:GetTagged(tag))
 		end

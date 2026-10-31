@@ -391,6 +391,24 @@ local function TimingBar(props: {
 	})
 end
 
+--[[
+bug: When a station is placed, its react is not detecting and not mounting the new prompt onto the station.
+		prompt.Style = Enum.ProximityPromptStyle.Custom
+this line was supposed to make the prompt be not default. the bug didnt do that, meaning it does not even mount or
+not even added.
+
+It is not because of the PromptShown event.
+The prompt will fire PromptShown immediately when the model is replicated if player is within proximity
+That means react cannot take account that player is already shown the prompt, therefore when turning it to custom,
+the default ui is removed, but no react ui is there to replace it. (This is a problem too, but i dont think theres a native way to check if player is within proximity or not, only the PromptShown event)
+
+But that will be solved if player looked away and retrigger the shown event.
+
+this bug cannot be solved by retriggering the event.
+
+it can be only solved by replacing the model, AND hoping that the bug does not happen again
+
+ ]]
 local function StationPromptNode(props: { Model: Model, stationId: string })
 	local prompt, setPrompt = useState(nil)
 	local currentInput = useInputDevice()

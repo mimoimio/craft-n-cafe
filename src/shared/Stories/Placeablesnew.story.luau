@@ -107,6 +107,8 @@ local Placeable = function(props)
 		clone.PrimaryPart = part
 		clone:PivotTo(props.CFrame)
 		clone.PrimaryPart = originalPrimaryPart
+		part.Parent = clone.Parent
+		
 	end, { props.CFrame, props.PrefabCFrame, part })
 
 	return e("Part", {

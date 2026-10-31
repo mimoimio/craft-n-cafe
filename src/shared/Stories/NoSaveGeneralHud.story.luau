@@ -276,6 +276,12 @@ local AppWrapper = function()
 				end,
 				Text = "Add 10k",
 			}),
+			e(SmallButton, {
+				[React.Event.Activated] = function()
+					GlobalState._addExp("MockUser", 10_000, LevelConfig.GetLevel(10_000))
+				end,
+				Text = "Add Exp",
+			}),
 		}),
 	})
 end

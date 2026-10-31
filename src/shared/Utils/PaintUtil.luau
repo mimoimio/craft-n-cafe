@@ -17,8 +17,8 @@ function PaintUtil.ApplyColors(model: Model | Instance, primaryStr: string?, sec
 			-- Strict targeting: Only care about these two exact names
 			if pName == "Primary" or pName == "Secondary" then
 				-- 1. Cache the default original color so we can restore it when `nil` is passed
-				if not part:GetAttribute("OriginalColor") then
-					part:SetAttribute("OriginalColor", part.Color)
+				if not part:GetAttribute("OriClr") then
+					part:SetAttribute("OriClr", part.Color)
 				end
 
 				-- 2. Ensure UnionOperations accept standard Color3 changes
@@ -26,11 +26,11 @@ function PaintUtil.ApplyColors(model: Model | Instance, primaryStr: string?, sec
 					part.UsePartColor = true
 				end
 
-				-- 3. Apply the resolved color (or fall back to the OriginalColor if no paint is equipped)
+				-- 3. Apply the resolved color (or fall back to the OriClr if no paint is equipped)
 				if pName == "Primary" then
-					part.Color = pColor or part:GetAttribute("OriginalColor")
+					part.Color = pColor or part:GetAttribute("OriClr")
 				elseif pName == "Secondary" then
-					part.Color = sColor or part:GetAttribute("OriginalColor")
+					part.Color = sColor or part:GetAttribute("OriClr")
 				end
 			end
 		end
