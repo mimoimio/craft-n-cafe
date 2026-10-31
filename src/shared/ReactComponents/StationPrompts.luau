@@ -424,36 +424,68 @@ local function StationPromptNode(props: { Model: Model, stationId: string })
 		setVisible(selectPanel(UIState:getState()) == "none")
 		return unsub
 	end, {})
-
 	useEffect(function()
 		if not props.Model then
 			return
 		end
-		-- Use recursive (true) because the prompt is inside the newCenterPart!
-		local foundPrompt = props.Model:FindFirstChildWhichIsA("ProximityPrompt", true)
-		local promise
-		if not foundPrompt then
-			promise = Promise.defer(function(resolve, reject, onCancel)
-				local prompt = props.Model:WaitForChild("TriggerPrompt", 5)
-				if not prompt then
-					reject("not prompt")
-				end
-				resolve(prompt)
-			end)
-				:andThen(setPrompt)
-				:catch(function(err)
-					warn("err", err)
-				end)
-		end
 
-		setPrompt(foundPrompt)
-		return function()
-			setPrompt(nil)
-			if promise then
-				promise:cancel()
+		-- 1. Check if it already exists
+		local foundPrompt = props.Model:FindFirstChildWhichIsA("ProximityPrompt", true)
+
+		if foundPrompt then
+			setPrompt(foundPrompt)
+			return function()
+				setPrompt(nil)
 			end
 		end
+
+		-- 2. If it's not there yet, listen recursively for it to be added
+		local conn
+		conn = props.Model.DescendantAdded:Connect(function(descendant)
+			if descendant:IsA("ProximityPrompt") then
+				setPrompt(descendant)
+				if conn then
+					conn:Disconnect()
+				end
+			end
+		end)
+
+		return function()
+			if conn then
+				conn:Disconnect()
+			end
+			setPrompt(nil)
+		end
 	end, { props.Model })
+	-- useEffect(function()
+	-- 	if not props.Model then
+	-- 		return
+	-- 	end
+	-- 	-- Use recursive (true) because the prompt is inside the newCenterPart!
+	-- 	local foundPrompt = props.Model:FindFirstChildWhichIsA("ProximityPrompt", true)
+	-- 	local promise
+	-- 	if not foundPrompt then
+	-- 		promise = Promise.defer(function(resolve, reject, onCancel)
+	-- 			local prompt = props.Model:WaitForChild("TriggerPrompt", 5)
+	-- 			if not prompt then
+	-- 				reject("not prompt")
+	-- 			end
+	-- 			resolve(prompt)
+	-- 		end)
+	-- 			:andThen(setPrompt)
+	-- 			:catch(function(err)
+	-- 				warn("err", err)
+	-- 			end)
+	-- 	end
+
+	-- 	setPrompt(foundPrompt)
+	-- 	return function()
+	-- 		setPrompt(nil)
+	-- 		if promise then
+	-- 			promise:cancel()
+	-- 		end
+	-- 	end
+	-- end, { props.Model })
 
 	local shown, setShown = useState(false)
 	useEffect(function()
@@ -466,6 +498,11 @@ local function StationPromptNode(props: { Model: Model, stationId: string })
 		end)
 		local conn2 = prompt.PromptHidden:Connect(function()
 			setShown(false)
+		end)
+		local wasEnabled = prompt.Enabled
+		prompt.Enabled = false
+		task.delay(0.1, function()
+			prompt.Enabled = wasEnabled
 		end)
 		return function()
 			setShown(false)
