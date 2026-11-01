@@ -224,6 +224,7 @@ local function BuildPanel()
 	local visible, setVisible = useState(false)
 	local selectedItem, setSelectedItem = useState(nil)
 	local playerInventory, setPlayerInventory = useState(nil)
+	local premiumPaintOwned, setPremiumPaintOwned = useState(false)
 
 	-- [[ NEW PAINT STATE ]]
 	local primaryColor, setPrimaryColor = useState(nil)
@@ -266,6 +267,19 @@ local function BuildPanel()
 
 		local unsub = GlobalState:subscribe(selectInventory, setPlayerInventory)
 		setPlayerInventory(selectInventory(GlobalState:getState()))
+
+		return unsub
+	end, {})
+
+	-- 2b. Sync Premium Paint ownership
+	useEffect(function()
+		local function selectPremiumPaint(state)
+			local stats = state.Stats and state.Stats[playerId]
+			return stats and stats.OwnedGamePasses and stats.OwnedGamePasses.PremiumPaint == true or false
+		end
+
+		local unsub = GlobalState:subscribe(selectPremiumPaint, setPremiumPaintOwned)
+		setPremiumPaintOwned(selectPremiumPaint(GlobalState:getState()))
 
 		return unsub
 	end, {})
@@ -426,13 +440,25 @@ local function BuildPanel()
 	})
 
 	-- Swatches
-	local orderCounter = 1
-	for name, color in pairs(PaintConfig.Swatches) do
+	for orderCounter, swatch in ipairs(PaintConfig.SwatchList) do
+		local name = swatch.Name
+		local locked = swatch.Premium and not premiumPaintOwned
+		local isSelected = activeChannel == "Primary" and primaryColor == name
+			or activeChannel == "Secondary" and secondaryColor == name
+
 		swatchButtons[name] = e(SmallButton, {
 			Size = UDim2.new(0, mobile and 30 or 40, 0, mobile and 30 or 40),
-			BackgroundColor3 = color,
+			AutomaticSize = Enum.AutomaticSize.None,
+			BackgroundColor3 = swatch.Color,
+			BackgroundTransparency = locked and 0.35 or 0,
 			LayoutOrder = orderCounter,
+			Padding = { All = UDim.new(0, 0) },
 			[React.Event.Activated] = function()
+				if locked then
+					UIState.toggle("store")
+					return
+				end
+
 				if activeChannel == "Primary" then
 					setPrimaryColor(name)
 				else
@@ -440,14 +466,19 @@ local function BuildPanel()
 				end
 			end,
 		}, {
-			(
-				activeChannel == "Primary" and primaryColor == name
-				or activeChannel == "Secondary" and secondaryColor == name
-			)
-					and e("UIStroke", { Thickness = 3, Color = Color3.new(0, 1, 0) })
-				or nil,
+			locked and e(SmallText, {
+				Text = "LOCK",
+				TextSize = 10,
+				TextXAlignment = Enum.TextXAlignment.Center,
+				TextYAlignment = Enum.TextYAlignment.Center,
+				Size = UDim2.fromScale(1, 1),
+				AutomaticSize = Enum.AutomaticSize.None,
+				TextColor3 = Color3.new(1, 1, 1),
+				TextStrokeTransparency = 0,
+				ZIndex = 2,
+			}) or nil,
+			isSelected and e("UIStroke", { Thickness = 3, Color = Color3.new(0, 1, 0) }) or nil,
 		})
-		orderCounter += 1
 	end
 
 	return e(React.Fragment, nil, {

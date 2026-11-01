@@ -4,6 +4,7 @@ local DRINKS_MIXED_DATASTORE = "DRINKS_MIXED_DATASTORE"
 local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local ProfileStoreModule = require(game.ServerScriptService.Server.Modules.ProfileStore)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
@@ -16,7 +17,9 @@ local Signal = require(game.ReplicatedStorage.Packages.Signal)
 local ShopCycle = require(game.ReplicatedStorage.Shared.ShopCycle)
 local PlotConfig = require(game.ReplicatedStorage.Shared.Configs.PlotConfig)
 
-local IS_PLAYTESTING = true
+-- Studio keeps the mock store so UI Labs / quick playtests never touch live data.
+-- Published servers use the real ProfileStore.
+local IS_PLAYTESTING = RunService:IsStudio()
 --
 local DrinksBrewedLeaderboard = DataStoreService:GetOrderedDataStore("DrinksBrewed")
 
@@ -27,9 +30,10 @@ local function SyncLeaderboards(player, profile)
 	-- Always wrap API calls in a pcall
 	local success, err = pcall(function()
 		-- math.floor is used as a safety net since OrderedDataStore ONLY accepts integers
-		DrinksBrewedLeaderboard:SetAsync(userId, math.floor(profile.Data.CupsServed))
+		local customersServed = profile.Data.Stats and profile.Data.Stats.CustomersServed or 0
+		DrinksBrewedLeaderboard:SetAsync(userId, math.floor(customersServed))
 
-		warn("Saved profile.Data.CupsServed", profile.Data.CupsServed)
+		warn("Saved profile.Data.Stats.CustomersServed", customersServed)
 		-- RebirthsLeaderboard:SetAsync(userId, math.floor(profile.Data.Rebirths))
 	end)
 
@@ -83,6 +87,11 @@ local PROFILE_TEMPLATE: PlayerData = {
 		CafeOpen = true,
 		TutorialCompleted = false,
 		CafeCapacity = 3,
+		CustomersServed = 0,
+		LifetimeCash = 0,
+		OwnedGamePasses = {},
+		PurchasedProducts = {},
+		Upgrades = {},
 		-- Luck = 1,
 		-- SecondsPlayed = 0,
 		-- RollCooldown = 3,
@@ -93,6 +102,7 @@ local PROFILE_TEMPLATE: PlayerData = {
 	Ingredients = {},
 	Customers = {},
 	Workers = {},
+	PurchaseHistory = {},
 	Inventory = {
 		-- ["Wall_Brick"] = 10,
 		-- ["Counter"] = 5,
@@ -231,7 +241,7 @@ local function OnPlayerAdded(player: Player)
 		end
 
 		Profiles[player] = profile
-		ProfileCreated:Fire()
+		ProfileCreated:Fire(player)
 	else
 		warn(`Critical error: Failed to load profile for {player.Name} ({player.UserId}). Kicking.`)
 	end

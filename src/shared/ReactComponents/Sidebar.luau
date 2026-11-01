@@ -150,6 +150,16 @@ function Sidebar(props)
 		-- 	Text = "Console",
 		-- 	LayoutOrder = 4,
 		-- }) or nil,
+		Store = TutorialCompleted and level > 2 and e(SidebarButton, {
+			[React.Event.Activated] = function()
+				UIState.toggle("store")
+			end,
+			Image = "rbxassetid://15402844695",
+			Text = "Store",
+			LayoutOrder = 4,
+		}, {
+			panelCleared.store == false and e(RedDot, {}, {}),
+		}),
 		Settings = TutorialCompleted and e(SidebarButton, {
 			OnMount = UIState.setSettingsButton,
 			[React.Event.Activated] = function()

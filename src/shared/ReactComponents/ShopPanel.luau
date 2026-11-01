@@ -635,7 +635,7 @@ local function ShopPanel()
 			btnColor = Color3.new(0.4, 0.4, 0.4)
 			canBuy = false
 		elseif not canAfford then
-			btnText = "Not Enough Cash"
+			btnText = "Get Cash"
 			btnColor = Color3.new(0.8, 0.2, 0.2)
 			canBuy = false
 		end
@@ -700,6 +700,8 @@ local function ShopPanel()
 								itemId = selectedConfig.Id,
 								amount = 1,
 							})
+						elseif not isLocked and not isMaxed then
+							UIState.toggle("store")
 						end
 					end,
 				}, {
@@ -770,15 +772,19 @@ local function ShopPanel()
 			BackgroundColor3 = bgColor,
 			LayoutOrder = -10,
 			[React.Event.Activated] = function()
-				if canAfford and levelMet then
-					Remotes.ExpandPlot:FireServer()
+				if levelMet then
+					if canAfford then
+						Remotes.ExpandPlot:FireServer()
+					else
+						UIState.toggle("store")
+					end
 				end
 			end,
 			Visible = tab == "upgrade",
 		}, {
 			e("UIStroke", { Thickness = 2, Color = Color3.new(1, 0.8, 0) }),
 			e(SmallText, {
-				Text = `Expand Cafe`,
+				Text = canAfford and `Expand Cafe` or `Get Cash`,
 				-- Text = ` <b>Expand Cafe to {nextTier.Size}x{nextTier.Size}</b> \n<font size="13">{statusText}</font>`,
 				RichText = true,
 				Size = UDim2.new(1, 0, 1, 0),
@@ -870,8 +876,13 @@ local function ShopPanel()
 					HoverScale = true,
 					Visible = tab == "upgrade",
 					[React.Event.Activated] = function()
-						if not isMaxed and levelMet and canAfford and Remotes.BuyUpgrade then
+						if isMaxed or not levelMet then
+							return
+						end
+						if canAfford and Remotes.BuyUpgrade then
 							Remotes.BuyUpgrade:FireServer({ upgradeId = upg.Id })
+						elseif not canAfford then
+							UIState.toggle("store")
 						end
 					end,
 					-- Rounded = false,
@@ -927,15 +938,19 @@ local function ShopPanel()
 			BackgroundColor3 = bgColor,
 			LayoutOrder = -10,
 			[React.Event.Activated] = function()
-				if canAfford and levelMet then
-					Remotes.HireWorker:FireServer()
+				if levelMet then
+					if canAfford then
+						Remotes.HireWorker:FireServer()
+					else
+						UIState.toggle("store")
+					end
 				end
 			end,
 			Visible = tab == "staff",
 		}, {
 			e("UIStroke", { Thickness = 2, Color = Color3.new(0.5, 0.8, 1) }),
 			e(SmallText, {
-				Text = `Hire a Barista (${nextWorkerTier and nextWorkerTier.Cost or 0})`,
+				Text = canAfford and `Hire a Barista (${nextWorkerTier and nextWorkerTier.Cost or 0})` or `Get Cash`,
 				RichText = true,
 				Size = UDim2.new(1, 0, 1, 0),
 				TextXAlignment = Enum.TextXAlignment.Center,

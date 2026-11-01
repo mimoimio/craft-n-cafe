@@ -106,6 +106,7 @@ export type PlayerData = {
 	Customers: { CustomerEntity },
 	Plot: {},
 	Workers: { WorkerEntity },
+	PurchaseHistory: { [string]: number }?,
 }
 export type PlayerId = string
 export type VariationId = string
@@ -133,7 +134,9 @@ export type StatsEntity = {
 	CustomersServed: number,
 	Level: number,
 
-	OwnedGamePasses: { [string]: boolean },
+	OwnedGamePasses: { [string]: boolean }?,
+	PurchasedProducts: { [string]: boolean }?,
+	LifetimeCash: number?,
 	Upgrades: { [string]: number }?, -- Tracks global & ingredient upgrade levels
 }
 
@@ -341,6 +344,9 @@ export type CombinedActions = {
 	buyIngredient: (playerId: PlayerId, payload: BuyIngredientPayload) -> (),
 	buyUpgrade: (playerId: PlayerId, payload: BuyUpgradePayload) -> (),
 	playerReceivePayment: (playerId: PlayerId, payload: PlayerReceivePaymentPayload) -> (),
+	grantCash: (playerId: PlayerId, payload: { Cash: number, Source: string? }) -> (),
+	setGamePassOwnership: (playerId: PlayerId, payload: { passKey: string, owned: boolean }) -> (),
+	markProductPurchased: (playerId: PlayerId, payload: { productKey: string }) -> (),
 
 	-- Plot Building
 	placeItem: (playerId: string, payload: PlaceItemPayload) -> (),

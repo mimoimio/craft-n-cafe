@@ -29,6 +29,10 @@ local actions = {
 		local stats = table.clone(data.Stats)
 		stats.PlayerPhase = "mainMenu"
 		stats.Upgrades = stats.Upgrades and table.clone(stats.Upgrades) or {}
+		stats.OwnedGamePasses = stats.OwnedGamePasses and table.clone(stats.OwnedGamePasses) or {}
+		stats.PurchasedProducts = stats.PurchasedProducts and table.clone(stats.PurchasedProducts) or {}
+		stats.LifetimeCash = stats.LifetimeCash or 0
+		stats.CustomersServed = stats.CustomersServed or 0
 		return Set(state, playerId, stats)
 	end,
 	endPlayerSession = function(state: StatsState, playerId: string, data: PlayerData)
@@ -120,6 +124,48 @@ local actions = {
 
 		return Set(state, playerId, Set(playersStats, "Cash", playersStats.Cash + payload.Cash))
 	end,
+	grantCash = function(
+		state: StatsState,
+		playerId: string,
+		payload: { Cash: number, Source: string? }
+	)
+		local playersStats = state[playerId]
+		if not playersStats then
+			return state
+		end
+
+		return Set(state, playerId, Set(playersStats, "Cash", playersStats.Cash + payload.Cash))
+	end,
+	setGamePassOwnership = function(
+		state: StatsState,
+		playerId: string,
+		payload: { passKey: string, owned: boolean }
+	)
+		local playersStats = state[playerId]
+		if not playersStats then
+			return state
+		end
+
+		local ownedPasses = table.clone(playersStats.OwnedGamePasses or {})
+		ownedPasses[payload.passKey] = payload.owned and true or nil
+
+		return Set(state, playerId, Set(playersStats, "OwnedGamePasses", ownedPasses))
+	end,
+	markProductPurchased = function(
+		state: StatsState,
+		playerId: string,
+		payload: { productKey: string }
+	)
+		local playersStats = state[playerId]
+		if not playersStats then
+			return state
+		end
+
+		local purchasedProducts = table.clone(playersStats.PurchasedProducts or {})
+		purchasedProducts[payload.productKey] = true
+
+		return Set(state, playerId, Set(playersStats, "PurchasedProducts", purchasedProducts))
+	end,
 	setPlayerPhase = function(state: StatsState, playerId: string, playerPhase: Types.PlayerPhase)
 		local playersStats = state[playerId]
 		if not playersStats then
@@ -142,6 +188,7 @@ local actions = {
 				EXP = payload.EXP,
 				Level = payload.level,
 				CustomersServed = (playersStats.CustomersServed or 0) + 1,
+				LifetimeCash = (playersStats.LifetimeCash or 0) + payload.cash,
 			})
 		)
 	end,

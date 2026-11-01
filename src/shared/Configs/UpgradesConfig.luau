@@ -26,21 +26,43 @@ local genericPriceUpgrade: UpgradeEntry = {
 	MaxLevel = 10,
 	UnlockLevel = 4,
 	Description = function(level: number)
-		local pct = level * 50
+		local pct = level * 15
 		return `Sale bonus +{pct}%`
 	end,
 	GetCost = function(nextLevel: number)
-		return math.floor(400 * (1.1 ^ (nextLevel - 1)))
+		return math.floor(1000 * (1.15 ^ (nextLevel - 1)))
 	end,
 	GetBonus = function(level: number)
-		return 1 + (level * 0.50) -- Multiplier: 1.00, 1.15, 1.30...
+		return 1 + (level * 0.15)
 	end,
 }
 
 UpgradesConfig.Config[genericPriceUpgrade.Id] = genericPriceUpgrade
 table.insert(UpgradesConfig.Array, genericPriceUpgrade)
 
--- 2. Ingredient Value Upgrades (Generated automatically for each ingredient in CoffeeModule)
+-- 2. Cafe Fame is the long-tail cash sink unlocked after the final station.
+local cafeFameUpgrade: UpgradeEntry = {
+	Id = "cafe_fame",
+	Category = "Global",
+	DisplayName = "Cafe Fame",
+	MaxLevel = 10,
+	UnlockLevel = 12,
+	Description = function(level: number)
+		local pct = level * 2
+		return `Customer tips +{pct}%`
+	end,
+	GetCost = function(nextLevel: number)
+		return math.floor(3000 * (1.2 ^ (nextLevel - 1)))
+	end,
+	GetBonus = function(level: number)
+		return 1 + (level * 0.02)
+	end,
+}
+
+UpgradesConfig.Config[cafeFameUpgrade.Id] = cafeFameUpgrade
+table.insert(UpgradesConfig.Array, cafeFameUpgrade)
+
+-- 3. Ingredient Value Upgrades (Generated automatically for each ingredient in CoffeeModule)
 for _, ingConfig in ipairs(CoffeeModule.IngredientConfigs or {}) do
 	local upgradeId = "ingredient_" .. ingConfig.Id
 	local basePrice = math.max(ingConfig.Price or 5, 1)
@@ -59,7 +81,7 @@ for _, ingConfig in ipairs(CoffeeModule.IngredientConfigs or {}) do
 			return `{ingConfig.DisplayName} lvl {level}`
 		end,
 		GetCost = function(nextLevel: number)
-			return math.floor((basePrice * 50) * (1.7 ^ (nextLevel - 1)))
+			return math.floor((basePrice * 75) * (1.7 ^ (nextLevel - 1)))
 		end,
 		GetBonus = function(level: number)
 			return level * bonusPerLevel
@@ -102,6 +124,14 @@ function UpgradesConfig.CalculateDrinkPrice(drinkId: string, upgrades: { [string
 		local genericCfg = UpgradesConfig.Config["generic_price"]
 		if genericCfg then
 			totalPrice = math.floor(totalPrice * genericCfg.GetBonus(genericLvl))
+		end
+	end
+
+	local fameLvl = upg["cafe_fame"] or 0
+	if fameLvl > 0 then
+		local fameCfg = UpgradesConfig.Config["cafe_fame"]
+		if fameCfg then
+			totalPrice = math.floor(totalPrice * fameCfg.GetBonus(fameLvl))
 		end
 	end
 

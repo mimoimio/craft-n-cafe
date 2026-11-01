@@ -19,23 +19,23 @@ export type StatUpgradeConfig = {
 
 local WorkersConfig = {
 	[1] = {
-		Cost = 500,
-		UnlockLevel = 5,
-		Title = "Barista",
-	},
-	[2] = {
-		Cost = 600,
+		Cost = 1500,
 		UnlockLevel = 6,
 		Title = "Barista",
 	},
+	[2] = {
+		Cost = 5000,
+		UnlockLevel = 9,
+		Title = "Barista",
+	},
 	[3] = {
-		Cost = 700,
-		UnlockLevel = 7,
+		Cost = 12000,
+		UnlockLevel = 12,
 		Title = "Barista",
 	},
 	[4] = {
-		Cost = 800,
-		UnlockLevel = 9,
+		Cost = 30000,
+		UnlockLevel = 16,
 		Title = "Barista",
 	},
 
@@ -49,10 +49,10 @@ local WorkersConfig = {
 			end,
 			Levels = {
 				[1] = { Value = 6, Cost = 0 },
-				[2] = { Value = 9, Cost = 250 },
-				[3] = { Value = 12, Cost = 400 },
-				[4] = { Value = 15, Cost = 500 },
-				[5] = { Value = 18, Cost = 600 },
+				[2] = { Value = 9, Cost = 500 },
+				[3] = { Value = 12, Cost = 800 },
+				[4] = { Value = 15, Cost = 1000 },
+				[5] = { Value = 18, Cost = 1200 },
 			},
 		},
 		craftSpeed = {
@@ -63,10 +63,10 @@ local WorkersConfig = {
 			end,
 			Levels = {
 				[1] = { Value = 1.5, Cost = 0 },
-				[2] = { Value = 1.2, Cost = 200 },
-				[3] = { Value = 0.9, Cost = 300 },
-				[4] = { Value = 0.6, Cost = 400 },
-				[5] = { Value = 0.3, Cost = 500 },
+				[2] = { Value = 1.2, Cost = 400 },
+				[3] = { Value = 0.9, Cost = 600 },
+				[4] = { Value = 0.6, Cost = 800 },
+				[5] = { Value = 0.3, Cost = 1000 },
 			},
 		},
 		quality = {
@@ -77,8 +77,8 @@ local WorkersConfig = {
 			end,
 			Levels = {
 				[1] = { Value = 1, Cost = 0 }, -- Starts at 1 ("Good Enough")
-				[2] = { Value = 2, Cost = 400 }, -- Upgrades to 2 ("Nice")
-				[3] = { Value = 3, Cost = 800 }, -- Upgrades to 3 ("Perfect")
+				[2] = { Value = 2, Cost = 800 }, -- Upgrades to 2 ("Nice")
+				[3] = { Value = 3, Cost = 1600 }, -- Upgrades to 3 ("Perfect")
 			},
 		},
 	},

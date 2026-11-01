@@ -132,11 +132,21 @@ local function PointerBeam(props: { Adornee: PVInstance? })
 		part0.Anchored = false
 		part0.CanCollide = false
 		part0.Transparency = 1
+		local hrp = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChildWhichIsA("BasePart")
+		if not char.PrimaryPart then
+			char.PrimaryPart = hrp
+		end
 		part0:PivotTo(char:GetPivot() - Vector3.new(0, 2, 0))
+		warn("char pivot", char:GetPivot().Position)
+		warn(char)
 		part0.Parent = workspace
+		part0.Massless = true
 
 		local weld = Instance.new("WeldConstraint", part0)
-		weld.Part0 = char:FindFirstChild("HumanoidRootPart") or char.PrimaryPart
+		weld.Part0 = char:FindFirstChild("HumanoidRootPart")
+			or char.PrimaryPart
+			or char:FindFirstChildWhichIsA("BasePart")
+
 		weld.Part1 = part0
 
 		local att0 = Instance.new("Attachment", part0)

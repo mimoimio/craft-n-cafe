@@ -208,6 +208,7 @@ local function PlayPhase(props)
 		admin and e(require(script.Parent.ConsoleApp)),
 		e(BuildPanel),
 		e(ShopPanel),
+		e(require(script.Parent.StorePanel)),
 		e(Tutorial),
 		e(require(script.Parent.CustomersOrder)),
 		-- player and

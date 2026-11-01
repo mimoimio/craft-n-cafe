@@ -29,12 +29,13 @@ export type UIActions = {
 	selectShopItem: (itemId: string?) -> (), -- ADDED
 	setCafeBase: (cafeBase: CafeTypes.CafeBase) -> (),
 	setTutorialTarget: (id: string, rbx: GuiObject?) -> (),
+	setPanelCleared: (panel: string, cleared: boolean) -> (),
 	setReportTargetId: (userId: string?) -> (),
 }
 
 local initialState: UIState = {
 	panel = "none",
-	panelCleared = {},
+	panelCleared = { store = false },
 	buildItemId = nil,
 	shopItemId = nil, -- ADDED
 	playerPhase = "mainMenu",

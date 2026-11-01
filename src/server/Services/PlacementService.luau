@@ -6,9 +6,19 @@ local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local Grid = require(ReplicatedStorage.Shared.Grid)
 local Types = require(ReplicatedStorage.Shared.Types)
 local Models = ReplicatedStorage.Shared.Models
+local PaintConfig = require(ReplicatedStorage.Shared.Configs.PaintConfig)
 local PlaceablesModule = require(ReplicatedStorage.Shared.PlaceablesModule)
 
 local PlacementService = {}
+
+local function canUsePaint(playersStats, primaryColor: string?, secondaryColor: string?): boolean
+	local premiumPaintOwned = playersStats
+		and playersStats.OwnedGamePasses
+		and playersStats.OwnedGamePasses.PremiumPaint == true
+
+	return PaintConfig.IsAllowedPaint(primaryColor, premiumPaintOwned)
+		and PaintConfig.IsAllowedPaint(secondaryColor, premiumPaintOwned)
+end
 
 function PlacementService.PlaceItem(player: Player, payload: Types.PlaceItemRemotePayload)
 	local playerId = tostring(player.UserId)
@@ -28,8 +38,14 @@ function PlacementService.PlaceItem(player: Player, payload: Types.PlaceItemRemo
 	local state = GlobalState:getState()
 	local playerInventory = state.Inventory and state.Inventory[playerId] or {}
 	local plotState = state.Plot and state.Plot[playerId]
+	local playerStats = state.Stats and state.Stats[playerId]
 
 	if not plotState then
+		return
+	end
+
+	if not canUsePaint(playerStats, payload.primaryColor, payload.secondaryColor) then
+		warn(`Exploit prevented: Player {playerId} attempted to use a locked paint color.`)
 		return
 	end
 
@@ -135,7 +151,13 @@ function PlacementService.PaintItem(player: Player, payload: Types.PaintItemRemo
 	local playerId = tostring(player.UserId)
 	local state = GlobalState:getState()
 	local plotState = state.Plot and state.Plot[playerId]
+	local playerStats = state.Stats and state.Stats[playerId]
 	if not plotState then
+		return
+	end
+
+	if not canUsePaint(playerStats, payload.primaryColor, payload.secondaryColor) then
+		warn(`Exploit prevented: Player {playerId} attempted to paint with a locked color.`)
 		return
 	end
 
