@@ -37,7 +37,7 @@ local function story(frame: ScreenGui)
 	-- Main Title
 	local title = Instance.new("TextLabel")
 	title.Name = "Title"
-	title.Text = "COFFEE TAVERN"
+	title.Text = "Loading..."
 	title.Font = Enum.Font.GothamBlack
 	title.TextSize = 52
 	title.TextColor3 = Color3.fromRGB(240, 222, 195) -- Warm cream
@@ -122,7 +122,8 @@ local function story(frame: ScreenGui)
 		progressTween:Cancel()
 		pulseTween:Cancel()
 		bg:Destroy()
-	end, setProgress
+	end,
+		setProgress
 end
 
 local _, setProgress = story(sg)
