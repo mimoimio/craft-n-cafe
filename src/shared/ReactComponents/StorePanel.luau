@@ -60,7 +60,7 @@ local function StoreCard(props: {
 	children: { [string]: any }?,
 })
 	local cardChildren = {
-		UICorner = e("UICorner", { CornerRadius = UDim.new(0, 10) }),
+		-- UICorner = e("UICorner", { CornerRadius = UDim.new(0, 10) }),
 		Title = e(SmallText, {
 			Text = props.Title,
 			TextSize = 20,
@@ -116,7 +116,10 @@ local function StoreCard(props: {
 		Spacing = UDim.new(0, 6),
 		Padding = { All = UDim.new(0, 12) },
 		BackgroundColor3 = Color3.fromRGB(30, 28, 34),
-		BackgroundTransparency = 0.15,
+		-- BackgroundTransparency = 0.15,
+		BackgroundImage = "rbxassetid://76169596898587",
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(8, 8, 92, 92),
 		LayoutOrder = props.LayoutOrder,
 	}, cardChildren)
 end
@@ -327,7 +330,7 @@ local function StorePanel()
 		Size = mobile and UDim2.fromScale(0.82, 0.78) or UDim2.fromScale(0.55, 0.72),
 		Spacing = UDim.new(0, 10),
 		Padding = { All = UDim.new(0, 12) },
-		BackgroundImage = "rbxassetid://103478691850846",
+		BackgroundImage = "rbxassetid://120520009441669",
 		ScaleType = Enum.ScaleType.Slice,
 		SliceCenter = Rect.new(8, 8, 92, 92),
 		BackgroundImageColor3 = Color3.fromRGB(180, 170, 160),
@@ -410,6 +413,7 @@ local function StorePanel()
 					HorizontalFlex = "None",
 					VerticalFlex = "None",
 					Spacing = UDim.new(0, 8),
+					Padding = { Right = UDim.new(0, 12) },
 				}, tabContent),
 			}),
 		}),

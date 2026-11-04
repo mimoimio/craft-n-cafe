@@ -21,101 +21,25 @@ local VStack = require(Primitives.VStack)
 local HStack = require(Primitives.HStack)
 local SmallButton = require(Primitives.SmallButton)
 local SmallText = require(Primitives.SmallText)
-local RedDot = require(script.Parent.RedDot).RedDot
+local Padding = require(Primitives.Padding)
 local Toasts = require(script.Parent.Parent.ReactComponents.Toasts)
+local WorkerManagementCard = require(script.WorkerManagementCard)
+local ShopTabs = require(script.ShopTabs)
 
 local e = React.createElement
 local useState = React.useState
+local useInputDevice = require(ReplicatedStorage.Shared.Hooks.useInputDevice)
 local useRef = React.useRef
 local useBinding = React.useBinding
 local useEffect = React.useEffect
 local useSpring = ReactFlow.useSpring
 local useBreakpoint = require(script.Parent.Parent.Hooks.useBreakpoint)
 local BuildersIcon = require(script.Parent.Parent.Utils.BuildersIcon)
+local ItemButton = require(script.ItemButton)
 
 local DOWN_ICON = BuildersIcon["chevron-large-down"]
-local function Padding(props: { All: UDim })
-	local All = props.All or UDim.new(0, 4)
-	return e("UIPadding", { PaddingTop = All, PaddingBottom = All, PaddingLeft = All, PaddingRight = All })
-end
 
 local playerId = Players.LocalPlayer and tostring(Players.LocalPlayer.UserId) or "MockUser"
-
-local function ShopTabs(props: {
-	mobile: boolean,
-	setTab: (string) -> ()?,
-	tab: string,
-	LayoutOrder: number?,
-	level: number,
-})
-	local toast = Toasts.useToast()
-
-	local function handleTab(tabName: string, reqLevel: number)
-		if props.level >= reqLevel then
-			if props.setTab then
-				props.setTab(tabName)
-			end
-		else
-			if toast then
-				toast.open(`Unlocks at Level {reqLevel} 🔒`, 3, Color3.new(1, 0.3, 0.3))
-			end
-		end
-	end
-
-	return e(HStack, {
-		Size = UDim2.new(0, 0, 0, 0),
-		LayoutOrder = props.LayoutOrder,
-		AutomaticSize = Enum.AutomaticSize.XY,
-		VerticalFlex = "Fill",
-		HorizontalFlex = "Fill",
-		Spacing = UDim.new(0, props.mobile and 4 or 8),
-	}, {
-		e(SmallButton, {
-			LayoutOrder = 1,
-			Size = UDim2.new(1, 0, 0, 0),
-			[React.Event.Activated] = function()
-				handleTab("item", 1)
-			end,
-			BackgroundTransparency = props.tab == "item" and 0 or 0.6,
-		}, {
-			e(SmallText, {
-				Text = "Item",
-				TextTransparency = props.tab == "item" and 0 or 0.6,
-				TextStrokeTransparency = props.tab == "item" and 0 or 0.6,
-			}),
-		}),
-		e(SmallButton, {
-			LayoutOrder = 2,
-			Size = UDim2.new(1, 0, 0, 0),
-			BackgroundColor3 = props.level < 4 and Color3.new(0.4, 0.4, 0.4) or nil,
-			[React.Event.Activated] = function()
-				handleTab("upgrade", 4)
-			end,
-			BackgroundTransparency = props.tab == "upgrade" and 0 or 0.6,
-		}, {
-			e(SmallText, {
-				Text = "Upgrade",
-				TextTransparency = props.tab == "upgrade" and 0 or 0.6,
-				TextStrokeTransparency = props.tab == "upgrade" and 0 or 0.6,
-			}),
-		}),
-		e(SmallButton, {
-			LayoutOrder = 3,
-			Size = UDim2.new(1, 0, 0, 0),
-			BackgroundColor3 = props.level < 4 and Color3.new(0.4, 0.4, 0.4) or nil,
-			[React.Event.Activated] = function()
-				handleTab("staff", 4)
-			end,
-			BackgroundTransparency = props.tab == "staff" and 0 or 0.6,
-		}, {
-			e(SmallText, {
-				Text = "Staff",
-				TextTransparency = props.tab == "staff" and 0 or 0.6,
-				TextStrokeTransparency = props.tab == "staff" and 0 or 0.6,
-			}),
-		}),
-	})
-end
 
 local function ItemModelViewport(props: { config: Types.PlaceableConfig, mobile: boolean?, ImageTransparency: number? })
 	local itemId = props.config.Id
@@ -169,105 +93,6 @@ local function ItemModelViewport(props: { config: Types.PlaceableConfig, mobile:
 			"Camera",
 			{ ref = setCurrentCamera, CFrame = CFrame.new(Vector3.new(20, 20, -20), Vector3.zero), FieldOfView = 45 }
 		),
-	})
-end
-
-local function ItemButton(props: {
-	isSelected: boolean,
-	isLocked: boolean,
-	maxed: boolean?,
-	config: Types.PlaceableConfig,
-	mobile: boolean,
-	cleared: boolean,
-	selectingCategory: React.ReactBinding<boolean>?,
-	Visible: boolean?,
-	OnMount: ((GuiObject) -> ())?,
-})
-	local itemId = props.config.Id
-	local isSelected = props.isSelected
-	local isLocked = props.isLocked
-	local currentCamera: Camera, setCurrentCamera = useState(nil)
-	local worldModel, setWorldModel = useState(nil)
-	local modelClone, setModelClone = useState(nil)
-	local mobile = props.mobile
-
-	useEffect(function()
-		if not worldModel then
-			return
-		end
-		local prefab = ReplicatedStorage.Shared.Models:FindFirstChild(itemId)
-		if not prefab then
-			return
-		end
-
-		local clone = prefab:Clone()
-		clone:PivotTo(CFrame.new(Vector3.zero))
-		clone.Parent = worldModel
-		setModelClone(clone)
-
-		return function()
-			clone:Destroy()
-			setModelClone(nil)
-		end
-	end, { worldModel })
-
-	useEffect(function()
-		if not (worldModel and currentCamera and modelClone) then
-			return
-		end
-		currentCamera:ZoomToExtents(modelClone:GetBoundingBox())
-	end, { worldModel, currentCamera, modelClone })
-
-	return e(SmallButton, {
-		Size = UDim2.new(0, mobile and 60 or 80, 0, mobile and 60 or 80),
-		AutomaticSize = Enum.AutomaticSize.None,
-		[React.Event.Activated] = props[React.Event.Activated],
-		BackgroundColor3 = isSelected and Color3.new(0.2, 0.6, 0.2) or nil,
-		LayoutOrder = props.config.UnlockLevel,
-		Padding = { All = UDim.new() },
-		Image = "",
-		Visible = props.Visible,
-		OnMount = props.OnMount,
-		Selectable = props.selectingCategory and props.selectingCategory:map(function(is)
-			return not is
-		end) or nil,
-	}, {
-		stroke = e("UIStroke", { Thickness = isSelected and 2 or 0 }),
-		reddot = not props.cleared and e(RedDot, { Position = UDim2.new(1, -8, 0, 8), SizeNum = 48 }),
-		e("Frame", {
-			Size = UDim2.fromScale(1, 1),
-			BackgroundColor3 = Color3.new(0, 0, 0),
-			BackgroundTransparency = isLocked and 0.5 or props.maxed and 0.8 or 1,
-			ZIndex = 4,
-			Visible = isLocked or props.maxed,
-		}, {
-			e("UICorner", { CornerRadius = UDim.new(0, 8) }),
-			e(SmallText, {
-				Text = isLocked and "🔒" or "",
-				TextSize = 24,
-				Size = UDim2.fromScale(1, 1),
-				HorizontalAlignment = Enum.HorizontalAlignment.Center,
-				TextYAlignment = Enum.TextYAlignment.Center,
-			}),
-		}) or nil,
-
-		e("ViewportFrame", {
-			ZIndex = 1,
-			CurrentCamera = currentCamera,
-			Size = UDim2.new(1, 0, 1, 0),
-			LightDirection = Vector3.new(0, -1, -1),
-			BackgroundTransparency = 1,
-			Active = false,
-			ImageTransparency = isLocked and 0.5 or 0,
-		}, {
-			World = e("WorldModel", { ref = setWorldModel }, {
-				Camera = e("Camera", {
-					ref = setCurrentCamera,
-					CFrame = CFrame.new(Vector3.new(20, 20, -20), Vector3.zero),
-					FieldOfView = 45,
-				}),
-			}),
-		}),
 	})
 end
 
@@ -336,7 +161,6 @@ local function CategoryRow(props: {
 		DropdownButton = e(SmallButton, {
 			Size = UDim2.new(1, 0, 1, 0),
 			AutomaticSize = Enum.AutomaticSize.None,
-			Text = `Category: {selectedCategory == nil and "All" or selectedCategory} {DOWN_ICON}`,
 			RichText = true,
 			[React.Event.Activated] = function()
 				setSelecting(function(prev)
@@ -344,7 +168,27 @@ local function CategoryRow(props: {
 				end)
 			end,
 			TextXAlignment = "Left",
-		}, {}),
+
+			Padding = { All = UDim.new(0, 0) },
+		}, {
+			e("ImageLabel", {
+				ZIndex = 1,
+				ScaleType = Enum.ScaleType.Stretch,
+				Image = "rbxassetid://124700292719297",
+				Size = UDim2.fromScale(1, 1),
+				BackgroundTransparency = 1,
+			}, {
+				e(Padding),
+				e(SmallText, {
+					Size = UDim2.fromScale(1, 1),
+					Text = `Category: {selectedCategory == nil and "All" or selectedCategory} {DOWN_ICON}`,
+					RichText = true,
+					AutomaticSize = Enum.AutomaticSize.XY,
+					HorizontalAlignment = Enum.HorizontalAlignment.Center,
+					TextXAlignment = Enum.TextXAlignment.Left,
+				}),
+			}),
+		}),
 		Dropdown = e(VStack, {
 			Visible = selecting,
 			AutomaticSize = Enum.AutomaticSize.XY,
@@ -356,110 +200,11 @@ local function CategoryRow(props: {
 	})
 end
 
-local function WorkerManagementCard(props: {
-	worker: Types.WorkerEntity,
-	index: number,
-	playerCash: number,
-	Visible: boolean,
-	LayoutOrder: number,
-})
-	local worker = props.worker
-	local statKeys: { Types.WorkerStatType } = { "walkSpeed", "craftSpeed", "quality" }
-	local statButtons = {}
-
-	for idx, statKey in ipairs(statKeys) do
-		local statCfg = WorkersConfig.StatUpgrades[statKey]
-		local currentLevel = if statKey == "walkSpeed"
-			then (worker.walkSpeedLevel or 1)
-			elseif statKey == "craftSpeed" then (worker.craftSpeedLevel or 1)
-			else (worker.qualityLevel or 1)
-
-		local maxLevel = #statCfg.Levels
-		local currentVal = statCfg.Levels[math.clamp(currentLevel, 1, maxLevel)].Value
-		local _, nextEntry = WorkersConfig.GetNextUpgrade(statKey, currentLevel)
-
-		local isMaxed = nextEntry == nil
-		local canAfford = nextEntry and (props.playerCash >= nextEntry.Cost) or false
-
-		local btnColor = Color3.new(0.2, 0.65, 0.3)
-		local btnLabel = ""
-
-		if isMaxed then
-			btnColor = Color3.new(0.35, 0.35, 0.35)
-			btnLabel = `<b>{statCfg.DisplayName}</b> (MAX)\n<font size="12">{statCfg.FormatValue(currentVal)}</font>`
-		else
-			if not canAfford then
-				btnColor = Color3.new(0.65, 0.25, 0.25)
-			end
-			btnLabel =
-				`<b>{statCfg.DisplayName}</b> Lvl {currentLevel}/{maxLevel}\n<font size="12">{statCfg.FormatValue(
-					currentVal
-				)} ➔ {statCfg.FormatValue(nextEntry.Value)} (${nextEntry.Cost})</font>`
-		end
-
-		statButtons[statKey] = e(SmallButton, {
-			LayoutOrder = idx,
-			Size = UDim2.new(1, 0, 0, 48),
-			AutomaticSize = Enum.AutomaticSize.None,
-			BackgroundColor3 = btnColor,
-			[React.Event.Activated] = function()
-				if not isMaxed and canAfford and Remotes.UpgradeWorker then
-					Remotes.UpgradeWorker:FireServer({
-						workerUid = worker.id,
-						statType = statKey,
-					})
-				end
-			end,
-		}, {
-			e(SmallText, {
-				Text = btnLabel,
-				RichText = true,
-				Size = UDim2.new(1, 0, 1, 0),
-				TextXAlignment = Enum.TextXAlignment.Center,
-				TextYAlignment = Enum.TextYAlignment.Center,
-			}),
-		})
-	end
-
-	return e("Frame", {
-		Size = UDim2.new(1, -8, 0, 0),
-		AutomaticSize = Enum.AutomaticSize.Y,
-		BackgroundColor3 = Color3.new(0.18, 0.18, 0.22),
-		BackgroundTransparency = 0.15,
-		Visible = props.Visible,
-		LayoutOrder = props.LayoutOrder,
-	}, {
-		Corner = e("UICorner", { CornerRadius = UDim.new(0, 8) }),
-		Stroke = e("UIStroke", { Thickness = 2, Color = Color3.new(0.4, 0.6, 0.9) }),
-		Content = e(VStack, {
-			Size = UDim2.new(1, 0, 0, 0),
-			AutomaticSize = Enum.AutomaticSize.Y,
-			Padding = { All = UDim.new(0, 8) },
-			Spacing = UDim.new(0, 6),
-		}, {
-			Header = e(SmallText, {
-				LayoutOrder = 0,
-				-- Text = `<b>{worker.name or ("Barista #" .. props.index)}</b> <font size="12" color="rgb(180,220,255)">({worker.action})</font>`,
-				Text = `{worker.name or ("Barista #" .. props.index)}`,
-				RichText = true,
-				Size = UDim2.new(1, 0, 0, 24),
-				TextXAlignment = Enum.TextXAlignment.Left,
-			}),
-			StatsList = e(VStack, {
-				LayoutOrder = 1,
-				Size = UDim2.new(1, 0, 0, 0),
-				AutomaticSize = Enum.AutomaticSize.Y,
-				Spacing = UDim.new(0, 4),
-			}, statButtons),
-		}),
-	})
-end
-
 local function ShopPanel()
 	local visible, setVisible = useState(false)
 	local selectedItem, setSelectedItem = useState(nil)
+	local currentInput = useInputDevice()
 
-	-- [[ ADD THIS HOOK ]]
 	useEffect(function()
 		UIState.selectShopItem(selectedItem)
 	end, { selectedItem })
@@ -640,19 +385,28 @@ local function ShopPanel()
 			canBuy = false
 		end
 
+		--[[
+		TODO: make overlay hidden when is in other tabs than item
+		]]
+		--[[
+		TODO: i think detailsOverlay can be another separate component.
+		]]
 		detailsOverlay = e(VStack, {
 			Position = UDim2.new(0, 0, 0.5, 0),
 			AnchorPoint = Vector2.new(1, 0.5),
 			Size = UDim2.new(0, mobile and 240 or 400, 0, 0),
 			BackgroundColor3 = Color3.new(0.1, 0.1, 0.1),
 			AutomaticSize = Enum.AutomaticSize.XY,
-			BackgroundTransparency = 0.6,
+			BackgroundTransparency = 1,
+			ScaleType = Enum.ScaleType.Slice,
+			SliceCenter = Rect.new(8, 8, 92, 92),
 			VerticalFlex = Enum.UIFlexAlignment.None,
 			Padding = { All = UDim.new(0, 10) },
+			BackgroundImage = "rbxassetid://99700456312840",
 			Spacing = UDim.new(0, 8),
 			ZIndex = 5,
 		}, {
-			e("UICorner", { CornerRadius = UDim.new(0, 8) }),
+			-- e("UICorner", { CornerRadius = UDim.new(0, 8) }),
 			Header = e(SmallText, {
 				Text = `<font size="20"><b>{selectedConfig.DisplayName}</b></font>\n<font color="rgb(180,180,180)">{selectedConfig.Category}</font>`,
 				RichText = true,
@@ -691,6 +445,9 @@ local function ShopPanel()
 					OnMount = function(rbx)
 						UIState.setTutorialTarget("BuyButton", rbx)
 						if rbx then
+							if currentInput ~= "Gamepad" then
+								return
+							end
 							GuiService.SelectedObject = rbx
 						end
 					end,
@@ -784,8 +541,9 @@ local function ShopPanel()
 		}, {
 			e("UIStroke", { Thickness = 2, Color = Color3.new(1, 0.8, 0) }),
 			e(SmallText, {
-				Text = canAfford and `Expand Cafe` or `Get Cash`,
-				-- Text = ` <b>Expand Cafe to {nextTier.Size}x{nextTier.Size}</b> \n<font size="13">{statusText}</font>`,
+				-- Text = canAfford and `Expand Cafe` or `Get Cash`,
+				-- Text = `Get Cash`,
+				Text = ` <b>Expand Cafe to {nextTier.Size}x{nextTier.Size}</b> \n<font size="13">{statusText}</font>`,
 				RichText = true,
 				Size = UDim2.new(1, 0, 1, 0),
 				TextXAlignment = Enum.TextXAlignment.Center,
@@ -845,10 +603,14 @@ local function ShopPanel()
 
 		local descText = upg.Description(math.max(currentLevel, 1))
 
-		itemButtons["UPG_" .. upg.Id] = e("Frame", {
+		itemButtons["UPG_" .. upg.Id] = e("ImageLabel", {
 			Size = UDim2.new(1, 0, 0, 72),
 			AutomaticSize = Enum.AutomaticSize.None,
 			-- BackgroundColor3 = bgColor,
+			Image = "rbxassetid://76169596898587",
+			ScaleType = Enum.ScaleType.Slice,
+			SliceCenter = Rect.new(8, 8, 92, 92),
+			BackgroundTransparency = 1,
 			LayoutOrder = idx,
 			Visible = tab == "upgrade",
 		}, {
@@ -950,7 +712,16 @@ local function ShopPanel()
 		}, {
 			e("UIStroke", { Thickness = 2, Color = Color3.new(0.5, 0.8, 1) }),
 			e(SmallText, {
-				Text = canAfford and `Hire a Barista (${nextWorkerTier and nextWorkerTier.Cost or 0})` or `Get Cash`,
+				Text = `Hire a Barista (${nextWorkerTier and nextWorkerTier.Cost or 0})`,
+				-- Text = canAfford and `Hire a Barista (${nextWorkerTier and nextWorkerTier.Cost or 0})` or `Get Cash`,
+				RichText = true,
+				Size = UDim2.new(1, 0, 1, 0),
+				TextXAlignment = Enum.TextXAlignment.Center,
+				TextYAlignment = Enum.TextYAlignment.Center,
+			}),
+			not levelMet and e(SmallText, {
+				Text = `Unlocked at {nextWorkerTier.UnlockLevel}`,
+				-- Text = canAfford and `Hire a Barista (${nextWorkerTier and nextWorkerTier.Cost or 0})` or `Get Cash`,
 				RichText = true,
 				Size = UDim2.new(1, 0, 1, 0),
 				TextXAlignment = Enum.TextXAlignment.Center,
@@ -1063,15 +834,15 @@ local function ShopPanel()
 		}),
 
 		Background = e("ImageLabel", {
-			Image = "rbxassetid://103478691850846",
+			Image = "rbxassetid://120520009441669",
 			ScaleType = Enum.ScaleType.Slice,
-			SliceCenter = Rect.new(8, 8, 92, 92),
+			SliceCenter = Rect.new(45, 45, 55, 55),
 			AnchorPoint = Vector2.new(0, 0),
 			Size = UDim2.new(1, 0, 1, 0),
 			Position = UDim2.new(0, 0, 0, 0),
 			BackgroundTransparency = 1,
 			ImageColor3 = Color3.new(0.6, 0.6, 0.6),
-			ImageTransparency = 0.2,
+			ImageTransparency = 0.1,
 			Visible = visible,
 			ZIndex = 1,
 		}),

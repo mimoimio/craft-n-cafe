@@ -30,7 +30,6 @@ export type PlayerData = Types.PlayerData
 
 local producer = Reflex.combineProducers({
 	Stats = statsSlice,
-	-- Ingredients = ingredientsSlice,
 	Customers = customersSlice,
 	Workers = workersSlice,
 	Cups = cupsSlice,

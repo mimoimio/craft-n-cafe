@@ -206,6 +206,7 @@ local function PlayPhase(props)
 		Size = UDim2.new(1, 0, 1, 0),
 	}, {
 		admin and e(require(script.Parent.ConsoleApp)),
+		admin and e(require(script.Parent.PlaytestLogger), { PlayerId = playerId }),
 		e(BuildPanel),
 		e(ShopPanel),
 		e(require(script.Parent.StorePanel)),

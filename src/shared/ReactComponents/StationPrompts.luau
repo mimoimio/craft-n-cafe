@@ -27,7 +27,11 @@ local useTween = ReactFlow.useTween
 local player = Players.LocalPlayer
 local playerId = player and tostring(player.UserId) or "MockUser"
 local tag = "Station" .. playerId
+--[[
 
+TODO: add auto fire server if reached the full value (1)
+
+]]
 -- Adjust this to control how fast the timing bar fills up while holding
 local TIMING_BAR_DURATION = 1.5
 

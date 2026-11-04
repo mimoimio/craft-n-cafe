@@ -4,6 +4,11 @@ local React = require(game:GetService("ReplicatedStorage").Packages.React)
 local useEffect, useState = React.useEffect, React.useState
 
 -- Returns: "Keyboard", "Gamepad", or "Touch"
+-- local LOGENABLED = true
+local log = function() end
+if LOGENABLED then
+	log = print
+end
 return function()
 	-- Default to Keyboard, or Touch if no keyboard exists (mobile)
 	local initialState = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled and "Touch"
@@ -14,10 +19,13 @@ return function()
 		local conn = UserInputService.LastInputTypeChanged:Connect(function(lastInputType)
 			if lastInputType == Enum.UserInputType.Keyboard or lastInputType == Enum.UserInputType.MouseMovement then
 				setInputType("Keyboard")
+				log("Keyboard")
 			elseif lastInputType.Name:find("Gamepad") then
 				setInputType("Gamepad")
+				log("Gamepad")
 			elseif lastInputType == Enum.UserInputType.Touch then
 				setInputType("Touch")
+				log("Touch")
 			end
 		end)
 
@@ -25,8 +33,10 @@ return function()
 		local current = UserInputService:GetLastInputType()
 		if current.Name:find("Gamepad") then
 			setInputType("Gamepad")
+			log("Gamepad")
 		elseif current == Enum.UserInputType.Touch then
 			setInputType("Touch")
+			log("Touch")
 		end
 
 		return function()

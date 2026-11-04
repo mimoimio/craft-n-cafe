@@ -16,212 +16,46 @@ local Types = require(ReplicatedStorage.Shared.Types)
 local BuildersIcon = require(ReplicatedStorage.Shared.Utils.BuildersIcon)
 
 local Primitives = ReplicatedStorage.Shared.ReactComponents.ui
+local Grid = require(Primitives.Grid)
 local VStack = require(Primitives.VStack)
 local HStack = require(Primitives.HStack)
 local SmallButton = require(Primitives.SmallButton)
 local SmallText = require(Primitives.SmallText)
+local Padding = require(Primitives.Padding)
+local SoundController = require(ReplicatedStorage.Shared.Controllers.SoundController)
 
 local e = React.createElement
 local useState = React.useState
-local useBinding = React.useBinding
 local useSpring = ReactFlow.useSpring
 local createSelector = Reflex.createSelector
 local useEffect = React.useEffect
 local useBreakpoint = require(script.Parent.Parent.Hooks.useBreakpoint)
 local useInputDevice = require(ReplicatedStorage.Shared.Hooks.useInputDevice)
+local CategoryRow = require(script.CategoryRow)
+local PaintDock = require(script.PaintDock)
+local ItemButton = require(script.ItemButton)
 
-local DOWN_ICON = BuildersIcon["chevron-large-down"]
-local function Padding(props: {
-	All: UDim,
-})
-	local All = props.All or UDim.new(0, 4)
-	return e("UIPadding", {
-		PaddingTop = All,
-		PaddingBottom = All,
-		PaddingLeft = All,
-		PaddingRight = All,
-	})
-end
 local playerId = Players.LocalPlayer and tostring(Players.LocalPlayer.UserId) or "MockUser"
 
-local function ItemButton(props: {
-	isSelected: boolean,
-	config: Types.PlaceableConfig,
-	count: number,
-	mobile: boolean,
-	Visible: boolean,
-	OnMount: ((GuiObject) -> ())?,
-})
-	local itemId = props.config.Id
-	local isSelected = props.isSelected
-	local count = props.count
-	local currentCamera: Camera, setCurrentCamera = useState(nil)
-	local worldModel, setWorldModel = useState(nil)
-	local modelClone, setModelClone = useState(nil)
-	local mobile = props.mobile
-
-	useEffect(function()
-		if not worldModel then
-			return
-		end
-		local prefab = ReplicatedStorage.Shared.Models:FindFirstChild(itemId)
-		if not prefab then
-			return
-		end
-		local clone = prefab:Clone()
-		clone:PivotTo(CFrame.new(Vector3.zero))
-		clone.Parent = worldModel
-		setModelClone(clone)
-
-		return function()
-			clone:Destroy()
-			setModelClone(nil)
-		end
-	end, { worldModel })
-
-	useEffect(function()
-		if not (worldModel and currentCamera and modelClone) then
-			return
-		end
-		currentCamera:ZoomToExtents(modelClone:GetBoundingBox())
-	end, { worldModel, currentCamera, modelClone })
-
-	return e(SmallButton, {
-		Size = UDim2.new(0, mobile and 60 or 80, 0, mobile and 60 or 80),
-		AutomaticSize = Enum.AutomaticSize.None,
-		[React.Event.Activated] = function()
-			UIState.selectBuildItem(itemId)
-		end,
-		BackgroundColor3 = isSelected and Color3.new(0, 1, 0) or nil,
-		Padding = { All = UDim.new() },
-		Visible = props.Visible,
-		OnMount = props.OnMount,
-	}, {
-		e("ImageLabel", {
-			ZIndex = 1,
-			BackgroundTransparency = 1,
-			Size = UDim2.new(1, 0, 1, 0),
-			AnchorPoint = Vector2.one * 0.5,
-			Position = UDim2.new(0.5, 0, 0.5, 0),
-			ImageColor3 = isSelected and Color3.new(0, 1, 0) or nil,
-			Image = "rbxassetid://103478691850846",
-		}, { e("UIScale", { Scale = isSelected and 1.1 or 1 }) }),
-		e("ViewportFrame", {
-			ZIndex = 2,
-			CurrentCamera = currentCamera,
-			Size = UDim2.new(1, 0, 1, mobile and -6 or -12),
-			LightDirection = Vector3.new(0, -1, -1),
-			BackgroundTransparency = 1,
-			Active = false,
-			ImageTransparency = 0,
-		}, {
-			World = e("WorldModel", {
-				ref = setWorldModel,
-			}, {
-				Camera = e("Camera", {
-					ref = setCurrentCamera,
-					CFrame = CFrame.new(Vector3.new(20, 20, -20), Vector3.zero),
-					FieldOfView = 45,
-				}),
-			}),
-		}),
-		e(SmallText, {
-			TextSize = 10,
-			Text = `{props.config.DisplayName}`,
-			HorizontalAlignment = Enum.HorizontalAlignment.Center,
-			TextWrapped = true,
-			ZIndex = 3,
-			AutomaticSize = Enum.AutomaticSize.None,
-			Size = UDim2.new(1, 0, 1, mobile and -6 or -12),
-		}),
-		e(SmallText, {
-			TextSize = mobile and 12 or 20,
-			Text = `x{count}`,
-			HorizontalAlignment = Enum.HorizontalAlignment.Center,
-			TextWrapped = true,
-			ZIndex = 3,
-			AutomaticSize = Enum.AutomaticSize.XY,
-			Position = UDim2.new(0, 8, 0, 0),
-		}),
+local function getContrastText(color: Color3): Color3
+	local luminance = (color.R * 0.299) + (color.G * 0.587) + (color.B * 0.114)
+	return luminance > 0.55 and Color3.new(0, 0, 0) or Color3.new(1, 1, 1)
+end
+local function playPaintSound(name: string, speed: number?)
+	SoundController.Sound(name, {
+		PlaybackSpeed = speed or 1,
 	})
 end
 
-local function CategoryRow(props: {
-	mobile: boolean,
-	setCategory: (category: string) -> (),
-})
-	local selectedCategory, setSelectedCategory = useState(nil)
-	local categories = PlaceablesModule.Categories
-	local selecting, setSelecting = useState(false)
-	useEffect(function()
-		if props.setCategory then
-			props.setCategory(selectedCategory)
-		end
-	end, { selectedCategory })
-
-	local children = {}
-	for i, category in categories do
-		children[category] = e(SmallButton, {
-			Size = UDim2.new(1, 0, 0, props.mobile and 20 or 40),
-			AutomaticSize = Enum.AutomaticSize.None,
-			Text = category,
-			RichText = true,
-			TextXAlignment = "Left",
-			BackgroundTransparency = 0.2,
-			Rounded = false,
-			[React.Event.Activated] = function()
-				setSelecting(false)
-				setSelectedCategory(category)
-			end,
-		}, {})
+local function prettySwatchName(name: string?): string
+	if not name then
+		return "Default"
 	end
-	children["All"] = e(SmallButton, {
-		Size = UDim2.new(1, 0, 0, props.mobile and 20 or 40),
-		AutomaticSize = Enum.AutomaticSize.None,
-		Text = "All",
-		RichText = true,
-		TextXAlignment = "Left",
-		BackgroundTransparency = 0.2,
-		Rounded = false,
-		[React.Event.Activated] = function()
-			setSelecting(false)
-			setSelectedCategory(nil)
-		end,
-	}, {})
-	return e("Frame", {
-		LayoutOrder = 2,
-		Size = UDim2.new(1, 0, 0, props.mobile and 40 or 60),
-		AutomaticSize = Enum.AutomaticSize.None,
-		BackgroundTransparency = 1,
-		ClipsDescendants = false,
-		ZIndex = 20,
-	}, {
-		e(Padding),
-		DropdownButton = e(SmallButton, {
-			Size = UDim2.new(1, 0, 1, 0),
-			AutomaticSize = Enum.AutomaticSize.None,
-			Text = `Category: {selectedCategory == nil and "All" or selectedCategory} {DOWN_ICON}`,
-			RichText = true,
-			[React.Event.Activated] = function()
-				setSelecting(function(prev)
-					return not prev
-				end)
-			end,
-			TextXAlignment = "Left",
-		}, {}),
-		Dropdown = e(VStack, {
-			Visible = selecting,
-			AutomaticSize = Enum.AutomaticSize.XY,
-			VerticalFlex = Enum.UIFlexAlignment.None,
-			ClipsDescendants = false,
-			Size = UDim2.new(1, 0, 0, 0),
-			Position = UDim2.new(0, 0, 1, 0),
-		}, children),
-	})
+	return (name:gsub("(%u)", " %1"):gsub("^%s+", ""))
 end
 
 local function BuildPanel()
-	local visible, setVisible = useState(false)
+	local visible, setVisible = useState(UIState:getState() and UIState:getState().buildItemId)
 	local selectedItem, setSelectedItem = useState(nil)
 	local playerInventory, setPlayerInventory = useState(nil)
 	local premiumPaintOwned, setPremiumPaintOwned = useState(false)
@@ -360,9 +194,8 @@ local function BuildPanel()
 		return actionText
 	end
 
-	-- 4. Generate Inventory & Swatch Buttons
+	-- 4. Generate Inventory Buttons
 	local itemButtons = {}
-	local swatchButtons = {}
 
 	useEffect(function()
 		if playerInventory and selectedItem and not DELETEMODE and not PAINTMODE then
@@ -390,6 +223,7 @@ local function BuildPanel()
 	end, { show })
 
 	if not playerInventory then
+		print("no playerinventory")
 		return nil
 	end
 
@@ -414,74 +248,12 @@ local function BuildPanel()
 		end
 	end
 
-	-- Default/Clear Swatch Button
-	swatchButtons["Default"] = e(SmallButton, {
-		Size = UDim2.new(0, mobile and 30 or 40, 0, mobile and 30 or 40),
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		LayoutOrder = 0,
-		[React.Event.Activated] = function()
-			if activeChannel == "Primary" then
-				setPrimaryColor(nil)
-			else
-				setSecondaryColor(nil)
-			end
-		end,
+	return e("Frame", {
+		Size = UDim2.new(1, 0, 1, 0),
+		BackgroundTransparency = 1,
 	}, {
-		e(SmallText, {
-			Text = "X",
-			TextColor3 = Color3.new(1, 0, 0),
-			TextScaled = true,
-			BackgroundTransparency = 1,
-			Size = UDim2.fromScale(1, 1),
-		}),
-		(activeChannel == "Primary" and primaryColor == nil or activeChannel == "Secondary" and secondaryColor == nil)
-				and e("UIStroke", { Thickness = 3, Color = Color3.new(0, 1, 0) })
-			or nil,
-	})
+		e(Padding, { All = UDim.new(0, 12) }),
 
-	-- Swatches
-	for orderCounter, swatch in ipairs(PaintConfig.SwatchList) do
-		local name = swatch.Name
-		local locked = swatch.Premium and not premiumPaintOwned
-		local isSelected = activeChannel == "Primary" and primaryColor == name
-			or activeChannel == "Secondary" and secondaryColor == name
-
-		swatchButtons[name] = e(SmallButton, {
-			Size = UDim2.new(0, mobile and 30 or 40, 0, mobile and 30 or 40),
-			AutomaticSize = Enum.AutomaticSize.None,
-			BackgroundColor3 = swatch.Color,
-			BackgroundTransparency = locked and 0.35 or 0,
-			LayoutOrder = orderCounter,
-			Padding = { All = UDim.new(0, 0) },
-			[React.Event.Activated] = function()
-				if locked then
-					UIState.toggle("store")
-					return
-				end
-
-				if activeChannel == "Primary" then
-					setPrimaryColor(name)
-				else
-					setSecondaryColor(name)
-				end
-			end,
-		}, {
-			locked and e(SmallText, {
-				Text = "LOCK",
-				TextSize = 10,
-				TextXAlignment = Enum.TextXAlignment.Center,
-				TextYAlignment = Enum.TextYAlignment.Center,
-				Size = UDim2.fromScale(1, 1),
-				AutomaticSize = Enum.AutomaticSize.None,
-				TextColor3 = Color3.new(1, 1, 1),
-				TextStrokeTransparency = 0,
-				ZIndex = 2,
-			}) or nil,
-			isSelected and e("UIStroke", { Thickness = 3, Color = Color3.new(0, 1, 0) }) or nil,
-		})
-	end
-
-	return e(React.Fragment, nil, {
 		-- MAIN PANEL (Inventory + Side buttons for Close & Hide)
 		MainPanel = e("Frame", {
 			Size = pos:map(function(n)
@@ -568,15 +340,15 @@ local function BuildPanel()
 				}),
 			}),
 			Background = e("ImageLabel", {
-				Image = "rbxassetid://103478691850846",
+				Image = "rbxassetid://120520009441669",
 				ScaleType = Enum.ScaleType.Slice,
-				SliceCenter = Rect.new(8, 8, 92, 92),
+				SliceCenter = Rect.new(45, 45, 55, 55),
 				AnchorPoint = Vector2.new(0, 0),
 				Size = UDim2.new(1, 0, 1, 0),
 				Position = UDim2.new(0, 0, 0, 0),
 				BackgroundTransparency = 1,
 				ImageColor3 = Color3.new(0.6, 0.6, 0.6),
-				ImageTransparency = 0.2,
+				ImageTransparency = 0.1,
 				Visible = visible,
 				ZIndex = 1,
 			}),
@@ -619,58 +391,45 @@ local function BuildPanel()
 			}),
 		}),
 
-		-- MIDDLE CONTAINER (Swatches + Toolbar wrapped vertically)
+		-- MIDDLE CONTAINER (Paint dock + Toolbar wrapped vertically)
 		MiddleContainer = e(VStack, {
-			Position = UDim2.new(0.5, 0, 1, mobile and -40 or -200),
+			Position = UDim2.new(0.5, 0, 1, mobile and -24 or -40),
 			AnchorPoint = Vector2.new(0.5, 1),
 			AutomaticSize = Enum.AutomaticSize.XY,
 			VerticalAlignment = Enum.VerticalAlignment.Bottom,
 			HorizontalAlignment = Enum.HorizontalAlignment.Center,
-			Spacing = UDim.new(0, 16),
+			Spacing = UDim.new(0, 8),
 			Visible = visible,
 			Size = UDim2.new(0, 0, 0, 0),
 			ZIndex = 10,
 		}, {
-			Swatches = (selectedItem and not DELETEMODE) and e(VStack, {
-				-- Size = UDim2.new(0, mobile and 320 or 420, 0, 0),
-				Size = UDim2.new(0, 0, 0, 0),
-				AutomaticSize = Enum.AutomaticSize.XY,
-				LayoutOrder = 1,
-				HorizontalAlignment = Enum.HorizontalAlignment.Center,
-				HorizontalFlex = "Fill",
-				Spacing = UDim.new(0, 8),
-			}, {
-				Tabs = e(HStack, {
-					Spacing = UDim.new(0, 10),
-					Size = UDim2.new(0, 0, 0, 0),
-					AutomaticSize = Enum.AutomaticSize.XY,
-					HorizontalFlex = "Fill",
-					HorizontalAlignment = Enum.HorizontalAlignment.Center,
-				}, {
-					PrimaryTab = e(SmallButton, {
-						Text = "Primary Color",
-						Size = UDim2.new(0.5, 0, 0, 40),
-						BackgroundColor3 = activeChannel == "Primary" and Color3.new(0.2, 0.6, 1) or nil,
-						[React.Event.Activated] = function()
-							setActiveChannel("Primary")
-						end,
-					}),
-					SecondaryTab = e(SmallButton, {
-						Text = "Secondary Color",
-						Size = UDim2.new(0.5, 0, 0, 40),
-						BackgroundColor3 = activeChannel == "Secondary" and Color3.new(0.2, 0.6, 1) or nil,
-						[React.Event.Activated] = function()
-							setActiveChannel("Secondary")
-						end,
-					}),
-				}),
-				Grid = e(HStack, {
-					Size = UDim2.new(0, 0, 0, 0),
-					AutomaticSize = Enum.AutomaticSize.XY,
-					Wraps = true,
-					Spacing = UDim.new(0, 4),
-					HorizontalAlignment = Enum.HorizontalAlignment.Center,
-				}, swatchButtons),
+			Paint = (selectedItem and not DELETEMODE) and e(PaintDock, {
+				activeChannel = activeChannel,
+				primaryColor = primaryColor,
+				secondaryColor = secondaryColor,
+				premiumPaintOwned = premiumPaintOwned,
+				mobile = mobile,
+				paintMode = PAINTMODE,
+				onSelectChannel = function(channel)
+					setActiveChannel(channel)
+				end,
+				onSelectColor = function(name)
+					if activeChannel == "Primary" then
+						setPrimaryColor(name)
+					else
+						setSecondaryColor(name)
+					end
+				end,
+				onClear = function()
+					if activeChannel == "Primary" then
+						setPrimaryColor(nil)
+					else
+						setSecondaryColor(nil)
+					end
+				end,
+				onOpenStore = function()
+					UIState.toggle("store")
+				end,
 			}) or nil,
 
 			Toolbar = e(HStack, {
@@ -684,12 +443,13 @@ local function BuildPanel()
 				Delete = e(SmallButton, {
 					Image = "",
 					AutomaticSize = Enum.AutomaticSize.None,
-					Size = UDim2.new(0, 40, 0, 40),
+					Size = UDim2.new(0, mobile and 40 or 60, 0, mobile and 40 or 60),
 					BackgroundTransparency = not DELETEMODE and 0.9 or nil,
 					BackgroundColor3 = DELETEMODE and Color3.new(1, 0.058823, 0.058823)
 						or Color3.new(1, 0.341176, 0.341176),
 					[React.Event.Activated] = function()
 						local is = UIState:getState().buildItemId ~= "DELETE_MODE" and "DELETE_MODE" or nil
+						playPaintSound(is and "glass_005" or "glass_003", is and 1 or 0.9)
 						UIState.selectBuildItem(is)
 					end,
 					LayoutOrder = 1,
@@ -725,6 +485,7 @@ local function BuildPanel()
 					BackgroundColor3 = PAINTMODE and Color3.new(0.2, 0.6, 1) or Color3.new(0.4, 0.7, 1),
 					[React.Event.Activated] = function()
 						local is = UIState:getState().buildItemId ~= "PAINT_MODE" and "PAINT_MODE" or nil
+						playPaintSound(is and "glass_003" or "glass_004", is and 1.18 or 0.9)
 						UIState.selectBuildItem(is)
 					end,
 					LayoutOrder = 2,
@@ -759,6 +520,7 @@ local function BuildPanel()
 					AutomaticSize = Enum.AutomaticSize.None,
 					LayoutOrder = 3,
 					[React.Event.Activated] = function()
+						playPaintSound("Cranking Sound (Wrench)", 1.15)
 						PlacementController:rotateItem()
 					end,
 					Padding = { All = UDim.new() },

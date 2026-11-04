@@ -278,9 +278,16 @@ local AppWrapper = function()
 			}),
 			e(SmallButton, {
 				[React.Event.Activated] = function()
-					GlobalState._addExp("MockUser", 10_000, LevelConfig.GetLevel(10_000))
+					GlobalState._addExp("MockUser", 100, LevelConfig.GetLevel(100))
 				end,
 				Text = "Add Exp",
+			}),
+			e(SmallButton, {
+				[React.Event.Activated] = function()
+					Remotes.CompleteTutorial:FireServer()
+				end,
+
+				Text = "completetu",
 			}),
 		}),
 	})
