@@ -7,9 +7,8 @@ local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Promise = require(ReplicatedStorage.Packages.Promise)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
+local DrinkValue = require(ReplicatedStorage.Shared.Utils.DrinkValue)
 local LevelConfig = require(ReplicatedStorage.Shared.Configs.LevelConfig)
-local MonetizationConfig = require(ReplicatedStorage.Shared.Configs.MonetizationConfig)
-local UpgradesConfig = require(ReplicatedStorage.Shared.Configs.UpgradesConfig)
 local Types = require(ReplicatedStorage.Shared.Types)
 local PlaceablesModule = require(ReplicatedStorage.Shared.PlaceablesModule)
 
@@ -140,17 +139,9 @@ function CustomersService.ServeCustomer(player: Player?, uid: string, workerUid:
 	end
 
 	if cup.drinkId == found.order then
-		local drinkConfig = CoffeeModule.Config[cup.drinkId]
-		local boostedPrice = UpgradesConfig.CalculateDrinkPrice(cup.drinkId, playersStats.Upgrades)
-
-		local ingredientCount = drinkConfig and math.max(1, #(drinkConfig.Ingredients or {})) or 1
-		local complexityMultiplier = math.min(1.5, 1 + 0.1 * (ingredientCount - 1))
-		local baseCash = drinkConfig and (boostedPrice * cup.score // ingredientCount) or 0
-		local cashMultiplier = MonetizationConfig.GetCashMultiplier(playersStats.OwnedGamePasses)
-		local cashReward = math.floor(baseCash * complexityMultiplier * cashMultiplier)
-
-		local expGain = math.max(1, math.floor((cup.status or 1) * complexityMultiplier))
-		local exp = playersStats.EXP + expGain
+		local drinkValue = DrinkValue.Calculate(cup, playersStats.Upgrades, playersStats.OwnedGamePasses)
+		local cashReward = drinkValue.Cash
+		local exp = playersStats.EXP + drinkValue.EXP
 		local level = LevelConfig.GetLevel(exp)
 
 		local plotState = state.Plot and state.Plot[playerId]

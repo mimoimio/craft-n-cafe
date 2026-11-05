@@ -9,6 +9,8 @@ local Types = require(ReplicatedStorage.Shared.Types)
 
 local WorkersService = {}
 
+local WORKER_ASSIST_DELAY_SECONDS = 6
+
 -- local LOGENABLED = true
 local Log = LOGENABLED and print or function() end
 
@@ -128,6 +130,8 @@ function WorkersService.Tick()
 		return
 	end
 
+	local now = workspace:GetServerTimeNow()
+
 	for playerId, _ in pairs(state.Stats) do
 		local customers = state.Customers[playerId]
 		local workers = state.Workers[playerId]
@@ -152,7 +156,10 @@ function WorkersService.Tick()
 
 		local assignedThisTick = false
 		for _, customer in pairs(customers) do
-			if customer.customerAction == "queuing" and not customer.servedBy then
+			local queuedFor = now - (customer.actionStartTime or now)
+			local playerHadFirstChance = queuedFor >= WORKER_ASSIST_DELAY_SECONDS
+
+			if customer.customerAction == "queuing" and not customer.servedBy and playerHadFirstChance then
 				local worker = table.remove(idleWorkers, 1)
 
 				if worker then

@@ -212,3 +212,20 @@ Everything else is clear: gamepass test override, shared cup-value util, logger 
 >>> 2. recommended, and do look at example tutorials before like @src/shared/ReactComponents/ShopTutorial.luau and @src/shared/ReactComponents/Tutorial.luau 
 >>> 3. recommended
 >>> 4. only register.
+
+---
+1. recommended
+2. recommended, and do look at example tutorials before like @src/shared/ReactComponents/ShopTutorial.luau and @src/shared/ReactComponents/Tutorial.luau 
+3. recommended
+4. only register.Implemented the confirmed pass.
+---
+
+- **Playtest config:** `PlaytestConfig.luau` now controls `Variant` and Studio pass overrides. Default is `no-pass`; change `OwnedPasses` if you want to test with passes.
+- **Cup value:** new `DrinkValue.luau` is shared by `CustomersService` and `PlayersCup`. HUD now shows actual dollar value + quality, not raw score.
+- **Logger:** now adds `variant`, `income_delta`, `spend_delta`, `cash_per_min`, and `exp_to_next_level`.
+- **Costs:** Register #2 is now level 4 / 1,000; Registers #3–5 halved; Worker #1 is 1,000; plot expansions and late stations halved. Upgrade costs left unchanged.
+- **Register tutorial:** added `RegisterTutorial.luau`, mounted in `Main`. It guides Shop → Buy Register #2 → Build → Place, after the ice-station tutorial.
+- **Worker priority:** workers now wait 6 seconds before auto-claiming a queuing customer.
+- **Next goal HUD:** added `NextGoal.luau`, showing the next level/register/worker/expansion goal.
+
+Verified with `luau-compile` and `rojo build`. No runtime playtest was run. No commit made.

@@ -3,10 +3,12 @@ local AnalyticsService = game:GetService("AnalyticsService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local MonetizationConfig = require(ReplicatedStorage.Shared.Configs.MonetizationConfig)
 local PlaceablesModule = require(ReplicatedStorage.Shared.PlaceablesModule)
+local PlaytestConfig = require(ReplicatedStorage.Shared.Configs.PlaytestConfig)
 local PlayerDataService = require(script.Parent.PlayerDataService)
 
 local MonetizationService = {}
@@ -173,6 +175,18 @@ local function syncGamePasses(player: Player)
 	end
 
 	ensureProfileTables(profile)
+
+	if RunService:IsStudio() and PlaytestConfig.UseGamePassOverrideInStudio then
+		for _, pass in pairs(MonetizationConfig.GamePasses) do
+			local owns = PlaytestConfig.OwnedPasses[pass.Key] == true
+			profile.Data.Stats.OwnedGamePasses[pass.Key] = owns
+			GlobalState.setGamePassOwnership(tostring(player.UserId), {
+				passKey = pass.Key,
+				owned = owns,
+			})
+		end
+		return
+	end
 
 	for _, pass in pairs(MonetizationConfig.GamePasses) do
 		if MonetizationConfig.IsConfigured(pass.PassId) then

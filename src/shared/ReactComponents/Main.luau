@@ -218,6 +218,7 @@ local function PlayPhase(props)
 		e(require(script.Parent.CustomerPrompts)),
 		e(require(script.Parent.StationPrompts)),
 		e(require(script.Parent.ShopTutorial)),
+		e(require(script.Parent.RegisterTutorial)),
 		e(require(script.Parent.SettingsPanel)),
 		e("Frame", {
 			Size = UDim2.new(1, 0, 1, 0),
@@ -272,6 +273,9 @@ local function PlayPhase(props)
 				}),
 				e(EXPOverlay),
 				e(CashOverlay),
+			}),
+			Goal = e(require(script.Parent.NextGoal), {
+				LayoutOrder = 2,
 			}),
 		}),
 		e(require(script.Parent.PlayersCup), {

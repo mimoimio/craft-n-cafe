@@ -1,0 +1,236 @@
+-- Shared/ReactComponents/RegisterTutorial.luau
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local React = require(ReplicatedStorage.Packages.React)
+local UIState = require(ReplicatedStorage.Shared.producers.UIState)
+local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
+local useInputDevice = require(ReplicatedStorage.Shared.Hooks.useInputDevice)
+
+local Primitives = ReplicatedStorage.Shared.ReactComponents.ui
+local SmallText = require(Primitives.SmallText)
+
+local e = React.createElement
+local useEffect = React.useEffect
+local useState = React.useState
+local useBinding = React.useBinding
+local useCallback = React.useCallback
+
+local player = Players.LocalPlayer
+local playerId = player and tostring(player.UserId) or "MockUser"
+
+local function ScreenGuiCircle(props: { TargetButton: GuiObject?, Color: Color3? })
+	local time, setTime = useBinding(workspace:GetServerTimeNow())
+
+	useEffect(function()
+		local running = true
+		local t = task.spawn(function()
+			while running do
+				task.wait()
+				setTime(workspace:GetServerTimeNow())
+			end
+		end)
+		return function()
+			running = false
+			task.cancel(t)
+		end
+	end, {})
+
+	local sizeMap = useCallback(function(t)
+		local pulse = math.sin(t * 5) * 40
+		return UDim2.fromOffset(60 + pulse, 60 + pulse)
+	end, {})
+
+	local posMap = useCallback(function(t)
+		if not props.TargetButton then
+			return UDim2.new()
+		end
+		local center = props.TargetButton.AbsolutePosition + (props.TargetButton.AbsoluteSize / 2)
+		return UDim2.fromOffset(center.X, center.Y)
+	end, { props.TargetButton })
+
+	if not props.TargetButton then
+		return nil
+	end
+
+	return e("ScreenGui", { DisplayOrder = 1010 }, {
+		Wrapper = e("Frame", {
+			BackgroundTransparency = 1,
+			Position = time:map(posMap),
+			Size = UDim2.fromOffset(60, 60),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+		}, {
+			Circle = e("Frame", {
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromScale(0.5, 0.5),
+				Size = time:map(sizeMap),
+				BackgroundColor3 = props.Color or Color3.new(1, 1, 1),
+				BackgroundTransparency = 0.8,
+			}, {
+				Corner = e("UICorner", { CornerRadius = UDim.new(1, 0) }),
+				Stroke = e("UIStroke", {
+					Color = props.Color or Color3.new(1, 1, 1),
+					Thickness = 3,
+				}),
+			}),
+		}),
+	})
+end
+
+local function countPlaced(plotState, itemId: string): number
+	local count = 0
+	if not plotState then
+		return count
+	end
+
+	for _, item in pairs(plotState.placedItems or {}) do
+		if item.id == itemId then
+			count += 1
+		end
+	end
+	for _, item in pairs(plotState.spatialItems or {}) do
+		if item.id == itemId then
+			count += 1
+		end
+	end
+
+	return count
+end
+
+local function RegisterTutorial()
+	local globalStates, setGlobalStates = useState(GlobalState:getState())
+	local uiStates, setUiStates = useState(UIState:getState())
+	local time, setTime = useBinding(workspace:GetServerTimeNow())
+	local hasCompleted, setHasCompleted = useState(false)
+	local textRef = React.useRef("")
+	local currentInputDevice = useInputDevice()
+
+	useEffect(function()
+		local unsubGlobal = GlobalState:subscribe(function(s)
+			return s
+		end, setGlobalStates)
+		local unsubUI = UIState:subscribe(function(s)
+			return s
+		end, setUiStates)
+		return function()
+			unsubGlobal()
+			unsubUI()
+		end
+	end, {})
+
+	useEffect(function()
+		local running = true
+		local t = task.spawn(function()
+			while running do
+				task.wait(1 / 15)
+				setTime(workspace:GetServerTimeNow())
+			end
+		end)
+		return function()
+			running = false
+			task.cancel(t)
+		end
+	end, {})
+
+	local textMap = useCallback(function(t)
+		local finalTexts = {}
+		local originalText = textRef.current or ""
+		local length = string.len(originalText)
+		for i = 1, length do
+			local offset = (math.sin((t + i) * 5) + 1) * 2
+			table.insert(finalTexts, `<font size="{18 + offset // 1}">{string.sub(originalText, i, i)}</font>`)
+		end
+		return table.concat(finalTexts)
+	end, {})
+
+	local stats = globalStates.Stats[playerId]
+	local plotState = globalStates.Plot[playerId]
+	local inventory = globalStates.Inventory[playerId] or {}
+	local level = stats and stats.Level or 1
+
+	local ownedCashier2 = inventory["Cashier2"] or 0
+	local placedCashier2 = countPlaced(plotState, "Cashier2")
+	local placedIceStation = countPlaced(plotState, "ice_station")
+	local totalCashier2 = ownedCashier2 + placedCashier2
+
+	if placedCashier2 > 0 and not hasCompleted then
+		setHasCompleted(true)
+	end
+
+	local stepText = ""
+	local circleTarget2D = nil
+	local panel = uiStates.panel
+	local selectedShopItem = uiStates.shopItemId
+	local targets = uiStates.tutorialTargets or {}
+
+	if totalCashier2 == 0 then
+		if panel ~= "shop" then
+			stepText = "Your register is the bottleneck. Let's add another one!"
+			circleTarget2D = targets["ShopButton"]
+		elseif selectedShopItem ~= "Cashier2" or not targets["BuyButton"] then
+			stepText = "Select Register #2 from the catalog."
+			circleTarget2D = targets["ShopItem_Cashier2"]
+		else
+			stepText = "Buy Register #2!"
+			circleTarget2D = targets["BuyButton"]
+		end
+	elseif placedCashier2 == 0 then
+		if panel ~= "build" then
+			stepText = "Great! Now place your new register. Open the Build Menu."
+			circleTarget2D = targets["BuildButton"]
+		elseif uiStates.buildItemId ~= "Cashier2" then
+			stepText = "Select Register #2 from your inventory."
+			circleTarget2D = targets["BuildItem_Cashier2"]
+		else
+			local placeText = currentInputDevice == "Gamepad" and "R2"
+				or currentInputDevice == "Touch" and "the Place Button"
+				or "Left Click"
+			stepText = `Place Register #2 near the entrance using {placeText}!`
+			circleTarget2D = targets["PlaceButton"]
+		end
+	end
+
+	useEffect(function()
+		textRef.current = stepText
+	end, { stepText })
+
+	if level < 4 or placedIceStation == 0 or hasCompleted then
+		return nil
+	end
+
+	return e("ScreenGui", { DisplayOrder = 1007 }, {
+		Banner = e("ImageLabel", {
+			Size = UDim2.new(0.5, 0, 0, 40),
+			AutomaticSize = Enum.AutomaticSize.XY,
+			Position = UDim2.new(0.5, 0, 1, -140),
+			AnchorPoint = Vector2.new(0.5, 1),
+			Image = "rbxassetid://127657596958436",
+			ImageTransparency = 0.6,
+			ImageColor3 = Color3.new(0.2, 0.2, 0.2),
+			ScaleType = Enum.ScaleType.Slice,
+			SliceCenter = Rect.new(8, 8, 92, 92),
+			BackgroundTransparency = 1,
+		}, {
+			Padding = e("UIPadding", {
+				PaddingLeft = UDim.new(0, 20),
+				PaddingRight = UDim.new(0, 20),
+				PaddingTop = UDim.new(0, 10),
+				PaddingBottom = UDim.new(0, 10),
+			}),
+			Text = e(SmallText, {
+				RichText = true,
+				Size = UDim2.new(1, 0, 1, 0),
+				Text = time:map(textMap),
+				TextXAlignment = Enum.TextXAlignment.Center,
+				TextYAlignment = Enum.TextYAlignment.Center,
+				MaxTextSize = 24,
+			}),
+		}),
+		Circle = circleTarget2D and e(ScreenGuiCircle, {
+			TargetButton = circleTarget2D,
+			Color = Color3.fromRGB(90, 230, 130),
+		}),
+	})
+end
+
+return RegisterTutorial

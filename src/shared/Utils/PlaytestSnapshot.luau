@@ -3,6 +3,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local IngredientsConfig = require(ReplicatedStorage.Shared.Configs.IngredientsConfig)
+local LevelConfig = require(ReplicatedStorage.Shared.Configs.LevelConfig)
 local PlaceablesModule = require(ReplicatedStorage.Shared.PlaceablesModule)
 
 local PlaytestSnapshot = {}
@@ -17,14 +18,19 @@ local COLUMNS = {
 	"timestamp",
 	"elapsed_s",
 	"player_id",
+	"variant",
 	"cash",
 	"lifetime_cash",
+	"income_delta",
+	"spend_delta",
 	"cash_delta",
 	"cash_per_s",
+	"cash_per_min",
 	"exp",
 	"level",
 	"exp_delta",
 	"exp_per_s",
+	"exp_to_next_level",
 	"customers_served",
 	"tutorial_completed",
 	"plot_size",
@@ -136,6 +142,7 @@ function PlaytestSnapshot.BuildRow(
 	state: any,
 	playerId: string,
 	sessionId: string,
+	variant: string,
 	startedAt: number,
 	previousRow: any?
 ): { [string]: any }
@@ -180,26 +187,36 @@ function PlaytestSnapshot.BuildRow(
 	end
 
 	local cash = stats.Cash or 0
+	local lifetimeCash = stats.LifetimeCash or 0
 	local exp = stats.EXP or 0
+	local level = stats.Level or 1
 	local elapsed = workspace:GetServerTimeNow() - startedAt
 	local cashDelta = if previousRow then cash - (previousRow.cash or 0) else 0
+	local incomeDelta = if previousRow then lifetimeCash - (previousRow.lifetime_cash or 0) else 0
+	local spendDelta = incomeDelta - cashDelta
 	local expDelta = if previousRow then exp - (previousRow.exp or 0) else 0
 	local seconds = if previousRow then elapsed - (previousRow.elapsed_s or elapsed) else 0
+	local expToNext = math.max(0, LevelConfig.GetExpOnLevel(level) - exp)
 
 	return {
 		session_id = sessionId,
 		timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ", os.time()),
 		elapsed_s = round(elapsed, 2),
 		player_id = playerId,
+		variant = variant,
 
 		cash = cash,
-		lifetime_cash = stats.LifetimeCash or 0,
+		lifetime_cash = lifetimeCash,
+		income_delta = incomeDelta,
+		spend_delta = spendDelta,
 		cash_delta = cashDelta,
 		cash_per_s = seconds > 0 and round(cashDelta / seconds, 3) or 0,
+		cash_per_min = elapsed > 0 and round(lifetimeCash / (elapsed / 60), 1) or 0,
 		exp = exp,
-		level = stats.Level or 0,
+		level = level,
 		exp_delta = expDelta,
 		exp_per_s = seconds > 0 and round(expDelta / seconds, 3) or 0,
+		exp_to_next_level = expToNext,
 		customers_served = stats.CustomersServed or 0,
 		tutorial_completed = stats.TutorialCompleted == true,
 

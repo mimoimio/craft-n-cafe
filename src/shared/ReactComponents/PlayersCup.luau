@@ -2,11 +2,13 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
 local Reflex = require(ReplicatedStorage.Packages.Reflex)
+local Mionum = require(ReplicatedStorage.Packages.Mionum)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local SoundController = require(ReplicatedStorage.Shared.Controllers.SoundController)
 local Types = require(ReplicatedStorage.Shared.Types)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
+local DrinkValue = require(ReplicatedStorage.Shared.Utils.DrinkValue)
 local e = React.createElement
 local createSelector = Reflex.createSelector
 local useEffect = React.useEffect
@@ -47,6 +49,8 @@ return function(props)
 
 	local mdTextSize, smTextSize = mobile and 16 or 32, mobile and 10 or 12
 	local cup: Types.CupEntity?, setCup: (cup: Types.CupEntity) -> nil = useState(nil)
+	local stats, setStats = useState(nil)
+
 	-- warn(`cup {cup}`, cup)
 	useEffect(function()
 		local unsub = GlobalState:subscribe(function(state: GlobalState.GlobalState)
@@ -55,7 +59,7 @@ return function(props)
 		end, setCup)
 
 		local state = GlobalState:getState()
-		local playersCup = state.Customers[playerId] and state.Cups[playerId].player
+		local playersCup = state.Cups[playerId] and state.Cups[playerId].player
 		setCup(playersCup)
 
 		if not player then
@@ -66,6 +70,15 @@ return function(props)
 			})
 		end
 
+		return unsub
+	end, {})
+
+	useEffect(function()
+		local unsub = GlobalState:subscribe(function(state: GlobalState.GlobalState)
+			return state.Stats[playerId]
+		end, setStats)
+
+		setStats(GlobalState:getState().Stats[playerId])
 		return unsub
 	end, {})
 
@@ -81,6 +94,12 @@ return function(props)
 	end, {})
 
 	local config = CoffeeModule.Config[cup and cup.drinkId]
+	local drinkValue = DrinkValue.Calculate(
+		cup,
+		stats and stats.Upgrades,
+		stats and stats.OwnedGamePasses
+	)
+	local qualityText = cup and cup.status and statuses[cup.status] or ""
 
 	local prevCupRef = useRef(nil)
 	useEffect(function()
@@ -135,7 +154,7 @@ return function(props)
 			-- BackgroundTransparency = 0.4,
 
 			Text = config
-					and `<font size="{mdTextSize}">Drink in hand: {config and config.DisplayName or ""}\n${cup.score} {cup.score >= 3 and `({statuses[cup.status]})` or ""}</font>`
+					and `<font size="{mdTextSize}">Drink in hand: {config.DisplayName}\n${Mionum.new(drinkValue.Cash):toString()} {qualityText ~= "" and `({qualityText})` or ""}</font>`
 				or "",
 			TextXAlignment = Enum.TextXAlignment.Right,
 			TextYAlignment = Enum.TextYAlignment.Top,

@@ -30,6 +30,10 @@ local useRef = React.useRef
 -- local LOGENABLED = true
 local Log = LOGENABLED and warn or function() end
 
+--[[
+CRITICAL BUG: after the 6 sec implementatino, if player has two staffs, the second staff wont do anything. Maybe because the wait keeps resetting?
+]]
+
 local function getPlayer(playerId: string): Player?
 	if playerId == "MockUser" then
 		return {

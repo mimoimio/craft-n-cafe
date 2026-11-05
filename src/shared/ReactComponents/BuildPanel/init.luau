@@ -35,6 +35,10 @@ local CategoryRow = require(script.CategoryRow)
 local PaintDock = require(script.PaintDock)
 local ItemButton = require(script.ItemButton)
 
+--[[
+TODO: add cancel button somewhere between delete, paint and rotate
+]]
+
 local playerId = Players.LocalPlayer and tostring(Players.LocalPlayer.UserId) or "MockUser"
 
 local function getContrastText(color: Color3): Color3
@@ -238,9 +242,9 @@ local function BuildPanel()
 					count = count,
 					mobile = mobile,
 					Visible = (category == nil) or category == config.Category,
-					OnMount = if itemId == "ice_station"
+					OnMount = if itemId == "ice_station" or itemId == "Cashier2"
 						then function(rbx)
-							UIState.setTutorialTarget("BuildItem_ice_station", rbx)
+							UIState.setTutorialTarget("BuildItem_" .. itemId, rbx)
 						end
 						else nil,
 				})

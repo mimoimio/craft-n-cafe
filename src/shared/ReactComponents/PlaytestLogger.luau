@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local React = require(ReplicatedStorage.Packages.React)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
+local PlaytestConfig = require(ReplicatedStorage.Shared.Configs.PlaytestConfig)
 local PlaytestSnapshot = require(ReplicatedStorage.Shared.Utils.PlaytestSnapshot)
 
 local Primitives = ReplicatedStorage.Shared.ReactComponents.ui
@@ -35,6 +36,7 @@ local function PlaytestLogger(props: { PlayerId: string? })
 			state,
 			playerId,
 			sessionId.current,
+			PlaytestConfig.Variant,
 			startedAt.current,
 			previousRow
 		)

@@ -19,7 +19,7 @@ export type StatUpgradeConfig = {
 
 local WorkersConfig = {
 	[1] = {
-		Cost = 1500,
+		Cost = 1000,
 		UnlockLevel = 6,
 		Title = "Barista",
 	},

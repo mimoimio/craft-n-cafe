@@ -771,7 +771,7 @@ local function ShopPanel()
 			isLocked = isLocked,
 			mobile = mobile,
 			cleared = not unackedUnlocks[config.Id],
-			OnMount = config.Id == "ice_station" and function(rbx)
+			OnMount = (config.Id == "ice_station" or config.Id == "Cashier2") and function(rbx)
 				UIState.setTutorialTarget("ShopItem_" .. config.Id, rbx)
 			end or nil,
 			[React.Event.Activated] = function()
