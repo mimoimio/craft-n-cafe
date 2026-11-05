@@ -31,6 +31,8 @@ local actions = {
 		stats.Upgrades = stats.Upgrades and table.clone(stats.Upgrades) or {}
 		stats.OwnedGamePasses = stats.OwnedGamePasses and table.clone(stats.OwnedGamePasses) or {}
 		stats.PurchasedProducts = stats.PurchasedProducts and table.clone(stats.PurchasedProducts) or {}
+		stats.CashPurchases = stats.CashPurchases and table.clone(stats.CashPurchases) or {}
+		stats.CashPurchased = stats.CashPurchased or 0
 		stats.LifetimeCash = stats.LifetimeCash or 0
 		stats.CustomersServed = stats.CustomersServed or 0
 		return Set(state, playerId, stats)
@@ -165,6 +167,28 @@ local actions = {
 		purchasedProducts[payload.productKey] = true
 
 		return Set(state, playerId, Set(playersStats, "PurchasedProducts", purchasedProducts))
+	end,
+	recordCashPurchase = function(
+		state: StatsState,
+		playerId: string,
+		payload: { productKey: string, cash: number }
+	)
+		local playersStats = state[playerId]
+		if not playersStats then
+			return state
+		end
+
+		local cashPurchases = table.clone(playersStats.CashPurchases or {})
+		cashPurchases[payload.productKey] = (cashPurchases[payload.productKey] or 0) + 1
+
+		return Set(
+			state,
+			playerId,
+			Merge(playersStats, {
+				CashPurchased = (playersStats.CashPurchased or 0) + payload.cash,
+				CashPurchases = cashPurchases,
+			})
+		)
 	end,
 	setPlayerPhase = function(state: StatsState, playerId: string, playerPhase: Types.PlayerPhase)
 		local playersStats = state[playerId]

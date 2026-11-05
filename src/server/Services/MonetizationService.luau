@@ -26,7 +26,14 @@ local function ensureProfileTables(profile)
 	profile.Data.PurchaseHistory = profile.Data.PurchaseHistory or {}
 	profile.Data.Stats.OwnedGamePasses = profile.Data.Stats.OwnedGamePasses or {}
 	profile.Data.Stats.PurchasedProducts = profile.Data.Stats.PurchasedProducts or {}
+	profile.Data.Stats.CashPurchased = profile.Data.Stats.CashPurchased or 0
+	profile.Data.Stats.CashPurchases = profile.Data.Stats.CashPurchases or {}
 	profile.Data.Stats.LifetimeCash = profile.Data.Stats.LifetimeCash or 0
+end
+
+local function recordProfileCashPurchase(data, productKey: string, cash: number)
+	data.Stats.CashPurchased = (data.Stats.CashPurchased or 0) + cash
+	data.Stats.CashPurchases[productKey] = (data.Stats.CashPurchases[productKey] or 0) + 1
 end
 
 local function pruneReceiptHistory(profile)
@@ -145,6 +152,7 @@ local function applyProductGrant(profile, product): (number, { string }, boolean
 
 	if MonetizationConfig.GetCashProductByProductId(product.ProductId) == product then
 		data.Stats.Cash = (data.Stats.Cash or 0) + product.Cash
+		recordProfileCashPurchase(data, product.Key, product.Cash)
 		return product.Cash, {}, false
 	end
 
@@ -162,6 +170,7 @@ local function applyProductGrant(profile, product): (number, { string }, boolean
 		end
 
 		data.Stats.Cash = (data.Stats.Cash or 0) + cash
+		recordProfileCashPurchase(data, starter.Key, cash)
 		return cash, grantedItems, not alreadyOwned
 	end
 
@@ -310,6 +319,10 @@ local function handleReceipt(receiptInfo)
 		GlobalState.grantCash(playerId, {
 			Cash = cashGranted,
 			Source = product.Key,
+		})
+		GlobalState.recordCashPurchase(playerId, {
+			productKey = product.Key,
+			cash = cashGranted,
 		})
 	end
 

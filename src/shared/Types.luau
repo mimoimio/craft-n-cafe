@@ -136,6 +136,8 @@ export type StatsEntity = {
 
 	OwnedGamePasses: { [string]: boolean }?,
 	PurchasedProducts: { [string]: boolean }?,
+	CashPurchased: number?,
+	CashPurchases: { [string]: number }?,
 	LifetimeCash: number?,
 	Upgrades: { [string]: number }?, -- Tracks global & ingredient upgrade levels
 }
@@ -347,6 +349,7 @@ export type CombinedActions = {
 	grantCash: (playerId: PlayerId, payload: { Cash: number, Source: string? }) -> (),
 	setGamePassOwnership: (playerId: PlayerId, payload: { passKey: string, owned: boolean }) -> (),
 	markProductPurchased: (playerId: PlayerId, payload: { productKey: string }) -> (),
+	recordCashPurchase: (playerId: PlayerId, payload: { productKey: string, cash: number }) -> (),
 
 	-- Plot Building
 	placeItem: (playerId: string, payload: PlaceItemPayload) -> (),

@@ -21,6 +21,8 @@ local COLUMNS = {
 	"variant",
 	"cash",
 	"lifetime_cash",
+	"cash_purchased_total",
+	"cash_purchased_delta",
 	"income_delta",
 	"spend_delta",
 	"cash_delta",
@@ -41,6 +43,7 @@ local COLUMNS = {
 	"worker_count",
 	"workers",
 	"upgrades",
+	"cash_purchases",
 	"owned_passes",
 	"purchased_products",
 	"has_double_cash",
@@ -70,6 +73,17 @@ local function joinKeys(map: { [string]: boolean }?): string
 	end
 	table.sort(keys)
 	return table.concat(keys, ";")
+end
+
+local function joinCounts(map: { [string]: number }?): string
+	local entries = {}
+	for key, count in pairs(map or {}) do
+		if count > 0 then
+			table.insert(entries, `{key}:{count}`)
+		end
+	end
+	table.sort(entries)
+	return table.concat(entries, ";")
 end
 
 local function getIngredientStationIndex(itemId: string?): number?
@@ -153,6 +167,7 @@ function PlaytestSnapshot.BuildRow(
 	local upgrades = stats.Upgrades or {}
 	local ownedPasses = stats.OwnedGamePasses or {}
 	local purchasedProducts = stats.PurchasedProducts or {}
+	local cashPurchases = stats.CashPurchases or {}
 
 	local stationTotalPlaced = 0
 	local stationTotalInventory = 0
@@ -188,12 +203,16 @@ function PlaytestSnapshot.BuildRow(
 
 	local cash = stats.Cash or 0
 	local lifetimeCash = stats.LifetimeCash or 0
+	local cashPurchased = stats.CashPurchased or 0
 	local exp = stats.EXP or 0
 	local level = stats.Level or 1
 	local elapsed = workspace:GetServerTimeNow() - startedAt
 	local cashDelta = if previousRow then cash - (previousRow.cash or 0) else 0
 	local incomeDelta = if previousRow then lifetimeCash - (previousRow.lifetime_cash or 0) else 0
-	local spendDelta = incomeDelta - cashDelta
+	local cashPurchasedDelta = if previousRow
+		then cashPurchased - (previousRow.cash_purchased_total or 0)
+		else 0
+	local spendDelta = incomeDelta + cashPurchasedDelta - cashDelta
 	local expDelta = if previousRow then exp - (previousRow.exp or 0) else 0
 	local seconds = if previousRow then elapsed - (previousRow.elapsed_s or elapsed) else 0
 	local expToNext = math.max(0, LevelConfig.GetExpOnLevel(level) - exp)
@@ -207,6 +226,8 @@ function PlaytestSnapshot.BuildRow(
 
 		cash = cash,
 		lifetime_cash = lifetimeCash,
+		cash_purchased_total = cashPurchased,
+		cash_purchased_delta = cashPurchasedDelta,
 		income_delta = incomeDelta,
 		spend_delta = spendDelta,
 		cash_delta = cashDelta,
@@ -229,6 +250,7 @@ function PlaytestSnapshot.BuildRow(
 		worker_count = #workers,
 		workers = getWorkersString(workers),
 		upgrades = getUpgradesString(upgrades),
+		cash_purchases = joinCounts(cashPurchases),
 		owned_passes = joinKeys(ownedPasses),
 		purchased_products = joinKeys(purchasedProducts),
 		has_double_cash = ownedPasses.DoubleCash == true,

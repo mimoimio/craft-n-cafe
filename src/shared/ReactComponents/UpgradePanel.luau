@@ -40,7 +40,9 @@ local SUBTEXT = Color3.fromRGB(160, 160, 180)
 local player = game:GetService("Players").LocalPlayer
 local playerId = player and tostring(player.UserId) or ""
 local tag = playerId .. "Cafe"
-
+--[[
+TODO: better UI?
+]]
 local function UpgradeWall(props)
 	local luck: number, setLuck = useState(not player and 1 or 1)
 	local cafeCapacity: number, setcafeCapacity = useState(not player and 1 or 1)
