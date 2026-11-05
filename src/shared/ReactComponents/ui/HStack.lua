@@ -14,7 +14,7 @@ local function HStack(props)
 			Padding = props.Spacing or UDim.new(0, 0),
 			Wraps = props.Wraps,
 			VerticalFlex = props.VerticalFlex or Enum.UIFlexAlignment.None,
-			HorizontalFlex = props.HorizontalFlex, -- Crucial for tabs!
+			HorizontalFlex = props.HorizontalFlex or Enum.UIFlexAlignment.None, -- Crucial for tabs!
 		}),
 
 		Padding = props.Padding and e("UIPadding", {

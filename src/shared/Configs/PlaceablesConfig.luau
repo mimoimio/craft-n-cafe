@@ -171,7 +171,7 @@ return {
 		Id = "Cashier2",
 		DisplayName = "Register #2",
 		Category = "Cashier",
-		Price = 1000,
+		Price = 300,
 		UnlockLevel = 4,
 		MaxAllowed = 1,
 	},

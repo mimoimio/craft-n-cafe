@@ -102,6 +102,9 @@ local function CustomerPromptNode(props: {
 	local secondsWaited = props.CustomerData and props.CustomerData.secondsWaited or 0
 	local isQueuingOrWaiting = props.CustomerData
 		and (props.CustomerData.customerAction == "queuing" or props.CustomerData.customerAction == "waiting")
+	--[[
+		TODO: abstract this logic, the waiter's patience. I want to make it longer, but maybe easier if util. Because Customers.luau also uses it.
+		]]
 	local color = secondsWaited < 10
 			and Color3.new(0, 1, 0.2):Lerp(Color3.new(1, 1, 0), math.clamp(secondsWaited / 10, 0, 1))
 		or Color3.new(1, 1, 0):Lerp(Color3.new(1, 0, 0), math.clamp((secondsWaited - 10) / 10, 0, 1))
@@ -206,7 +209,6 @@ return function()
 
 	-- Listen for Tags
 	useEffect(function()
-		
 		local function updateInstances()
 			setInstances(CollectionService:GetTagged(tag))
 		end

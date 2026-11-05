@@ -83,27 +83,45 @@ local function Panel(props)
 				HorizontalAlignment = Enum.HorizontalAlignment.Left,
 				VerticalAlignment = Enum.VerticalAlignment.Center,
 				HorizontalFlex = Enum.UIFlexAlignment.Fill,
+				VerticalFlex = Enum.UIFlexAlignment.Fill,
 				Spacing = UDim.new(0, 8),
-				BackgroundTransparency = 1,
 				LayoutOrder = 1,
+				ClipsDescendants = false,
 			}, {
-				Title = e(SmallText, {
-					Text = props.Title or "",
-					TextSize = props.TitleSize or 18,
-					LayoutOrder = 1,
-				}),
+				-- Title = e(SmallText, {
+				-- 	Text = props.Title or "",
+				-- 	TextSize = props.TitleSize or 18,
+				-- 	AutomaticSize = Enum.AutomaticSize.XY,
+				-- 	Size = UDim2.fromScale(1, 0),
+				-- 	LayoutOrder = 1,
+				-- }),
 				Spacer = e("Frame", {
 					LayoutOrder = 2,
+					AutomaticSize = Enum.AutomaticSize.XY,
 					Size = UDim2.fromScale(1, 0),
 					BackgroundTransparency = 1,
-				}),
+				}), -- why is when this uncommented the button got pushed to the right
 				CloseButton = props.OnClose and e(SmallButton, {
 					LayoutOrder = 3,
-					Text = "X",
+					Size = UDim2.new(0, 32, 0, 32),
+					-- Size = UDim2.fromScale(0, 0),
+					AutomaticSize = Enum.AutomaticSize.None,
 					BackgroundTransparency = props.CloseButtonBackgroundTransparency,
 					BackgroundColor3 = props.CloseButtonBackgroundColor3,
 					TextColor3 = props.CloseButtonTextColor3,
 					[React.Event.Activated] = props.OnClose,
+					Padding = {
+						All = UDim.new(0, 8),
+					},
+				}, {
+					e(SmallText, {
+						Text = "x",
+						AutomaticSize = Enum.AutomaticSize.XY,
+						Position = UDim2.new(0.5, 0, 0.5, 0),
+						-- BackgroundTransparency = 0,
+						-- BackgroundColor3 = Color3.new(1, 0, 0),
+						AnchorPoint = Vector2.new(0.5, 0.5),
+					}),
 				}) or nil,
 			}),
 			Body = e(VStack, {

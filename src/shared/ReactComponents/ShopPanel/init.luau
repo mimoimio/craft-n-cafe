@@ -1,4 +1,23 @@
 -- Shared/ReactComponents/ShopPanel.luau
+
+--[[
+TODO: think and redesign in ShopPanel to only show important stuffs like
+	registers and stations at the front page and the others at other tabs.
+	Instead of the frame on the right side, make it center and full screen.
+
+
+	now there are tabs for:
+	1. Stations
+	2. Registers
+	3. Furnitures
+	4. Decorations
+	5. Upgrades ?
+	6. Workers ?
+	7. Premium shop. Has smaller tabs for the new redesigned StorePanel
+
+	Split down the stuffs currently in this component into multiple components and files. Like the upgrade, the staffs
+
+]]
 local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

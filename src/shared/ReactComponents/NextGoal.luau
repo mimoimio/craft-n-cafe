@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local React = require(ReplicatedStorage.Packages.React)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
+local IngredientsConfig = require(ReplicatedStorage.Shared.Configs.IngredientsConfig)
 local LevelConfig = require(ReplicatedStorage.Shared.Configs.LevelConfig)
 local PlaceablesModule = require(ReplicatedStorage.Shared.PlaceablesModule)
 
@@ -35,6 +36,23 @@ local function countPlaced(plotState, itemId: string): number
 	end
 
 	return count
+end
+
+local function countOwned(inventory, plotState, itemId: string): number
+	return ((inventory and inventory[itemId]) or 0) + countPlaced(plotState, itemId)
+end
+
+local function nextUnownedStation(level: number, inventory, plotState): any?
+	for _, ingredient in ipairs(IngredientsConfig) do
+		local stationId = ingredient.Id .. "_station"
+		local config = PlaceablesModule.GetConfig(stationId)
+
+		if config and config.UnlockLevel <= level and countOwned(inventory, plotState, stationId) == 0 then
+			return config
+		end
+	end
+
+	return nil
 end
 
 local function nextPlaceableUnlock(level: number): any?
@@ -95,6 +113,7 @@ local function NextGoal(props)
 
 	local level = stats.Level or 1
 	local exp = stats.EXP or 0
+	local cash = stats.Cash or 0
 	local expToNext = math.max(0, LevelConfig.GetExpOnLevel(level) - exp)
 
 	local function expToLevel(targetLevel: number): number
@@ -102,6 +121,8 @@ local function NextGoal(props)
 	end
 
 	local playerInventory = inventory or {}
+	local cashier2Config = PlaceablesModule.GetConfig("Cashier2")
+	local cashier2Price = cashier2Config and cashier2Config.Price or 0
 	local cashier2Owned = (playerInventory["Cashier2"] or 0) + countPlaced(plot, "Cashier2")
 	local cashier2Placed = countPlaced(plot, "Cashier2")
 	local workerCount = workers and #workers or 0
@@ -111,9 +132,27 @@ local function NextGoal(props)
 	if level < 4 then
 		goal = `Next: Level 4 ({expToLevel(4)} EXP)`
 	elseif cashier2Placed == 0 then
-		goal = if cashier2Owned > 0 then "Next: Place Register #2" else "Next: Buy Register #2"
+		if cashier2Owned > 0 then
+			goal = "Next: Place Register #2"
+		elseif cash >= cashier2Price then
+			goal = "Next: Buy Register #2"
+		else
+			goal = `Next: Earn ${cashier2Price - cash} for Register #2`
+		end
 	elseif level < 6 then
-		goal = `Next: Level 6 ({expToLevel(6)} EXP)`
+		local nextStation = nextUnownedStation(level, playerInventory, plot)
+		if nextStation then
+			local stationOwned = (playerInventory[nextStation.Id] or 0) > 0
+			if stationOwned then
+				goal = `Next: Place {nextStation.DisplayName}`
+			elseif cash >= nextStation.Price then
+				goal = `Next: Buy {nextStation.DisplayName} (${nextStation.Price})`
+			else
+				goal = `Next: Earn ${nextStation.Price - cash} for {nextStation.DisplayName}`
+			end
+		else
+			goal = `Next: Level 6 ({expToLevel(6)} EXP)`
+		end
 	elseif workerCount == 0 then
 		goal = "Next: Hire your first barista"
 	elseif plotSize < 48 then

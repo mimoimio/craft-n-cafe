@@ -396,7 +396,7 @@ local function TimingBar(props: {
 end
 
 --[[
-bug: When a station is placed, its react is not detecting and not mounting the new prompt onto the station.
+bug fixed: When a station is placed, its react is not detecting and not mounting the new prompt onto the station.
 		prompt.Style = Enum.ProximityPromptStyle.Custom
 this line was supposed to make the prompt be not default. the bug didnt do that, meaning it does not even mount or
 not even added.

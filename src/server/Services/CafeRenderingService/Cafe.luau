@@ -57,26 +57,31 @@ local function Cafe(props: { BaseModel: CafeTypes.CafeBase, PlayerId: string })
 			return newCashiers
 		end
 
-		local unsubCashiers = GlobalState:observe(selectCashiers, function(cashierItem: CashierItem, itemId)
-			return itemId
-		end, function(cashierItem: CashierItem, cashierUuid)
-			setCashiers(function(prev: CashierItem)
-				local newCashiers = table.clone(prev)
-				newCashiers[cashierUuid] = cashierItem
-				return newCashiers
-			end)
-			return function()
+		local getUuid = function(_: CashierItem, key)
+			return key
+		end
+		local unsubCashiers = GlobalState:observe(
+			selectCashiers,
+			getUuid,
+			function(cashierItem: CashierItem, cashierUuid)
 				setCashiers(function(prev: CashierItem)
-					local cashier = prev[cashierUuid]
-					if not cashier then
-						return prev
-					end
 					local newCashiers = table.clone(prev)
-					newCashiers[cashierUuid] = nil
+					newCashiers[cashierUuid] = cashierItem
 					return newCashiers
 				end)
+				return function()
+					setCashiers(function(prev: CashierItem)
+						local cashier = prev[cashierUuid]
+						if not cashier then
+							return prev
+						end
+						local newCashiers = table.clone(prev)
+						newCashiers[cashierUuid] = nil
+						return newCashiers
+					end)
+				end
 			end
-		end)
+		)
 
 		-- OBSERVE STATIONS
 		local selectStations = function(state: GlobalState.GlobalState)

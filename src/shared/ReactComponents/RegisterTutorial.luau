@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
+local PlaceablesModule = require(ReplicatedStorage.Shared.PlaceablesModule)
 local useInputDevice = require(ReplicatedStorage.Shared.Hooks.useInputDevice)
 
 local Primitives = ReplicatedStorage.Shared.ReactComponents.ui
@@ -147,6 +148,9 @@ local function RegisterTutorial()
 	local plotState = globalStates.Plot[playerId]
 	local inventory = globalStates.Inventory[playerId] or {}
 	local level = stats and stats.Level or 1
+	local cash = stats and stats.Cash or 0
+	local cashier2Config = PlaceablesModule.GetConfig("Cashier2")
+	local cashier2Price = cashier2Config and cashier2Config.Price or 0
 
 	local ownedCashier2 = inventory["Cashier2"] or 0
 	local placedCashier2 = countPlaced(plotState, "Cashier2")
@@ -170,6 +174,9 @@ local function RegisterTutorial()
 		elseif selectedShopItem ~= "Cashier2" or not targets["BuyButton"] then
 			stepText = "Select Register #2 from the catalog."
 			circleTarget2D = targets["ShopItem_Cashier2"]
+		elseif cash < cashier2Price then
+			stepText = `Earn ${cashier2Price - cash} more for Register #2.`
+			circleTarget2D = nil
 		else
 			stepText = "Buy Register #2!"
 			circleTarget2D = targets["BuyButton"]
