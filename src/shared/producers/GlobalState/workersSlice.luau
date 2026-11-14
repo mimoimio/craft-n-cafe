@@ -33,6 +33,7 @@ local actions = {
 		for i, w in ipairs(data.Workers or {}) do
 			local worker = table.clone(w)
 			worker.name = worker.name or `Barista #{i}`
+			worker.lastAssignedAt = worker.lastAssignedAt or 0
 			worker.walkSpeedLevel = worker.walkSpeedLevel or 1
 			worker.craftSpeedLevel = worker.craftSpeedLevel or 1
 			worker.qualityLevel = worker.qualityLevel or 1
@@ -56,6 +57,7 @@ local actions = {
 			assignedCustomerUid = nil,
 			recipeQueue = {},
 			lastTend = 0,
+			lastAssignedAt = 0,
 			walkSpeedLevel = 1,
 			craftSpeedLevel = 1,
 			qualityLevel = 1,
@@ -125,6 +127,7 @@ local actions = {
 				new.action = "walkingToCashier"
 				new.assignedCustomerUid = payload.customerUid
 				new.targetUuid = payload.targetCounterUuid
+				new.lastAssignedAt = workspace:GetServerTimeNow()
 				return new
 			end)
 		)

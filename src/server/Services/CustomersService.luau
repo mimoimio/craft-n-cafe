@@ -9,11 +9,12 @@ local Promise = require(ReplicatedStorage.Packages.Promise)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 local DrinkValue = require(ReplicatedStorage.Shared.Utils.DrinkValue)
 local LevelConfig = require(ReplicatedStorage.Shared.Configs.LevelConfig)
+local PatienceUtil = require(ReplicatedStorage.Shared.Utils.PatienceUtil)
 local Types = require(ReplicatedStorage.Shared.Types)
 local PlaceablesModule = require(ReplicatedStorage.Shared.PlaceablesModule)
 
 local SPAWN_INTERVAL = 1
-local MAX_WAITING_TIME = 20
+local MAX_WAITING_TIME = PatienceUtil.MAX_WAITING_TIME
 local rng = Random.new()
 local lastSpawnTimes = {}
 

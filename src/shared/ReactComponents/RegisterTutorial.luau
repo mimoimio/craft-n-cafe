@@ -168,12 +168,23 @@ local function RegisterTutorial()
 	local targets = uiStates.tutorialTargets or {}
 
 	if totalCashier2 == 0 then
+		local itemTarget = targets["ShopItem_Cashier2"]
+		local subTabTarget = targets["ShopSubTab_Cashier"]
+
 		if panel ~= "shop" then
-			stepText = "Your register is the bottleneck. Let's add another one!"
+			stepText = "More registers mean more customers. Go place another one!"
 			circleTarget2D = targets["ShopButton"]
-		elseif selectedShopItem ~= "Cashier2" or not targets["BuyButton"] then
-			stepText = "Select Register #2 from the catalog."
-			circleTarget2D = targets["ShopItem_Cashier2"]
+		elseif not itemTarget then
+			if subTabTarget then
+				stepText = "Open the Registers tab in the catalog."
+				circleTarget2D = subTabTarget
+			else
+				stepText = "Open the Items tab in the shop."
+				circleTarget2D = targets["ShopTab_item"]
+			end
+		elseif selectedShopItem ~= "Cashier2" then
+			stepText = "Select Register #2 from the shop."
+			circleTarget2D = itemTarget
 		elseif cash < cashier2Price then
 			stepText = `Earn ${cashier2Price - cash} more for Register #2.`
 			circleTarget2D = nil

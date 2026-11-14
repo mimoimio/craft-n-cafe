@@ -19,7 +19,7 @@ local PlotConfig = require(game.ReplicatedStorage.Shared.Configs.PlotConfig)
 
 -- Studio keeps the mock store so UI Labs / quick playtests never touch live data.
 -- Published servers use the real ProfileStore.
-local IS_PLAYTESTING = RunService:IsStudio()
+-- local IS_PLAYTESTING = RunService:IsStudio()
 --
 local DrinksBrewedLeaderboard = DataStoreService:GetOrderedDataStore("DrinksBrewed")
 

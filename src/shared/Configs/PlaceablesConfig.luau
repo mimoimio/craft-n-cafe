@@ -1,3 +1,7 @@
+--[[
+TODO: diverge architecture into floor and roof.
+TODO: space out item unlock progression for each categories
+]]
 return {
 	{
 		Id = "cup_station",

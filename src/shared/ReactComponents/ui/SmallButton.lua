@@ -16,6 +16,12 @@ local function SmallButton(props)
 		damper = 0.8,
 		speed = 40,
 	})
+	local colorA, setColorA = useSpring({
+		start = 0,
+		target = 0,
+		damper = 0.8,
+		speed = 40,
+	})
 	useEffect(function()
 		if not visible then
 			setScale({
@@ -84,8 +90,28 @@ local function SmallButton(props)
 			})
 			-- SoundController.Sound("drop_001")
 		end,
-		[React.Event.MouseButton1Down] = props[React.Event.MouseButton1Down],
-		[React.Event.MouseButton1Up] = props[React.Event.MouseButton1Up],
+		[React.Event.MouseButton1Down] = function()
+			if props[React.Event.MouseButton1Down] then
+				props[React.Event.MouseButton1Down]()
+			end
+
+			setColorA({
+				target = 1,
+				speed = 40,
+				damper = 0.8,
+			})
+		end,
+		[React.Event.MouseButton1Up] = function()
+			if props[React.Event.MouseButton1Up] then
+				props[React.Event.MouseButton1Up]()
+			end
+
+			setColorA({
+				target = 0,
+				speed = 40,
+				damper = 0.8,
+			})
+		end,
 	}
 
 	if buttonClass == "ImageButton" then
@@ -93,7 +119,14 @@ local function SmallButton(props)
 		buttonProps.ImageRectOffset = props.ImageRectOffset
 		buttonProps.ImageRectSize = props.ImageRectSize
 		buttonProps.ImageTransparency = props.ImageTransparency or 0
-		buttonProps.ImageColor3 = props.ImageColor3 or props.TextColor3
+		-- buttonProps.ImageColor3 = props.ImageColor3 or props.TextColor3
+		buttonProps.ImageColor3 = props.ImageColor3
+				and colorA:map(function(n)
+					return (props.ImageColor3 :: Color3):Lerp(Color3.new(0, 0, 0), n / 2)
+				end)
+			or colorA:map(function(n)
+				return (Color3.new(1, 1, 1) :: Color3):Lerp(Color3.new(0, 0, 0), n / 2)
+			end)
 		buttonProps.ScaleType = props.ScaleType or Enum.ScaleType.Fit
 		buttonProps.SliceCenter = props.SliceCenter
 	else
@@ -133,10 +166,10 @@ local function SmallButton(props)
 		Scale = props.Scale,
 	}) or props.children.UIScale
 	props.children.Padding = e("UIPadding", {
-		PaddingTop = props.Padding and (props.Padding.All or props.Padding.Top) or UDim.new(0, 4),
-		PaddingBottom = props.Padding and (props.Padding.All or props.Padding.Bottom) or UDim.new(0, 4),
-		PaddingLeft = props.Padding and (props.Padding.All or props.Padding.Left) or UDim.new(0, 4),
-		PaddingRight = props.Padding and (props.Padding.All or props.Padding.Right) or UDim.new(0, 4),
+		PaddingTop = props.Padding and (props.Padding.Top or props.Padding.All) or UDim.new(0, 4),
+		PaddingBottom = props.Padding and (props.Padding.Bottom or props.Padding.All) or UDim.new(0, 4),
+		PaddingLeft = props.Padding and (props.Padding.Left or props.Padding.All) or UDim.new(0, 4),
+		PaddingRight = props.Padding and (props.Padding.Right or props.Padding.All) or UDim.new(0, 4),
 	}) or nil
 	props.children.TextOverlay = props.OverlayText
 			and e("TextLabel", {

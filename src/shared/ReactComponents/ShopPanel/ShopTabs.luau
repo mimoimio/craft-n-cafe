@@ -1,43 +1,17 @@
 -- Shared/ReactComponents/ShopPanel/ShopTabs.luau
-local GuiService = game:GetService("GuiService")
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
-local Mionum = require(ReplicatedStorage.Packages.Mionum)
-local ReactFlow = require(ReplicatedStorage.Packages.ReactFlow)
-local Reflex = require(ReplicatedStorage.Packages.Reflex)
 
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
-local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
-local PlaceablesModule = require(ReplicatedStorage.Shared.PlaceablesModule)
-local Remotes = require(ReplicatedStorage.Shared.Remotes)
-local Types = require(ReplicatedStorage.Shared.Types)
-local PlotExpansionsConfig = require(ReplicatedStorage.Shared.Configs.PlotExpansionsConfig)
-local WorkersConfig = require(ReplicatedStorage.Shared.Configs.WorkersConfig)
-local UpgradesConfig = require(ReplicatedStorage.Shared.Configs.UpgradesConfig)
-
 local Primitives = ReplicatedStorage.Shared.ReactComponents.ui
-local VStack = require(Primitives.VStack)
 local HStack = require(Primitives.HStack)
 local SmallButton = require(Primitives.SmallButton)
 local SmallText = require(Primitives.SmallText)
 local Toasts = require(script.Parent.Parent.Parent.ReactComponents.Toasts)
+local ShopTabConfig = require(script.Parent.ShopTabConfig)
 
+local useBreakpoint = require(ReplicatedStorage.Shared.Hooks.useBreakpoint)
 local e = React.createElement
-local useState = React.useState
-local useRef = React.useRef
-local useBinding = React.useBinding
-local useEffect = React.useEffect
-local useSpring = ReactFlow.useSpring
-local BuildersIcon = require(script.Parent.Parent.Parent.Utils.BuildersIcon)
-
-local DOWN_ICON = BuildersIcon["chevron-large-down"]
-local function Padding(props: { All: UDim })
-	local All = props.All or UDim.new(0, 4)
-	return e("UIPadding", { PaddingTop = All, PaddingBottom = All, PaddingLeft = All, PaddingRight = All })
-end
-
-local playerId = Players.LocalPlayer and tostring(Players.LocalPlayer.UserId) or "MockUser"
 
 local function ShopTabs(props: {
 	mobile: boolean,
@@ -47,6 +21,8 @@ local function ShopTabs(props: {
 	level: number,
 })
 	local toast = Toasts.useToast()
+	local xs, sm, md = useBreakpoint()
+	local mobile = xs or sm or md
 
 	local function handleTab(tabName: string, reqLevel: number)
 		if props.level >= reqLevel then
@@ -55,63 +31,68 @@ local function ShopTabs(props: {
 			end
 		else
 			if toast then
-				toast.open(`Unlocks at Level {reqLevel} 🔒`, 3, Color3.new(1, 0.3, 0.3))
+				toast.open(`Unlocks at Level {reqLevel}`, 3, Color3.new(1, 0.3, 0.3))
 			end
 		end
 	end
 
+	local children = {}
+	for index, tab in ipairs(ShopTabConfig.Tabs) do
+		local unlocked = props.level >= tab.level
+		children[tab.id] = e(SmallButton, {
+			LayoutOrder = index,
+			Size = UDim2.new(0, props.mobile and 78 or 110, 0, 34),
+			AutomaticSize = Enum.AutomaticSize.None,
+			-- BackgroundColor3 = (not unlocked) and Color3.new(0.4, 0.4, 0.4) or nil,
+			BackgroundTransparency = 1,
+			ImageColor3 = props.tab ~= tab.id and Color3.new(0.4, 0.4, 0.6) or nil,
+			ImageTransparency = (not unlocked) and 0.8 or 0,
+			Image = "rbxassetid://128846321008253",
+			HoverScale = true,
+			ScaleType = Enum.ScaleType.Slice,
+			SliceCenter = Rect.new(50, 50, 54, 57),
+			Rounded = false,
+			OnMount = function(rbx)
+				UIState.setTutorialTarget("ShopTab_" .. tab.id, rbx)
+			end,
+			[React.Event.Activated] = function()
+				handleTab(tab.id, tab.level)
+			end,
+		}, {
+
+			e(HStack, {
+				VerticalFlex = "Fill",
+				Size = UDim2.new(1, 0, 1, 0),
+				HorizontalFlex = "Fill",
+			}, {
+				e(SmallText, {
+					Text = tab.label,
+					TextSize = props.mobile and 12 or 14,
+					-- Size = UDim2.new(1, 0, 1, 0),
+					TextXAlignment = Enum.TextXAlignment.Center,
+					-- BackgroundTransparency = 0,
+					TextYAlignment = Enum.TextYAlignment.Center,
+					TextTransparency = props.tab == tab.id and 0 or 0.6,
+					TextStrokeTransparency = props.tab == tab.id and 0 or 0.6,
+				}),
+			}),
+		})
+	end
+
 	return e(HStack, {
-		Size = UDim2.new(0, 0, 0, 0),
+		Size = UDim2.new(1, 0, 0, 0),
 		LayoutOrder = props.LayoutOrder,
-		AutomaticSize = Enum.AutomaticSize.XY,
+		AutomaticSize = Enum.AutomaticSize.Y,
+		-- BackgroundTransparency = 0,
 		VerticalFlex = "Fill",
-		HorizontalFlex = "Fill",
-		Spacing = UDim.new(0, props.mobile and 4 or 8),
-	}, {
-		e(SmallButton, {
-			LayoutOrder = 1,
-			Size = UDim2.new(1, 0, 0, 0),
-			[React.Event.Activated] = function()
-				handleTab("item", 1)
-			end,
-			BackgroundTransparency = props.tab == "item" and 0 or 0.6,
-		}, {
-			e(SmallText, {
-				Text = "Item",
-				TextTransparency = props.tab == "item" and 0 or 0.6,
-				TextStrokeTransparency = props.tab == "item" and 0 or 0.6,
-			}),
-		}),
-		e(SmallButton, {
-			LayoutOrder = 2,
-			Size = UDim2.new(1, 0, 0, 0),
-			BackgroundColor3 = props.level < 4 and Color3.new(0.4, 0.4, 0.4) or nil,
-			[React.Event.Activated] = function()
-				handleTab("upgrade", 4)
-			end,
-			BackgroundTransparency = props.tab == "upgrade" and 0 or 0.6,
-		}, {
-			e(SmallText, {
-				Text = "Upgrade",
-				TextTransparency = props.tab == "upgrade" and 0 or 0.6,
-				TextStrokeTransparency = props.tab == "upgrade" and 0 or 0.6,
-			}),
-		}),
-		e(SmallButton, {
-			LayoutOrder = 3,
-			Size = UDim2.new(1, 0, 0, 0),
-			BackgroundColor3 = props.level < 4 and Color3.new(0.4, 0.4, 0.4) or nil,
-			[React.Event.Activated] = function()
-				handleTab("staff", 4)
-			end,
-			BackgroundTransparency = props.tab == "staff" and 0 or 0.6,
-		}, {
-			e(SmallText, {
-				Text = "Staff",
-				TextTransparency = props.tab == "staff" and 0 or 0.6,
-				TextStrokeTransparency = props.tab == "staff" and 0 or 0.6,
-			}),
-		}),
-	})
+		Wraps = true,
+		Spacing = UDim.new(0, props.mobile and 4 or 6),
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		BackgroundImage = "rbxassetid://99700456312840",
+		SliceCenter = Rect.new(8, 8, 92, 92),
+		ScaleType = Enum.ScaleType.Slice,
+		Padding = { All = UDim.new(0, mobile and 4 or 8) },
+	}, children)
 end
+
 return ShopTabs

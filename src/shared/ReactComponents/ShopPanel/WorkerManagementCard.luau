@@ -1,46 +1,105 @@
--- Shared/ReactComponents/ShopPanel.luau
-local GuiService = game:GetService("GuiService")
-local Players = game:GetService("Players")
+-- Shared/ReactComponents/ShopPanel/WorkerManagementCard.luau
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
-local Mionum = require(ReplicatedStorage.Packages.Mionum)
-local ReactFlow = require(ReplicatedStorage.Packages.ReactFlow)
-local Reflex = require(ReplicatedStorage.Packages.Reflex)
 
-local UIState = require(ReplicatedStorage.Shared.producers.UIState)
-local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
-local PlaceablesModule = require(ReplicatedStorage.Shared.PlaceablesModule)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local Types = require(ReplicatedStorage.Shared.Types)
-local PlotExpansionsConfig = require(ReplicatedStorage.Shared.Configs.PlotExpansionsConfig)
 local WorkersConfig = require(ReplicatedStorage.Shared.Configs.WorkersConfig)
-local UpgradesConfig = require(ReplicatedStorage.Shared.Configs.UpgradesConfig)
 
 local Primitives = ReplicatedStorage.Shared.ReactComponents.ui
 local VStack = require(Primitives.VStack)
 local HStack = require(Primitives.HStack)
 local SmallButton = require(Primitives.SmallButton)
 local SmallText = require(Primitives.SmallText)
+local BuildersIcon = require(script.Parent.Parent.Parent.Utils.BuildersIcon)
 
 local e = React.createElement
 local useState = React.useState
-local useRef = React.useRef
-local useBinding = React.useBinding
 local useEffect = React.useEffect
-local useSpring = ReactFlow.useSpring
-local BuildersIcon = require(script.Parent.Parent.Parent.Utils.BuildersIcon)
 
-local DOWN_ICON = BuildersIcon["chevron-large-down"]
-local function Padding(props: { All: UDim })
-	local All = props.All or UDim.new(0, 4)
-	return e("UIPadding", { PaddingTop = All, PaddingBottom = All, PaddingLeft = All, PaddingRight = All })
+local CARD_IMAGE = "rbxassetid://76169596898587"
+local BUTTON_IMAGE = "rbxassetid://76169596898587"
+local PORTRAIT_FALLBACK = "rbxassetid://15403066964"
+
+local STAT_ICONS = {
+	walkSpeed = BuildersIcon["shoe"],
+	craftSpeed = BuildersIcon["clock"],
+	quality = BuildersIcon["three-stacked-squares-tilted"],
+}
+
+local function WorkerPortrait()
+	local world, setWorld = useState(nil)
+	local camera, setCamera = useState(nil)
+	local model, setModel = useState(nil)
+	local hasFallback, setHasFallback = useState(false)
+
+	useEffect(function()
+		if not world then
+			return
+		end
+
+		local template = workspace:FindFirstChild("Rig")
+		if not template then
+			setHasFallback(true)
+			return
+		end
+
+		local clone = template:Clone()
+		clone.PrimaryPart = clone:FindFirstChild("HumanoidRootPart") or clone.PrimaryPart
+		for _, desc in clone:GetDescendants() do
+			if desc:IsA("BasePart") then
+				desc.Anchored = true
+				desc.CanCollide = false
+				desc.CanTouch = false
+			elseif desc:IsA("Script") or desc:IsA("LocalScript") then
+				desc:Destroy()
+			end
+		end
+
+		clone:PivotTo(CFrame.new())
+		clone.Parent = world
+		setModel(clone)
+
+		return function()
+			clone:Destroy()
+			setModel(nil)
+		end
+	end, { world })
+
+	useEffect(function()
+		if not (model and camera) then
+			return
+		end
+
+		local cf, size = model:GetBoundingBox()
+		local distance = math.max(size.X, size.Y, size.Z) * 1.9
+		camera.CFrame = CFrame.lookAt(cf.Position + Vector3.new(0, size.Y * 0.12, distance), cf.Position)
+		camera.FieldOfView = 40
+	end, { model, camera })
+
+	return e("ViewportFrame", {
+		Size = UDim2.fromOffset(48, 48),
+		BackgroundColor3 = Color3.new(0.1, 0.1, 0.12),
+		BackgroundTransparency = 0.15,
+		BorderSizePixel = 0,
+		Active = false,
+		CurrentCamera = camera,
+		ZIndex = 1,
+	}, {
+		e("UICorner", { CornerRadius = UDim.new(1, 0) }),
+		e("WorldModel", { ref = setWorld }, {
+			Camera = e("Camera", { ref = setCamera }),
+		}),
+		hasFallback and e("ImageLabel", {
+			Size = UDim2.fromScale(1, 1),
+			BackgroundTransparency = 1,
+			Image = PORTRAIT_FALLBACK,
+			ScaleType = Enum.ScaleType.Fit,
+			ImageTransparency = 0.15,
+			ZIndex = 2,
+		}) or nil,
+	})
 end
-
-local playerId = Players.LocalPlayer and tostring(Players.LocalPlayer.UserId) or "MockUser"
-
---[[
-TODO: use images for buttons and cards
-]]
 
 local function WorkerManagementCard(props: {
 	worker: Types.WorkerEntity,
@@ -87,7 +146,8 @@ local function WorkerManagementCard(props: {
 			LayoutOrder = idx,
 			Size = UDim2.new(1, 0, 0, 48),
 			AutomaticSize = Enum.AutomaticSize.None,
-			BackgroundColor3 = btnColor,
+			BackgroundTransparency = 1,
+			HoverScale = true,
 			[React.Event.Activated] = function()
 				if not isMaxed and canAfford and Remotes.UpgradeWorker then
 					Remotes.UpgradeWorker:FireServer({
@@ -96,40 +156,75 @@ local function WorkerManagementCard(props: {
 					})
 				end
 			end,
+			-- Image = BUTTON_IMAGE,
+			-- ScaleType = Enum.ScaleType.Slice,
+			-- SliceCenter = Rect.new(8, 8, 92, 92),
+			Image = canAfford and "rbxassetid://128846321008253" or "rbxassetid://91750414973277",
+			ScaleType = Enum.ScaleType.Slice,
+			SliceCenter = Rect.new(50, 50, 54, 57),
+
+			-- ImageColor3 = btnColor,
+			Rounded = false,
 		}, {
-			e(SmallText, {
-				Text = btnLabel,
+			-- ButtonImage = e("ImageLabel", {
+			-- 	Size = UDim2.fromScale(1, 1),
+			-- 	BackgroundTransparency = 1,
+			-- 	Image = BUTTON_IMAGE,
+			-- 	ScaleType = Enum.ScaleType.Slice,
+			-- 	SliceCenter = Rect.new(8, 8, 92, 92),
+			-- 	ImageColor3 = btnColor,
+			-- 	ImageTransparency = isMaxed and 0.15 or 0,
+			-- 	ZIndex = 0,
+			-- }),
+			Label = e(SmallText, {
+				Text = `{STAT_ICONS[statKey]} {btnLabel}`,
 				RichText = true,
 				Size = UDim2.new(1, 0, 1, 0),
 				TextXAlignment = Enum.TextXAlignment.Center,
 				TextYAlignment = Enum.TextYAlignment.Center,
+				TextWrapped = true,
+				ZIndex = 2,
 			}),
 		})
 	end
 
-	return e("Frame", {
+	return e("ImageLabel", {
 		Size = UDim2.new(1, -8, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
-		BackgroundColor3 = Color3.new(0.18, 0.18, 0.22),
-		BackgroundTransparency = 0.15,
+		BackgroundTransparency = 1,
+		Image = CARD_IMAGE,
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(8, 8, 92, 92),
+		ImageColor3 = Color3.new(0.82, 0.86, 1),
+		ImageTransparency = 0.08,
 		Visible = props.Visible,
 		LayoutOrder = props.LayoutOrder,
 	}, {
-		Corner = e("UICorner", { CornerRadius = UDim.new(0, 8) }),
-		Stroke = e("UIStroke", { Thickness = 2, Color = Color3.new(0.4, 0.6, 0.9) }),
+		-- Corner = e("UICorner", { CornerRadius = UDim.new(0, 8) }),
+		-- Stroke = e("UIStroke", { Thickness = 2, Color = Color3.new(0.4, 0.6, 0.9) }),
 		Content = e(VStack, {
 			Size = UDim2.new(1, 0, 0, 0),
 			AutomaticSize = Enum.AutomaticSize.Y,
 			Padding = { All = UDim.new(0, 8) },
 			Spacing = UDim.new(0, 6),
 		}, {
-			Header = e(SmallText, {
+			Header = e(HStack, {
 				LayoutOrder = 0,
-				-- Text = `<b>{worker.name or ("Barista #" .. props.index)}</b> <font size="12" color="rgb(180,220,255)">({worker.action})</font>`,
-				Text = `{worker.name or ("Barista #" .. props.index)}`,
-				RichText = true,
-				Size = UDim2.new(1, 0, 0, 24),
-				TextXAlignment = Enum.TextXAlignment.Left,
+				Size = UDim2.new(1, 0, 0, 0),
+				AutomaticSize = Enum.AutomaticSize.Y,
+				VerticalAlignment = Enum.VerticalAlignment.Center,
+				HorizontalAlignment = Enum.HorizontalAlignment.Left,
+				Spacing = UDim.new(0, 8),
+			}, {
+				Portrait = e(WorkerPortrait),
+				Name = e(SmallText, {
+					LayoutOrder = 2,
+					Text = `{worker.name or ("Barista #" .. props.index)}`,
+					RichText = true,
+					Size = UDim2.new(1, 0, 0, 24),
+					TextXAlignment = Enum.TextXAlignment.Left,
+					TextYAlignment = Enum.TextYAlignment.Center,
+				}),
 			}),
 			StatsList = e(VStack, {
 				LayoutOrder = 1,

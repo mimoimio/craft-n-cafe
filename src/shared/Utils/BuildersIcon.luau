@@ -24,6 +24,7 @@ local Icons = {
 	["ps-l2"] = `<font family="{FONT}">ps-l2</font>`,
 
 	["chevron-large-down"] = `<font family="{FONT}">chevron-large-down</font>`,
+	["shoe"] = `<font family="{FONT}">shoe</font>`,
 }
 
 -- Maps a Roblox KeyCode to our Dictionary keys based on Console Type

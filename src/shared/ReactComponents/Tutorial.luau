@@ -137,8 +137,8 @@ local function PointerBeam(props: { Adornee: PVInstance? })
 			char.PrimaryPart = hrp
 		end
 		part0:PivotTo(char:GetPivot() - Vector3.new(0, 2, 0))
-		warn("char pivot", char:GetPivot().Position)
-		warn(char)
+		-- warn("char pivot", char:GetPivot().Position)
+		-- warn(char)
 		part0.Parent = workspace
 		part0.Massless = true
 

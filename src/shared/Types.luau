@@ -191,6 +191,7 @@ export type WorkerEntity = {
 	assignedCustomerUid: string?,
 	recipeQueue: { string }, -- E.g. {"cup_station", "espresso_station", "milk_station"}
 	lastTend: number,
+	lastAssignedAt: number?,
 	walkSpeedLevel: number?, -- Default 1
 	craftSpeedLevel: number?, -- Default 1
 	qualityLevel: number?, -- Default 1 (gives score 1, upgrades to 2 and 3)

@@ -9,8 +9,6 @@ local Types = require(ReplicatedStorage.Shared.Types)
 
 local WorkersService = {}
 
-local WORKER_ASSIST_DELAY_SECONDS = 6
-
 -- local LOGENABLED = true
 local Log = LOGENABLED and print or function() end
 
@@ -131,6 +129,8 @@ function WorkersService.Tick()
 	end
 
 	local now = workspace:GetServerTimeNow()
+	local assistDelay = WorkersConfig.AssistDelaySeconds or 6
+	local assignCooldown = WorkersConfig.AssignCooldownSeconds or 1
 
 	for playerId, _ in pairs(state.Stats) do
 		local customers = state.Customers[playerId]
@@ -143,9 +143,19 @@ function WorkersService.Tick()
 		end
 
 		local idleWorkers = {}
+		local reservedCustomers = {}
+
 		for _, worker in ipairs(workers) do
 			if worker.action == "idle" then
-				table.insert(idleWorkers, worker)
+				local lastAssignedAt = worker.lastAssignedAt or 0
+				if now - lastAssignedAt >= assignCooldown then
+					table.insert(idleWorkers, worker)
+				end
+			elseif worker.assignedCustomerUid then
+				-- Do not let another worker target a customer this worker is
+				-- already walking to. Without this, two staff can be sent to
+				-- the same customer and the second one resets to idle.
+				reservedCustomers[worker.assignedCustomerUid] = true
 			end
 		end
 
@@ -154,25 +164,29 @@ function WorkersService.Tick()
 			continue
 		end
 
-		local assignedThisTick = false
 		for _, customer in pairs(customers) do
-			local queuedFor = now - (customer.actionStartTime or now)
-			local playerHadFirstChance = queuedFor >= WORKER_ASSIST_DELAY_SECONDS
+			if #idleWorkers == 0 then
+				break
+			end
 
-			if customer.customerAction == "queuing" and not customer.servedBy and playerHadFirstChance then
+			local queuedFor = now - (customer.actionStartTime or now)
+			local playerHadFirstChance = queuedFor >= assistDelay
+
+			if
+				customer.customerAction == "queuing"
+				and not customer.servedBy
+				and not reservedCustomers[customer.id]
+				and playerHadFirstChance
+			then
 				local worker = table.remove(idleWorkers, 1)
 
 				if worker then
+					reservedCustomers[customer.id] = true
 					GlobalState.assignWorkerTask(playerId, {
 						workerUid = worker.id,
 						customerUid = customer.id,
 						targetCounterUuid = customer.targetCounterUuid,
 					})
-					assignedThisTick = true
-				end
-
-				if assignedThisTick then
-					break
 				end
 			end
 		end

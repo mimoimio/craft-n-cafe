@@ -81,9 +81,14 @@ local function CategoryRow(props: {
 	}, {
 		e(Padding),
 		DropdownButton = e(SmallButton, {
-			Size = UDim2.new(1, 0, 1, 0),
 			AutomaticSize = Enum.AutomaticSize.None,
-			RichText = true,
+			-- ScaleType = Enum.ScaleType.Stretch,
+			Size = UDim2.fromScale(1, 1),
+			-- Image = "rbxassetid://124700292719297",
+			Image = "rbxassetid://76169596898587",
+			ScaleType = Enum.ScaleType.Slice,
+			SliceCenter = Rect.new(8, 8, 92, 92),
+			Rounded = false,
 			[React.Event.Activated] = function()
 				setSelecting(function(prev)
 					return not prev
@@ -93,10 +98,8 @@ local function CategoryRow(props: {
 			Padding = { All = UDim.new(0, 0) },
 		}, {
 			e("ImageLabel", {
-				ZIndex = 1,
-				ScaleType = Enum.ScaleType.Stretch,
-				Image = "rbxassetid://124700292719297",
 				Size = UDim2.fromScale(1, 1),
+				ZIndex = 1,
 				BackgroundTransparency = 1,
 			}, {
 				e(Padding),

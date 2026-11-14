@@ -13,6 +13,7 @@ local ScreenPromptButton = require(script.Parent.ui.ScreenPromptButton)
 local SmallText = require(script.Parent.ui.SmallText)
 
 local BuildersIcon = require(ReplicatedStorage.Shared.Utils.BuildersIcon)
+local PatienceUtil = require(ReplicatedStorage.Shared.Utils.PatienceUtil)
 local useInputDevice = require(ReplicatedStorage.Shared.Hooks.useInputDevice)
 
 local e = React.createElement
@@ -96,18 +97,13 @@ local function CustomerPromptNode(props: {
 			and props.CustomerData.servedBy
 			and props.CustomerData.servedBy ~= "player"
 		or false
-	-- warn("someoneElseServing?", someoneElseServing and "yes" or "no")
+	-- warn(/"someoneElseServing?", someoneElseServing and "yes" or "no")
 
 	local currentInput = useInputDevice()
 	local secondsWaited = props.CustomerData and props.CustomerData.secondsWaited or 0
 	local isQueuingOrWaiting = props.CustomerData
 		and (props.CustomerData.customerAction == "queuing" or props.CustomerData.customerAction == "waiting")
-	--[[
-		TODO: abstract this logic, the waiter's patience. I want to make it longer, but maybe easier if util. Because Customers.luau also uses it.
-		]]
-	local color = secondsWaited < 10
-			and Color3.new(0, 1, 0.2):Lerp(Color3.new(1, 1, 0), math.clamp(secondsWaited / 10, 0, 1))
-		or Color3.new(1, 1, 0):Lerp(Color3.new(1, 0, 0), math.clamp((secondsWaited - 10) / 10, 0, 1))
+	local color = PatienceUtil.getColor(secondsWaited)
 	return not someoneElseServing
 			and e(React.Fragment, {}, {
 				-- The Interactive Custom UI (Only shows when hovered and panels are closed)
@@ -117,9 +113,14 @@ local function CustomerPromptNode(props: {
 					AnchorPoint = Vector2.new(0.5, 0.5),
 					Size = UDim2.fromOffset(200, 50),
 					Visible = visible and shown,
-					Image = "rbxassetid://127657596958436",
+					-- Image = "rbxassetid://127657596958436",
+					-- ScaleType = Enum.ScaleType.Slice,
+					-- SliceCenter = Rect.new(8, 8, 92, 92),
+					
+					Image = "rbxassetid://75739845148535",
+					HoverScale = true,
 					ScaleType = Enum.ScaleType.Slice,
-					SliceCenter = Rect.new(8, 8, 92, 92),
+					SliceCenter = Rect.new(50, 50, 54, 57),
 					BackgroundTransparency = 1,
 				}, {
 					-- e(SmallText, {
@@ -131,6 +132,8 @@ local function CustomerPromptNode(props: {
 					e(SmallText, {
 						Size = UDim2.new(1, 0, 1, 0),
 						TextXAlignment = Enum.TextXAlignment.Center,
+						TextYAlignment = Enum.TextYAlignment.Center,
+
 						Text = prompt and (BuildersIcon.GetPromptText(
 							currentInput == "Gamepad" and prompt.GamepadKeyCode or prompt.KeyboardKeyCode,
 							currentInput

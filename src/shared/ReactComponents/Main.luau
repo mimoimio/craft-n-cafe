@@ -212,6 +212,7 @@ local function PlayPhase(props)
 		e(require(script.Parent.StorePanel)),
 		e(Tutorial),
 		e(require(script.Parent.CustomersOrder)),
+		e(require(script.Parent.WorkerWarnings)),
 		-- player and
 		e(require(script.Parent.WarningsOverlay)),
 		e(require(script.Parent.LevelUp)),

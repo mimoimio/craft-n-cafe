@@ -1,144 +1,76 @@
 -- Shared/ReactComponents/ShopPanel.luau
-
---[[
-TODO: think and redesign in ShopPanel to only show important stuffs like
-	registers and stations at the front page and the others at other tabs.
-	Instead of the frame on the right side, make it center and full screen.
-
-
-	now there are tabs for:
-	1. Stations
-	2. Registers
-	3. Furnitures
-	4. Decorations
-	5. Upgrades ?
-	6. Workers ?
-	7. Premium shop. Has smaller tabs for the new redesigned StorePanel
-
-	Split down the stuffs currently in this component into multiple components and files. Like the upgrade, the staffs
-
-]]
-local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
-local Mionum = require(ReplicatedStorage.Packages.Mionum)
-local ReactFlow = require(ReplicatedStorage.Packages.ReactFlow)
 local Reflex = require(ReplicatedStorage.Packages.Reflex)
 
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local PlaceablesModule = require(ReplicatedStorage.Shared.PlaceablesModule)
-local Remotes = require(ReplicatedStorage.Shared.Remotes)
-local Types = require(ReplicatedStorage.Shared.Types)
-local PlotExpansionsConfig = require(ReplicatedStorage.Shared.Configs.PlotExpansionsConfig)
-local WorkersConfig = require(ReplicatedStorage.Shared.Configs.WorkersConfig)
-local UpgradesConfig = require(ReplicatedStorage.Shared.Configs.UpgradesConfig)
 
 local Primitives = ReplicatedStorage.Shared.ReactComponents.ui
+local Panel = require(Primitives.Panel)
 local VStack = require(Primitives.VStack)
 local HStack = require(Primitives.HStack)
 local SmallButton = require(Primitives.SmallButton)
 local SmallText = require(Primitives.SmallText)
 local Padding = require(Primitives.Padding)
-local Toasts = require(script.Parent.Parent.ReactComponents.Toasts)
-local WorkerManagementCard = require(script.WorkerManagementCard)
+
 local ShopTabs = require(script.ShopTabs)
+local ShopTabConfig = require(script.ShopTabConfig)
+local ItemTab = require(script.ItemTab)
+local UpgradeTab = require(script.UpgradeTab)
+local StaffTab = require(script.StaffTab)
+local PremiumTab = require(script.PremiumTab)
+local DetailsOverlay = require(script.DetailsOverlay)
 
 local e = React.createElement
 local useState = React.useState
-local useInputDevice = require(ReplicatedStorage.Shared.Hooks.useInputDevice)
 local useRef = React.useRef
 local useBinding = React.useBinding
 local useEffect = React.useEffect
-local useSpring = ReactFlow.useSpring
 local useBreakpoint = require(script.Parent.Parent.Hooks.useBreakpoint)
 local BuildersIcon = require(script.Parent.Parent.Utils.BuildersIcon)
-local ItemButton = require(script.ItemButton)
+local useInputDevice = require(ReplicatedStorage.Shared.Hooks.useInputDevice)
 
 local DOWN_ICON = BuildersIcon["chevron-large-down"]
 
 local playerId = Players.LocalPlayer and tostring(Players.LocalPlayer.UserId) or "MockUser"
 
-local function ItemModelViewport(props: { config: Types.PlaceableConfig, mobile: boolean?, ImageTransparency: number? })
-	local itemId = props.config.Id
-	local currentCamera: Camera, setCurrentCamera = useState(nil)
-	local modelClone, setModelClone = useState(nil)
-	local viewportFrame: ViewportFrame, setViewportFrame = useState(nil)
-
-	useEffect(function()
-		if not (viewportFrame and props.config) then
-			return
-		end
-		local prefab = ReplicatedStorage.Shared.Models:FindFirstChild(itemId)
-		if not prefab then
-			return
-		end
-
-		local clone = prefab:Clone()
-		clone:PivotTo(CFrame.new(Vector3.zero))
-		clone.Parent = viewportFrame
-		setModelClone(clone)
-
-		return function()
-			clone:Destroy()
-			setModelClone(nil)
-		end
-	end, { viewportFrame, props.config })
-
-	useEffect(function()
-		if not (viewportFrame and currentCamera and modelClone) then
-			return
-		end
-		currentCamera:ZoomToExtents(modelClone:GetBoundingBox())
-		viewportFrame.CurrentCamera = currentCamera
-	end, { viewportFrame, currentCamera, modelClone })
-
-	local onMount = React.useCallback(function(rbx)
-		setViewportFrame(rbx)
-	end, {})
-
-	return e("ViewportFrame", {
-		ZIndex = 1,
-		CurrentCamera = currentCamera,
-		Size = UDim2.new(1, 0, 1, 0),
-		LightDirection = Vector3.new(0, -1, -1),
-		BackgroundTransparency = 1,
-		Active = false,
-		ImageTransparency = props.ImageTransparency,
-		ref = onMount,
-	}, {
-		Camera = e(
-			"Camera",
-			{ ref = setCurrentCamera, CFrame = CFrame.new(Vector3.new(20, 20, -20), Vector3.zero), FieldOfView = 45 }
-		),
-	})
-end
-
 local function CategoryRow(props: {
 	mobile: boolean,
-	setCategory: (category: string?) -> (),
-	onSelecting: (selecting: boolean) -> (),
+	tab: string,
+	categories: { string },
+	setCategory: (string?) -> (),
+	onSelecting: ((boolean) -> ())?,
 	Visible: boolean?,
 	LayoutOrder: number?,
 })
 	local selectedCategory, setSelectedCategory = useState(nil)
-	local categories = PlaceablesModule.Categories
 	local selecting, setSelecting = useState(false)
+
+	useEffect(function()
+		setSelectedCategory(nil)
+		setSelecting(false)
+		if props.setCategory then
+			props.setCategory(nil)
+		end
+	end, { props.tab })
 
 	useEffect(function()
 		if props.setCategory then
 			props.setCategory(selectedCategory)
 		end
 	end, { selectedCategory })
+
 	useEffect(function()
 		if props.onSelecting then
 			props.onSelecting(selecting)
 		end
-	end, { selecting, props.onSelecting })
+	end, { selecting })
 
 	local children = {}
-	for i, category in categories do
+	for _, category in ipairs(props.categories or {}) do
 		children[category] = e(SmallButton, {
 			Size = UDim2.new(1, 0, 0, props.mobile and 20 or 40),
 			AutomaticSize = Enum.AutomaticSize.None,
@@ -153,7 +85,7 @@ local function CategoryRow(props: {
 			end,
 		}, {})
 	end
-	children["All"] = e(SmallButton, {
+	children.All = e(SmallButton, {
 		Size = UDim2.new(1, 0, 0, props.mobile and 20 or 40),
 		AutomaticSize = Enum.AutomaticSize.None,
 		Text = "All",
@@ -176,7 +108,7 @@ local function CategoryRow(props: {
 		Visible = props.Visible,
 		ZIndex = 20,
 	}, {
-		e(Padding),
+
 		DropdownButton = e(SmallButton, {
 			Size = UDim2.new(1, 0, 1, 0),
 			AutomaticSize = Enum.AutomaticSize.None,
@@ -186,18 +118,21 @@ local function CategoryRow(props: {
 					return not prev
 				end)
 			end,
+			Image = "rbxassetid://76169596898587",
+			ScaleType = Enum.ScaleType.Slice,
+			SliceCenter = Rect.new(8, 8, 92, 92),
 			TextXAlignment = "Left",
-
 			Padding = { All = UDim.new(0, 0) },
+			Rounded = false,
 		}, {
 			e("ImageLabel", {
 				ZIndex = 1,
 				ScaleType = Enum.ScaleType.Stretch,
-				Image = "rbxassetid://124700292719297",
+				-- Image = "rbxassetid://124700292719297",
 				Size = UDim2.fromScale(1, 1),
 				BackgroundTransparency = 1,
 			}, {
-				e(Padding),
+
 				e(SmallText, {
 					Size = UDim2.fromScale(1, 1),
 					Text = `Category: {selectedCategory == nil and "All" or selectedCategory} {DOWN_ICON}`,
@@ -224,20 +159,18 @@ local function ShopPanel()
 	local selectedItem, setSelectedItem = useState(nil)
 	local currentInput = useInputDevice()
 
-	useEffect(function()
-		UIState.selectShopItem(selectedItem)
-	end, { selectedItem })
-
 	local playerStats, setPlayerStats = useState(nil)
 	local playerInventory, setPlayerInventory = useState(nil)
-
 	local plotState, setPlotState = useState(nil)
 	local playerWorkers, setPlayerWorkers = useState(nil)
 	local amount, setAmount = useState(nil)
 
-	local xs, sm, md, lg, xl = useBreakpoint()
+	local xs, sm, md = useBreakpoint()
 	local mobile = xs or sm or md
 	local category, setCategory = useState(nil)
+	local tab, setTab = useState("item")
+	local itemSubTab, setItemSubTab = useState(ShopTabConfig.getDefaultItemSubTab())
+	local selectingCategory, setSelectingCategory = useBinding(nil)
 
 	useEffect(function()
 		local unsub = UIState:subscribe(function(state)
@@ -325,48 +258,44 @@ local function ShopPanel()
 				for _, item in spatialItems or {} do
 					totalOwned[item.id] = (totalOwned[item.id] or 0) + 1
 				end
-				for id, _amount in inventory or {} do
-					totalOwned[id] = (totalOwned[id] or 0) + _amount
+				for id, itemAmount in inventory or {} do
+					totalOwned[id] = (totalOwned[id] or 0) + itemAmount
 				end
 				return totalOwned
 			end),
 			setAmount
 		)
+
 		local totalOwned = {}
-
 		local state = GlobalState:getState()
-
 		local placedItems = state.Plot[playerId] and state.Plot[playerId].placedItems or nil
 		local spatialItems = state.Plot[playerId] and state.Plot[playerId].spatialItems or nil
 		local inventory = state.Inventory[playerId] and state.Inventory[playerId] or nil
+
 		for _, item in placedItems or {} do
 			totalOwned[item.id] = (totalOwned[item.id] or 0) + 1
 		end
 		for _, item in spatialItems or {} do
 			totalOwned[item.id] = (totalOwned[item.id] or 0) + 1
 		end
-		for id, _amount in inventory or {} do
-			totalOwned[id] = (totalOwned[id] or 0) + _amount
+		for id, itemAmount in inventory or {} do
+			totalOwned[id] = (totalOwned[id] or 0) + itemAmount
 		end
 		setAmount(totalOwned)
 		return unsub
 	end, {})
 
-	local tab, setTab = useState("item")
-	local selectingCategory, setSelectingCategory = useBinding(nil)
-	local show, setShow = useState(true)
-	local pos, setPos = useSpring({ start = 0, target = 0, damper = 1, speed = 10 })
-
-	local selectedConfig = selectedItem and PlaceablesModule.GetConfig(selectedItem)
-	local detailsOverlay = nil
+	useEffect(function()
+		setCategory(nil)
+		setSelectedItem(nil)
+		setItemSubTab(ShopTabConfig.getDefaultItemSubTab())
+	end, { tab })
 
 	useEffect(function()
-		setPos({ target = show and 0 or 1, damper = 1, speed = 10 })
-	end, { show })
+		UIState.selectShopItem(selectedItem)
+	end, { selectedItem })
 
 	local allCleared = true
-	local itemButtons = {}
-
 	for _, config in ipairs(PlaceablesModule.Array) do
 		allCleared = allCleared and not unackedUnlocks[config.Id]
 	end
@@ -379,545 +308,213 @@ local function ShopPanel()
 		return nil
 	end
 
-	if selectedConfig then
-		local totalOwned = amount and amount[selectedConfig.Id] or 0
-		local isMaxed = selectedConfig.MaxAllowed ~= math.huge and totalOwned >= selectedConfig.MaxAllowed
-		local canAfford = playerStats.Cash >= selectedConfig.Price
-		local isLocked = playerStats.Level < selectedConfig.UnlockLevel
+	local isItemTab = ShopTabConfig.isItemTab(tab)
+	local selectedConfig = selectedItem and PlaceablesModule.GetConfig(selectedItem)
+	local isLocked = selectedConfig and playerStats.Level < selectedConfig.UnlockLevel
 
-		local btnText = `Buy ( ${selectedConfig.Price})`
-		local btnColor = Color3.new(0.2, 0.7, 0.2)
-		local canBuy = true
-		local btnTextSize = mobile and 14 or 20
-
-		if isLocked then
-			btnText = `Unlock at Lvl {selectedConfig.UnlockLevel}`
-			btnColor = Color3.new(0.4, 0.4, 0.4)
-			canBuy = false
-		elseif isMaxed then
-			btnText = "Max Limit Reached"
-			btnColor = Color3.new(0.4, 0.4, 0.4)
-			canBuy = false
-		elseif not canAfford then
-			btnText = "Get Cash"
-			btnColor = Color3.new(0.8, 0.2, 0.2)
-			canBuy = false
-		end
-
-		--[[
-		TODO: make overlay hidden when is in other tabs than item
-		]]
-		--[[
-		TODO: i think detailsOverlay can be another separate component.
-		]]
-		detailsOverlay = e(VStack, {
-			Position = UDim2.new(0, 0, 0.5, 0),
-			AnchorPoint = Vector2.new(1, 0.5),
-			Size = UDim2.new(0, mobile and 240 or 400, 0, 0),
-			BackgroundColor3 = Color3.new(0.1, 0.1, 0.1),
-			AutomaticSize = Enum.AutomaticSize.XY,
-			BackgroundTransparency = 1,
-			ScaleType = Enum.ScaleType.Slice,
-			SliceCenter = Rect.new(8, 8, 92, 92),
-			VerticalFlex = Enum.UIFlexAlignment.None,
-			Padding = { All = UDim.new(0, 10) },
-			BackgroundImage = "rbxassetid://99700456312840",
-			Spacing = UDim.new(0, 8),
-			ZIndex = 5,
-		}, {
-			-- e("UICorner", { CornerRadius = UDim.new(0, 8) }),
-			Header = e(SmallText, {
-				Text = `<font size="20"><b>{selectedConfig.DisplayName}</b></font>\n<font color="rgb(180,180,180)">{selectedConfig.Category}</font>`,
-				RichText = true,
-				TextXAlignment = Enum.TextXAlignment.Center,
-				TextYAlignment = Enum.TextYAlignment.Center,
-				AutomaticSize = Enum.AutomaticSize.XY,
-			}),
-			image = e("Frame", {
-				BackgroundTransparency = 0.2,
-				BackgroundColor3 = Color3.new(1, 1, 1),
-				Size = UDim2.new(1, 0, 0, mobile and 100 or 200),
-			}, {
-				itemmodelviewport = e(ItemModelViewport, { config = selectedConfig }),
-			}),
-			Stats = e(SmallText, {
-				Text = `<b>Price:</b> ${selectedConfig.Price}\n<b>Unlock Level:</b> {selectedConfig.UnlockLevel}\n<b>Owned:</b> {totalOwned} / {selectedConfig.MaxAllowed == math.huge and "∞" or selectedConfig.MaxAllowed}`,
-				RichText = true,
-				TextWrapped = false,
-				Size = UDim2.new(1, 0, 0, 0),
-				BackgroundColor3 = Color3.new(0.3, 0.3, 0.3),
-				AutomaticSize = Enum.AutomaticSize.XY,
-				LayoutOrder = 3,
-			}, { padding = e(Padding) }),
-			e(HStack, {
-				Size = UDim2.new(1, 0, 0, 0),
-				AutomaticSize = Enum.AutomaticSize.XY,
-				LayoutOrder = 4,
-				HorizontalFlex = "Fill",
-				Spacing = UDim.new(0, 8),
-			}, {
-				BuyButton = e(SmallButton, {
-					Size = UDim2.new(1, 0, 0, mobile and 40 or 60),
-					AutomaticSize = Enum.AutomaticSize.None,
-					BackgroundColor3 = btnColor,
-					LayoutOrder = 4,
-					OnMount = function(rbx)
-						UIState.setTutorialTarget("BuyButton", rbx)
-						if rbx then
-							if currentInput ~= "Gamepad" then
-								return
-							end
-							GuiService.SelectedObject = rbx
-						end
-					end,
-					[React.Event.Activated] = function()
-						if canBuy then
-							Remotes.BuyItem:FireServer({
-								itemId = selectedConfig.Id,
-								amount = 1,
-							})
-						elseif not isLocked and not isMaxed then
-							UIState.toggle("store")
-						end
-					end,
-				}, {
-					e("UIStroke", { Thickness = 2 }),
-					e(SmallText, {
-						Text = btnText,
-						Size = UDim2.new(1, 0, 1, 0),
-						AutomaticSize = Enum.AutomaticSize.None,
-						TextWrapped = true,
-						TextXAlignment = Enum.TextXAlignment.Center,
-						TextYAlignment = Enum.TextYAlignment.Center,
-						TextSize = btnTextSize,
-					}),
-				}),
-				CloseButton = e(SmallButton, {
-					Size = UDim2.new(1, 0, 0, mobile and 40 or 60),
-					AutomaticSize = Enum.AutomaticSize.None,
-					BackgroundColor3 = Color3.new(0.8, 0.2, 0.2),
-					BackgroundTransparency = 0.5,
-					LayoutOrder = 5,
-					[React.Event.Activated] = function()
-						setSelectedItem(nil)
-					end,
-				}, {
-					e(Padding),
-					e("ImageLabel", {
-						Image = "rbxassetid://17368177673",
-						Size = UDim2.new(1, 0, 1, 0),
-						SizeConstraint = Enum.SizeConstraint.RelativeYY,
-						BackgroundTransparency = 1,
-						Position = UDim2.new(0.5, 0, 0.5, 0),
-						AnchorPoint = Vector2.new(0.5, 0.5),
-					}),
-				}),
-			}),
-		})
-	end
-
-	-- ==========================================
-	-- UPGRADE TAB (Plot Expansion + Global & Ingredient Upgrades)
-	-- ==========================================
-	local currentSize = plotState.plotSize or 32
-	local nextTier = nil
-	for _, tier in ipairs(PlotExpansionsConfig) do
-		if tier.Size > currentSize then
-			nextTier = tier
-			break
-		end
-	end
-
-	if nextTier then
-		local canAfford = playerStats.Cash >= nextTier.Cost
-		local levelMet = playerStats.Level >= nextTier.UnlockLevel
-		local statusText = `(${nextTier.Cost})`
-		local bgColor = Color3.new(0.8, 0.6, 0.1)
-
-		if not levelMet then
-			statusText = `(Unlocks Lvl {nextTier.UnlockLevel})`
-			bgColor = Color3.new(0.4, 0.4, 0.4)
-		elseif not canAfford then
-			statusText = `(${nextTier.Cost} - Not Enough Cash)`
-			bgColor = Color3.new(0.6, 0.2, 0.2)
-		end
-
-		itemButtons["PLOT_EXPANSION"] = e(SmallButton, {
-			Size = UDim2.new(1, -8, 0, 64),
-			AutomaticSize = Enum.AutomaticSize.None,
-			BackgroundColor3 = bgColor,
-			LayoutOrder = -10,
-			[React.Event.Activated] = function()
-				if levelMet then
-					if canAfford then
-						Remotes.ExpandPlot:FireServer()
-					else
-						UIState.toggle("store")
-					end
-				end
-			end,
-			Visible = tab == "upgrade",
-		}, {
-			e("UIStroke", { Thickness = 2, Color = Color3.new(1, 0.8, 0) }),
-			e(SmallText, {
-				-- Text = canAfford and `Expand Cafe` or `Get Cash`,
-				-- Text = `Get Cash`,
-				Text = ` <b>Expand Cafe to {nextTier.Size}x{nextTier.Size}</b> \n<font size="13">{statusText}</font>`,
-				RichText = true,
-				Size = UDim2.new(1, 0, 1, 0),
-				TextXAlignment = Enum.TextXAlignment.Center,
-				TextYAlignment = Enum.TextYAlignment.Center,
-			}),
-		})
-	else
-		itemButtons["PLOT_EXPANSION_MAX"] = e(SmallButton, {
-			Size = UDim2.new(1, -8, 0, 64),
-			AutomaticSize = Enum.AutomaticSize.None,
-			BackgroundColor3 = Color3.new(0.35, 0.35, 0.35),
-			LayoutOrder = -10,
-			Visible = tab == "upgrade",
-		}, {
-			e("UIStroke", { Thickness = 2, Color = Color3.new(0.7, 0.7, 0.7) }),
-			e(SmallText, {
-				Text = ` <b>Max Cafe Size Reached ({currentSize}x{currentSize})</b> `,
-				RichText = true,
-				Size = UDim2.new(1, 0, 1, 0),
-				TextXAlignment = Enum.TextXAlignment.Center,
-				TextYAlignment = Enum.TextYAlignment.Center,
-			}),
-		})
-	end
-
-	local playerUpgrades = playerStats.Upgrades or {}
-	for idx, upg in ipairs(UpgradesConfig.Array) do
-		local currentLevel = playerUpgrades[upg.Id] or 0
-		local isMaxed = currentLevel >= upg.MaxLevel
-		local nextLevel = currentLevel + 1
-		local cost = not isMaxed and upg.GetCost(nextLevel) or 0
-
-		local reqLevel = upg.UnlockLevel
-		if upg.IngredientId then
-			local stationCfg = PlaceablesModule.GetConfig(upg.IngredientId .. "_station")
-			if stationCfg then
-				reqLevel = math.max(reqLevel, stationCfg.UnlockLevel)
-			end
-		end
-
-		local levelMet = playerStats.Level >= reqLevel
-		local canAfford = playerStats.Cash >= cost
-
-		local bgColor = Color3.new(0.2, 0.65, 0.3)
-		local actionLabel = `${cost}`
-
-		if isMaxed then
-			bgColor = Color3.new(0.35, 0.35, 0.35)
-			actionLabel = "MAXED"
-		elseif not levelMet then
-			bgColor = Color3.new(0.4, 0.4, 0.4)
-			actionLabel = `Unlocks Lvl {reqLevel}`
-		elseif not canAfford then
-			bgColor = Color3.new(0.65, 0.25, 0.25)
-			actionLabel = `${cost}`
-		end
-
-		local descText = upg.Description(math.max(currentLevel, 1))
-
-		itemButtons["UPG_" .. upg.Id] = e("ImageLabel", {
-			Size = UDim2.new(1, 0, 0, 72),
-			AutomaticSize = Enum.AutomaticSize.None,
-			-- BackgroundColor3 = bgColor,
-			Image = "rbxassetid://76169596898587",
-			ScaleType = Enum.ScaleType.Slice,
-			SliceCenter = Rect.new(8, 8, 92, 92),
-			BackgroundTransparency = 1,
-			LayoutOrder = idx,
-			Visible = tab == "upgrade",
-		}, {
-			e(HStack, {
-				VerticalFlex = "None",
-				HorizontalFlex = "Fill",
-				Spacing = UDim.new(0, 8),
-				Padding = { All = UDim.new(0, 8) },
-			}, {
-				e(SmallText, {
-					-- Text = `<b>{upg.DisplayName}</b>\n<b>{actionLabel}</b>\n<font size="12">{descText}</font>`,
-					Text = `<font size="12">{descText}</font>`,
-					RichText = true,
-					Size = UDim2.new(1, 0, 1, 0),
-					TextXAlignment = Enum.TextXAlignment.Left,
-					TextYAlignment = Enum.TextYAlignment.Center,
-					AutomaticSize = Enum.AutomaticSize.XY,
-					TextWrapped = true,
-				}),
-				e(SmallButton, {
-					Size = UDim2.new(1, 60, 0, 56),
-					AutomaticSize = Enum.AutomaticSize.XY,
-					BackgroundColor3 = bgColor,
-					LayoutOrder = idx,
-					HoverScale = true,
-					Visible = tab == "upgrade",
-					[React.Event.Activated] = function()
-						if isMaxed or not levelMet then
-							return
-						end
-						if canAfford and Remotes.BuyUpgrade then
-							Remotes.BuyUpgrade:FireServer({ upgradeId = upg.Id })
-						elseif not canAfford then
-							UIState.toggle("store")
-						end
-					end,
-					-- Rounded = false,
-					Padding = { All = UDim.new(0, 0) },
-				}, {
-					e("UIStroke", { Thickness = 2, Color = Color3.new(0.85, 0.85, 0.85) }),
-					e(HStack, {
-						VerticalFlex = Enum.UIFlexAlignment.None,
-						HorizontalFlex = Enum.UIFlexAlignment.None,
-						VerticalAlignment = Enum.VerticalAlignment.Center,
-						HorizontalAlignment = Enum.HorizontalAlignment.Center,
-						Size = UDim2.new(1, 0, 1, 0),
-						AutomaticSize = Enum.AutomaticSize.XY,
-						-- BackgroundTransparency = 0,
-					}, {
-						e(SmallText, {
-							Text = `{actionLabel}`,
-							RichText = true,
-							-- BackgroundTransparency = 0,
-							Size = UDim2.new(0, 0, 0, 0),
-							Position = UDim2.new(0.5, 0, 0.5, 0),
-							AnchorPoint = Vector2.new(0.5, 0.5),
-						}),
-					}),
-				}),
-			}),
-		})
-	end
-
-	-- ==========================================
-	-- STAFF TAB (Hire Button + Individual Worker Cards)
-	-- ==========================================
-	local workerCount = playerWorkers and #playerWorkers or 0
-	local nextWorkerTier = WorkersConfig[workerCount + 1]
-
-	if nextWorkerTier then
-		local canAfford = playerStats.Cash >= nextWorkerTier.Cost
-		local levelMet = playerStats.Level >= nextWorkerTier.UnlockLevel
-		local statusText = `(${nextWorkerTier.Cost})`
-		local bgColor = Color3.new(0.2, 0.5, 0.8)
-
-		if not levelMet then
-			statusText = `(Unlocks Lvl {nextWorkerTier.UnlockLevel})`
-			bgColor = Color3.new(0.4, 0.4, 0.4)
-		elseif not canAfford then
-			statusText = `(TOO EXPENSIVE)`
-			bgColor = Color3.new(0.6, 0.2, 0.2)
-		end
-
-		itemButtons["HIRE_WORKER"] = e(SmallButton, {
-			Size = UDim2.new(1, -8, 0, 76),
-			AutomaticSize = Enum.AutomaticSize.None,
-			BackgroundColor3 = bgColor,
-			LayoutOrder = -10,
-			[React.Event.Activated] = function()
-				if levelMet then
-					if canAfford then
-						Remotes.HireWorker:FireServer()
-					else
-						UIState.toggle("store")
-					end
-				end
-			end,
-			Visible = tab == "staff",
-		}, {
-			e("UIStroke", { Thickness = 2, Color = Color3.new(0.5, 0.8, 1) }),
-			e(SmallText, {
-				Text = `Hire a Barista (${nextWorkerTier and nextWorkerTier.Cost or 0})`,
-				-- Text = canAfford and `Hire a Barista (${nextWorkerTier and nextWorkerTier.Cost or 0})` or `Get Cash`,
-				RichText = true,
-				Size = UDim2.new(1, 0, 1, 0),
-				TextXAlignment = Enum.TextXAlignment.Center,
-				TextYAlignment = Enum.TextYAlignment.Center,
-			}),
-			not levelMet and e(SmallText, {
-				Text = `Unlocked at {nextWorkerTier.UnlockLevel}`,
-				-- Text = canAfford and `Hire a Barista (${nextWorkerTier and nextWorkerTier.Cost or 0})` or `Get Cash`,
-				RichText = true,
-				Size = UDim2.new(1, 0, 1, 0),
-				TextXAlignment = Enum.TextXAlignment.Center,
-				TextYAlignment = Enum.TextYAlignment.Center,
-			}),
-		})
-	else
-		itemButtons["MAX_WORKERS"] = e(SmallButton, {
-			Size = UDim2.new(1, -8, 0, 64),
-			AutomaticSize = Enum.AutomaticSize.None,
-			BackgroundColor3 = Color3.new(0.4, 0.4, 0.4),
-			LayoutOrder = -10,
-			Visible = tab == "staff",
-		}, {
-			e("UIStroke", { Thickness = 2, Color = Color3.new(0.8, 0.8, 0.8) }),
-			e(SmallText, {
-				Text = `Maximum Staff Reached!`,
-				RichText = true,
-				Size = UDim2.new(1, 0, 1, 0),
-				TextXAlignment = Enum.TextXAlignment.Center,
-				TextYAlignment = Enum.TextYAlignment.Center,
-			}),
-		})
-	end
-
-	for idx, worker in ipairs(playerWorkers or {}) do
-		itemButtons["WORKER_CARD_" .. worker.id] = e(WorkerManagementCard, {
-			worker = worker,
-			index = idx,
-			playerCash = playerStats.Cash,
-			Visible = tab == "staff",
-			LayoutOrder = idx,
-		})
-	end
-
-	-- ==========================================
-	-- ITEM TAB (Regular Placeable Catalog)
-	-- ==========================================
-	for _, config in ipairs(PlaceablesModule.Array) do
-		local isLocked = playerStats.Level < config.UnlockLevel
-		local maxed = amount and ((amount[config.Id] or 0) >= config.MaxAllowed) or nil
-		itemButtons[config.Id] = e(ItemButton, {
-			config = config,
-			Visible = tab == "item" and ((category == nil) or (category == config.Category)) or false,
-			maxed = maxed,
-			isSelected = selectedItem == config.Id,
-			isLocked = isLocked,
-			mobile = mobile,
-			cleared = not unackedUnlocks[config.Id],
-			OnMount = (config.Id == "ice_station" or config.Id == "Cashier2") and function(rbx)
-				UIState.setTutorialTarget("ShopItem_" .. config.Id, rbx)
-			end or nil,
-			[React.Event.Activated] = function()
-				setSelectedItem(config.Id)
-				if unackedUnlocks[config.Id] then
-					setUnackedUnlocks(function(prevMap)
-						local nextMap = table.clone(prevMap)
-						nextMap[config.Id] = nil
-						return nextMap
-					end)
-				end
-			end,
-			selectingCategory = selectingCategory,
-		})
-	end
-
-	return e("Frame", {
-		Size = pos:map(function(n)
-			return UDim2.new(n, (1 - n) * (mobile and 360 or 480), 1, 0)
-		end),
-		Position = pos:map(function(n)
-			return UDim2.new((1 + n), 0, 0, 0)
-		end),
-		AnchorPoint = Vector2.new(1, 0),
-		BackgroundTransparency = 1,
-		Active = true,
-		Visible = visible,
-	}, {
-		SidePanelContainer = e("Frame", {
-			Position = UDim2.new(0, 0, 0.5, 0),
-			AutomaticSize = Enum.AutomaticSize.XY,
-			AnchorPoint = Vector2.new(1, 0.5),
-			BackgroundTransparency = 1,
-			Active = true,
-			Size = UDim2.new(0, 0, 1, 0),
-			ZIndex = 4,
-		}, {
-			Close = e(SmallButton, {
-				Image = "",
-				AutomaticSize = Enum.AutomaticSize.None,
-				Size = UDim2.new(0, mobile and 40 or 60, 0, mobile and 40 or 60),
-				BackgroundColor3 = Color3.new(1, 0.058823, 0.058823),
-				[React.Event.Activated] = function()
-					UIState.toggle("none")
+	local detailsOverlay = (selectedConfig and isItemTab)
+			and e(DetailsOverlay, {
+				config = selectedConfig,
+				amount = amount,
+				playerCash = playerStats.Cash,
+				locked = isLocked,
+				currentInput = currentInput,
+				mobile = mobile,
+				onClose = function()
+					setSelectedItem(nil)
 				end,
-				Position = UDim2.new(0.5, 0, 0, 0),
-				AnchorPoint = Vector2.new(0.5, 0),
-				Padding = { All = UDim.new() },
-			}, {
-				e("UIStroke", { Thickness = 2 }),
-				e("ImageLabel", {
-					ZIndex = 1,
-					Image = "rbxassetid://17368208554",
-					ScaleType = Enum.ScaleType.Fit,
-					Size = UDim2.fromScale(1, 1),
-					BackgroundTransparency = 1,
-				}),
-			}),
-			DetailsOverlay = detailsOverlay,
-		}),
+			})
+		or nil
 
-		Background = e("ImageLabel", {
-			Image = "rbxassetid://120520009441669",
-			ScaleType = Enum.ScaleType.Slice,
-			SliceCenter = Rect.new(45, 45, 55, 55),
-			AnchorPoint = Vector2.new(0, 0),
+	local content
+	if tab == "premium" then
+		content = e(VStack, {
 			Size = UDim2.new(1, 0, 1, 0),
-			Position = UDim2.new(0, 0, 0, 0),
-			BackgroundTransparency = 1,
-			ImageColor3 = Color3.new(0.6, 0.6, 0.6),
-			ImageTransparency = 0.1,
-			Visible = visible,
-			ZIndex = 1,
-		}),
-
-		ShopContainer = e(VStack, {
-			Size = UDim2.new(0, (mobile and 360 or 480), 1, 0),
-			Position = UDim2.new(0.5, 0, 0, 0),
-			AnchorPoint = Vector2.new(0.5, 0),
-			Active = true,
-			Padding = { All = UDim.new(0, 10) },
-			Visible = visible,
-			ZIndex = 2,
+			AutomaticSize = Enum.AutomaticSize.None,
+			LayoutOrder = 4,
+			HorizontalFlex = Enum.UIFlexAlignment.Fill,
+			VerticalFlex = Enum.UIFlexAlignment.Fill,
+			BackgroundImage = "rbxassetid://99700456312840",
+			SliceCenter = Rect.new(8, 8, 92, 92),
+			ScaleType = Enum.ScaleType.Slice,
+			Padding = { All = UDim.new(0, 12) },
 		}, {
-			Header = e(
-				SmallText,
-				{ Text = `Shop `, RichText = true, AutomaticSize = Enum.AutomaticSize.XY, LayoutOrder = 1 },
-				{ padding = e(Padding) }
-			),
-			Tabs = e(ShopTabs, {
-				mobile = mobile,
-				LayoutOrder = 2,
-				setTab = setTab,
-				tab = tab,
-				level = playerStats.Level,
+			Premium = e(PremiumTab),
+		})
+	elseif tab == "upgrade" then
+		content = e(VStack, {
+			Size = UDim2.new(1, 0, 1, 0),
+			AutomaticSize = Enum.AutomaticSize.None,
+			LayoutOrder = 4,
+			HorizontalFlex = Enum.UIFlexAlignment.Fill,
+			VerticalFlex = Enum.UIFlexAlignment.Fill,
+			BackgroundImage = "rbxassetid://99700456312840",
+			SliceCenter = Rect.new(8, 8, 92, 92),
+			ScaleType = Enum.ScaleType.Slice,
+		}, {
+			e("ScrollingFrame", {
+				Size = UDim2.fromScale(1, 1),
+				Selectable = false,
+				AutomaticCanvasSize = Enum.AutomaticSize.XY,
+				CanvasSize = UDim2.new(1, 0, 0, 0),
+				BackgroundTransparency = 1,
+				-- BackgroundColor3 = Color3.new(1, 0, 1),
+				ScrollBarThickness = 4,
+				ScrollingDirection = Enum.ScrollingDirection.Y,
+			}, {
+
+				e(UpgradeTab, { plotState = plotState, playerStats = playerStats }),
 			}),
-			Categories = e(CategoryRow, {
-				mobile = mobile,
-				Visible = tab == "item",
-				setCategory = setCategory,
-				onSelecting = setSelectingCategory,
-				LayoutOrder = 3,
-			}),
-			ScrollingFrame = e("ScrollingFrame", {
-				Size = UDim2.new(1, 0, 1, 0),
+		})
+	elseif tab == "staff" then
+		content = e(VStack, {
+			Size = UDim2.new(1, 0, 1, 0),
+			AutomaticSize = Enum.AutomaticSize.None,
+			LayoutOrder = 4,
+			HorizontalFlex = Enum.UIFlexAlignment.Fill,
+			VerticalFlex = Enum.UIFlexAlignment.Fill,
+			BackgroundImage = "rbxassetid://99700456312840",
+			SliceCenter = Rect.new(8, 8, 92, 92),
+			ScaleType = Enum.ScaleType.Slice,
+			Padding = { All = UDim.new(0, 8) },
+		}, {
+			Scroll = e("ScrollingFrame", {
+				Size = UDim2.fromScale(1, 1),
 				Selectable = false,
 				AutomaticCanvasSize = Enum.AutomaticSize.XY,
 				CanvasSize = UDim2.new(1, 0, 0, 0),
 				BackgroundTransparency = 1,
 				ScrollBarThickness = 4,
 				ScrollingDirection = Enum.ScrollingDirection.Y,
-				LayoutOrder = 4,
 			}, {
-				e(Padding),
-				e(HStack, {
-					Size = UDim2.new(1, 0, 0, 0),
-					AutomaticSize = Enum.AutomaticSize.XY,
-					Wraps = true,
-					Spacing = UDim.new(0, 8),
-					VerticalAlignment = Enum.VerticalAlignment.Top,
-					HorizontalAlignment = Enum.HorizontalAlignment.Left,
-					Padding = { Right = UDim.new(0, 12) },
-				}, {
-					Items = e(React.Fragment, nil, itemButtons),
+				e(StaffTab, { playerWorkers = playerWorkers, playerStats = playerStats }),
+			}),
+		})
+	else
+		content = e(VStack, {
+			Size = UDim2.new(1, 0, 1, 0),
+			AutomaticSize = Enum.AutomaticSize.None,
+			LayoutOrder = 4,
+			HorizontalFlex = Enum.UIFlexAlignment.Fill,
+			VerticalFlex = Enum.UIFlexAlignment.Fill,
+		}, {
+			e("ScrollingFrame", {
+				Size = UDim2.fromScale(1, 1),
+				Selectable = false,
+				AutomaticCanvasSize = Enum.AutomaticSize.XY,
+				CanvasSize = UDim2.new(1, 0, 0, 0),
+				BackgroundTransparency = 1,
+				-- BackgroundColor3 = Color3.new(1, 0, 1),
+				ScrollBarThickness = 4,
+				ScrollingDirection = Enum.ScrollingDirection.Y,
+			}, {
+				e(ItemTab, {
+					tab = tab,
+					mobile = mobile,
+					playerStats = playerStats,
+					amount = amount,
+					selectedItem = selectedItem,
+					subTab = itemSubTab,
+					unackedUnlocks = unackedUnlocks,
+					selectingCategory = selectingCategory,
+					onSelectSubTab = setItemSubTab,
+					onSelectItem = setSelectedItem,
+					onClearUnlock = function(itemId)
+						if unackedUnlocks[itemId] then
+							setUnackedUnlocks(function(prevMap)
+								local nextMap = table.clone(prevMap)
+								nextMap[itemId] = nil
+								return nextMap
+							end)
+						end
+					end,
 				}),
 			}),
+		})
+	end
+
+	return e(React.Fragment, {}, {
+		Shop = e(Panel, {
+			Title = "Shop",
+			Open = visible,
+			Size = mobile and UDim2.fromScale(0.96, 0.92) or UDim2.fromScale(0.9, 0.88),
+			Spacing = UDim.new(0, 8),
+			Padding = { All = UDim.new(0, 12) },
+			BackgroundImage = "rbxassetid://120520009441669",
+			ScaleType = Enum.ScaleType.Slice,
+			SliceCenter = Rect.new(8, 8, 92, 92),
+			BackgroundImageColor3 = Color3.fromRGB(180, 170, 160),
+			OpenPosition = UDim2.fromScale(0.5, 0.5),
+			HiddenPosition = UDim2.fromScale(0.5, 1.5),
+			BackgroundImageTransparency = 0.15,
+			OnClose = function()
+				UIState.toggle("none")
+			end,
+			MaxSize = Vector2.new(mobile and 720 or 920, 2000),
+		}, {
+			ContentRoot = e(VStack, {
+				Size = UDim2.fromScale(1, 1),
+				AutomaticSize = Enum.AutomaticSize.None,
+				HorizontalAlignment = Enum.HorizontalAlignment.Left,
+				HorizontalFlex = "Fill",
+				VerticalFlex = "Fill",
+
+				Spacing = UDim.new(0, 8),
+				LayoutOrder = 1,
+			}, {
+				-- Header = e(HStack, {
+				-- 	Size = UDim2.new(1, 0, 0, 30),
+				-- 	AutomaticSize = Enum.AutomaticSize.None,
+				-- 	HorizontalAlignment = Enum.HorizontalAlignment.Left,
+				-- 	VerticalAlignment = Enum.VerticalAlignment.Center,
+				-- 	HorizontalFlex = "Fill",
+				-- 	VerticalFlex = "Fill",
+				-- 	Spacing = UDim.new(0, 8),
+				-- 	BackgroundTransparency = 0,
+				-- 	BackgroundColor3 = Color3.new(0, 0, 1),
+				-- 	LayoutOrder = 1,
+				-- }, {
+				-- 	Title = e(SmallText, {
+				-- 		Text = "Shop",
+				-- 		TextSize = 22,
+				-- 		Size = UDim2.new(0, 0, 1, 0),
+				-- 		AutomaticSize = Enum.AutomaticSize.XY,
+				-- 		HorizontalAlignment = Enum.HorizontalAlignment.Left,
+				-- 		TextXAlignment = Enum.TextXAlignment.Left,
+				-- 		TextYAlignment = Enum.TextYAlignment.Center,
+				-- 	}),
+				-- 	Spacer = e("Frame", {
+				-- 		Size = UDim2.new(1, 0, 0, 0),
+				-- 		BackgroundTransparency = 1,
+				-- 	}),
+				-- 	Cash = e(SmallText, {
+				-- 		Text = `{playerStats.Cash}`,
+				-- 		TextSize = mobile and 16 or 18,
+				-- 		Size = UDim2.new(0, 0, 1, 0),
+				-- 		AutomaticSize = Enum.AutomaticSize.XY,
+				-- 		TextXAlignment = Enum.TextXAlignment.Right,
+				-- 		TextYAlignment = Enum.TextYAlignment.Center,
+				-- 	}),
+				-- }),
+				Tabs = e(ShopTabs, {
+					mobile = mobile,
+					LayoutOrder = 2,
+					setTab = setTab,
+					tab = tab,
+					level = playerStats.Level,
+				}),
+				-- Categories = isItemTab and e(CategoryRow, {
+				-- 	mobile = mobile,
+				-- 	tab = tab,
+				-- 	categories = ShopTabConfig.getCategoriesForTab(tab),
+				-- 	setCategory = setCategory,
+				-- 	onSelecting = setSelectingCategory,
+				-- 	LayoutOrder = 3,
+				-- }) or nil,
+				Content = content,
+			}),
 		}),
+		Details = detailsOverlay,
 	})
 end
 

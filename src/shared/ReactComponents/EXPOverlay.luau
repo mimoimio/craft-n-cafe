@@ -25,10 +25,9 @@ local function EXPHud(props: {
 	local exp = props.EXP
 	local level = exp and LevelConfig.GetLevel(exp) or nil
 	local levelsLowerBoundExp = exp and LevelConfig.GetExpOnLevel(level - 1) or nil
-	local currentExpOnLevel =exp and (exp - levelsLowerBoundExp) or nil
-	local maxExpOnLevel =exp and (LevelConfig.GetExpOnLevel(level) - levelsLowerBoundExp) or nil
-	local percent = exp and currentExpOnLevel / maxExpOnLevel
-		or nil
+	local currentExpOnLevel = exp and (exp - levelsLowerBoundExp) or nil
+	local maxExpOnLevel = exp and (LevelConfig.GetExpOnLevel(level) - levelsLowerBoundExp) or nil
+	local percent = exp and currentExpOnLevel / maxExpOnLevel or nil
 	local textSize = mobile and 24 or 32
 	local height = mobile and 30 or 50
 	local width = mobile and 120 or 200
@@ -51,17 +50,19 @@ local function EXPHud(props: {
 		text = e("ImageLabel", {
 			Size = UDim2.new(0, width, 0, height),
 			BackgroundTransparency = 1,
-			Image = "rbxassetid://103478691850846",
+			Image = "rbxassetid://127861275302784",
 			ScaleType = Enum.ScaleType.Slice,
-			SliceCenter = Rect.new(8, 8, 92, 92),
+			SliceCenter = Rect.new(60, 60, 69, 69),
 		}, {
 			e("ImageLabel", {
 				Size = UDim2.new(percent or 1, 0, 1, 0),
 				BackgroundTransparency = 1,
-				Image = "rbxassetid://103478691850846",
+				Image = "rbxassetid://127861275302784",
+				-- Image = "rbxassetid://103478691850846",
 				ImageColor3 = Color3.new(0.2, 0.6, 1),
 				ScaleType = Enum.ScaleType.Slice,
-				SliceCenter = Rect.new(8, 8, 92, 92),
+				SliceCenter = Rect.new(60, 60, 69, 69),
+				-- SliceCenter = Rect.new(8, 8, 92, 92),
 				ZIndex = 0,
 			}, {}),
 			e("ImageLabel", {
@@ -78,7 +79,15 @@ local function EXPHud(props: {
 				-- 		COINICON
 				-- 	) .. [[%s]]
 				-- ):format(coins or 0),
-				Text = `<font size="{textSize}">Level ` .. Mionum.new(exp and level or 0):toString().."</font>"..( exp and `\n<font size="10">{Mionum.new(currentExpOnLevel):toString()}/{Mionum.new(maxExpOnLevel):toString()}</font>` or ""),
+				Text = `<font size="{textSize}">Level `
+					.. Mionum.new(exp and level or 0):toString()
+					.. "</font>"
+					.. (
+						exp
+							and `\n<font size="10">{Mionum.new(currentExpOnLevel):toString()}/{Mionum.new(maxExpOnLevel)
+								:toString()}</font>`
+						or ""
+					),
 				RichText = true,
 				TextSize = textSize,
 				MaxTextSize = textSize,
@@ -87,8 +96,9 @@ local function EXPHud(props: {
 				Size = UDim2.new(0, width, 0, height),
 				AutomaticSize = Enum.AutomaticSize.None,
 				TextXAlignment = Enum.TextXAlignment.Center,
-				TextYAlignment = Enum.TextYAlignment.Top,
+				TextYAlignment = Enum.TextYAlignment.Center,
 				LayoutOrder = 1, -- Force it to stay on top
+				ZIndex = 3,
 			}, {}),
 		}),
 	})

@@ -18,6 +18,11 @@ export type StatUpgradeConfig = {
 }
 
 local WorkersConfig = {
+	-- Seconds a customer waits before an idle worker is allowed to take the order.
+	AssistDelaySeconds = 3,
+	-- Minimum seconds between assignments for the same worker.
+	AssignCooldownSeconds = 1,
+
 	[1] = {
 		Cost = 1000,
 		UnlockLevel = 6,

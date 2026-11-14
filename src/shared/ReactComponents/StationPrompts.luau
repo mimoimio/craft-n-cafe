@@ -1,4 +1,7 @@
 -- Shared/ReactComponents/StationPrompts.luau
+--[[
+TODO: Add indicator on active one, a pointer on top, instead of just highlight
+]]
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -27,11 +30,6 @@ local useTween = ReactFlow.useTween
 local player = Players.LocalPlayer
 local playerId = player and tostring(player.UserId) or "MockUser"
 local tag = "Station" .. playerId
---[[
-
-TODO: add auto fire server if reached the full value (1)
-
-]]
 -- Adjust this to control how fast the timing bar fills up while holding
 local TIMING_BAR_DURATION = 1.5
 
@@ -111,6 +109,159 @@ local function TimingBar(props: {
 	end, { props.isClosing })
 
 	local station = string.match(props.id or "", "^(.+)_station$")
+
+	local function handleScore(validatedScore)
+		if validatedScore == 1 then
+			setScoreText("Good Enough")
+			setTextY({
+				start = 0,
+				target = -80,
+				info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
+			})
+			setTextScale({
+				start = 0.5,
+				target = 1.2,
+				info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
+			})
+			setTextTransparency({
+				start = 0,
+				target = 1,
+				info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.In),
+			})
+			setRot({
+				start = 4,
+				target = 0,
+				damper = 0.1,
+				speed = 20,
+			})
+		elseif validatedScore == 2 then
+			setRot({
+				start = 6,
+				target = 0,
+				damper = 0.1,
+				speed = 20,
+			})
+			setScoreText("Nice!")
+			setTextY({
+				start = 0,
+				target = -80,
+				info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
+			})
+			setTextScale({
+				start = 0.5,
+				target = 1.2,
+				info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
+			})
+			setTextTransparency({
+				start = 0,
+				target = 1,
+				info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.In),
+			})
+		elseif validatedScore == 3 then
+			setRot({
+				start = 8,
+				target = 0,
+				damper = 0.1,
+				speed = 20,
+			})
+			setScoreText("Perfect!")
+			setTextY({
+				start = 0,
+				target = -80,
+				info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
+			})
+			setTextScale({
+				start = 0.5,
+				target = 1.3,
+				info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
+			})
+			setTextTransparency({
+				start = 0,
+				target = 1,
+				info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.In),
+			})
+		elseif validatedScore == "invalid" then
+			setRot({
+				start = 8,
+				target = 0,
+				damper = 0.1,
+				speed = 20,
+			})
+			setScoreText("Invalid Drink!")
+			setTextY({
+				start = 0,
+				target = -80,
+				info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
+			})
+			setTextScale({
+				start = 0.5,
+				target = 1.3,
+				info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
+			})
+			setTextTransparency({
+				start = 0,
+				target = 1,
+				info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.In),
+			})
+		elseif validatedScore == "no cup" then
+			setRot({
+				start = 8,
+				target = 0,
+				damper = 0.1,
+				speed = 20,
+			})
+			setScoreText("Grab a Cup First!")
+			setTextY({
+				start = 0,
+				target = -80,
+				info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
+			})
+			setTextScale({
+				start = 0.5,
+				target = 1.3,
+				info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
+			})
+			setTextTransparency({
+				start = 0,
+				target = 1,
+				info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.In),
+			})
+		elseif validatedScore == "failed" then
+			setRot({
+				start = 8,
+				target = 0,
+				damper = 0.1,
+				speed = 20,
+			})
+			setScoreText("Release On Green Area!")
+			setTextY({
+				start = 0,
+				target = -80,
+				info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
+			})
+			setTextScale({
+				start = 0.5,
+				target = 1.3,
+				info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
+			})
+			setTextTransparency({
+				start = 0,
+				target = 1,
+				info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.In),
+			})
+		end
+	end
+
+	local autoFireToken = React.useRef(nil)
+	local hasAutoFired = React.useRef(false)
+
+	local function submitScore(value: number)
+		task.spawn(function()
+			local validatedScore = Remotes.UseStation:InvokeServer(props.itemId, value)
+			handleScore(validatedScore)
+		end)
+	end
+
 	useEffect(function()
 		if not props.id then
 			return
@@ -125,16 +276,47 @@ local function TimingBar(props: {
 
 		-- Since HoldDuration is 0, Triggered fires instantly upon press
 		local triggeredConn = prompt.Triggered:Connect(function()
+			hasAutoFired.current = false
+
+			if autoFireToken.current then
+				task.cancel(autoFireToken.current)
+				autoFireToken.current = nil
+			end
+
 			setProgress({
 				start = 0,
 				target = 1,
 				info = TweenInfo.new(TIMING_BAR_DURATION, Enum.EasingStyle.Quint, Enum.EasingDirection.In),
 			})
+
+			-- If the player holds until the bar is full, submit a perfect score.
+			autoFireToken.current = task.delay(TIMING_BAR_DURATION, function()
+				autoFireToken.current = nil
+				if hasAutoFired.current then
+					return
+				end
+
+				hasAutoFired.current = true
+				setProgress({
+					target = 1,
+					info = TweenInfo.new(0, Enum.EasingStyle.Linear, Enum.EasingDirection.Out),
+				})
+				submitScore(1)
+			end)
 		end)
 
 		-- TriggerEnded fires when the player releases the button
 		local triggerEndedConn = prompt.TriggerEnded:Connect(function()
-			local itemId = props.itemId
+			if autoFireToken.current then
+				task.cancel(autoFireToken.current)
+				autoFireToken.current = nil
+			end
+
+			if hasAutoFired.current then
+				return
+			end
+			hasAutoFired.current = true
+
 			local value = progress:getValue()
 
 			-- Lock the visual progress where they let go
@@ -143,151 +325,14 @@ local function TimingBar(props: {
 				info = TweenInfo.new(0, Enum.EasingStyle.Linear, Enum.EasingDirection.Out),
 			})
 
-			task.spawn(function()
-				local validatedScore = Remotes.UseStation:InvokeServer(itemId, value)
-				if validatedScore == 1 then
-					setScoreText("Good Enough")
-					setTextY({
-						start = 0,
-						target = -80,
-						info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
-					})
-					setTextScale({
-						start = 0.5,
-						target = 1.2,
-						info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
-					})
-					setTextTransparency({
-						start = 0,
-						target = 1,
-						info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.In),
-					})
-					setRot({
-						start = 4,
-						target = 0,
-						damper = 0.1,
-						speed = 20,
-					})
-				elseif validatedScore == 2 then
-					setRot({
-						start = 6,
-						target = 0,
-						damper = 0.1,
-						speed = 20,
-					})
-					setScoreText("Nice!")
-					setTextY({
-						start = 0,
-						target = -80,
-						info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
-					})
-					setTextScale({
-						start = 0.5,
-						target = 1.2,
-						info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
-					})
-					setTextTransparency({
-						start = 0,
-						target = 1,
-						info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.In),
-					})
-				elseif validatedScore == 3 then
-					setRot({
-						start = 8,
-						target = 0,
-						damper = 0.1,
-						speed = 20,
-					})
-					setScoreText("Perfect!")
-					setTextY({
-						start = 0,
-						target = -80,
-						info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
-					})
-					setTextScale({
-						start = 0.5,
-						target = 1.3,
-						info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
-					})
-					setTextTransparency({
-						start = 0,
-						target = 1,
-						info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.In),
-					})
-				elseif validatedScore == "invalid" then
-					setRot({
-						start = 8,
-						target = 0,
-						damper = 0.1,
-						speed = 20,
-					})
-					setScoreText("Invalid Drink!")
-					setTextY({
-						start = 0,
-						target = -80,
-						info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
-					})
-					setTextScale({
-						start = 0.5,
-						target = 1.3,
-						info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
-					})
-					setTextTransparency({
-						start = 0,
-						target = 1,
-						info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.In),
-					})
-				elseif validatedScore == "no cup" then
-					setRot({
-						start = 8,
-						target = 0,
-						damper = 0.1,
-						speed = 20,
-					})
-					setScoreText("Grab a Cup First!")
-					setTextY({
-						start = 0,
-						target = -80,
-						info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
-					})
-					setTextScale({
-						start = 0.5,
-						target = 1.3,
-						info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
-					})
-					setTextTransparency({
-						start = 0,
-						target = 1,
-						info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.In),
-					})
-				elseif validatedScore == "failed" then
-					setRot({
-						start = 8,
-						target = 0,
-						damper = 0.1,
-						speed = 20,
-					})
-					setScoreText("Release On Green Area!")
-					setTextY({
-						start = 0,
-						target = -80,
-						info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
-					})
-					setTextScale({
-						start = 0.5,
-						target = 1.3,
-						info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
-					})
-					setTextTransparency({
-						start = 0,
-						target = 1,
-						info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.In),
-					})
-				end
-			end)
+			submitScore(value)
 		end)
 
 		return function()
+			if autoFireToken.current then
+				task.cancel(autoFireToken.current)
+				autoFireToken.current = nil
+			end
 			triggeredConn:Disconnect()
 			triggerEndedConn:Disconnect()
 		end
@@ -537,13 +582,18 @@ local function StationPromptNode(props: { Model: Model, stationId: string })
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Size = UDim2.fromOffset(200, 50),
 			Visible = visible and shown,
-			Image = "rbxassetid://127657596958436",
+			-- Image = "rbxassetid://127657596958436",
+			-- ScaleType = Enum.ScaleType.Slice,
+			-- SliceCenter = Rect.new(8, 8, 92, 92),
+
+			Image = "rbxassetid://128846321008253",
+			HoverScale = true,
 			ScaleType = Enum.ScaleType.Slice,
-			SliceCenter = Rect.new(8, 8, 92, 92),
+			SliceCenter = Rect.new(50, 50, 54, 57),
 			BackgroundTransparency = 1,
 		}, {
 			-- e("UICorner", { CornerRadius = UDim.new(0, 8) }),
-			e("UIStroke", { Thickness = 2 }),
+			-- e("UIStroke", { Thickness = 2 }),
 			e(SmallText, {
 				Size = UDim2.new(1, 0, 1, 0),
 				TextXAlignment = Enum.TextXAlignment.Center,

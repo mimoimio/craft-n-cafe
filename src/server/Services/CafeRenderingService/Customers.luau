@@ -583,22 +583,13 @@ local function Customer(props: {
 	end, { rig, hasDrink, isSitting, props.Customer.order })
 
 	-- 4. Chat logic
+	-- Customer sounds are played client-side in ReactComponents/CustomersOrder.luau.
 	local justServed = action == "paid" or action == "sitting"
 	useEffect(function()
 		if not (rig and rig.Parent and rig:FindFirstChild("Head") and justServed) then
 			return
 		end
-		local sound = Instance.new("Sound", rig:FindFirstChildWhichIsA("BasePart"))
-		sound.SoundId = "rbxassetid://79020702281821"
-		if not sound.IsLoaded then
-			sound.Loaded:Wait()
-		end
-		sound:Play()
 		game:GetService("Chat"):Chat(rig.Head, "THANKS")
-
-		return function()
-			sound:Destroy()
-		end
 	end, { rig, justServed })
 
 	local emptyHanded = props.Customer.customerAction == "emptyHanded"
@@ -606,17 +597,7 @@ local function Customer(props: {
 		if not (rig and rig.Parent and rig:FindFirstChild("Head") and emptyHanded) then
 			return
 		end
-		local sound = Instance.new("Sound", rig:FindFirstChildWhichIsA("BasePart"))
-		sound.SoundId = "rbxassetid://133313033428402"
-		if not sound.IsLoaded then
-			sound.Loaded:Wait()
-		end
-		sound:Play()
 		game:GetService("Chat"):Chat(rig.Head, "Nevermind...")
-
-		return function()
-			sound:Destroy()
-		end
 	end, { rig, emptyHanded })
 
 	local order = props.Customer.order
@@ -625,17 +606,7 @@ local function Customer(props: {
 			return
 		end
 		local config = CoffeeModule.Config[order]
-		local sound = Instance.new("Sound", rig:FindFirstChildWhichIsA("BasePart"))
-		sound.SoundId = "rbxassetid://132299423186452"
-		if not sound.IsLoaded then
-			sound.Loaded:Wait()
-		end
-		sound:Play()
 		game:GetService("Chat"):Chat(rig.Head, `I'd like a {config and config.DisplayName or "👀"} please`)
-
-		return function()
-			sound:Destroy()
-		end
 	end, { rig, order })
 
 	return e(React.Fragment)

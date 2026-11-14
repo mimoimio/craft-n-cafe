@@ -1,4 +1,7 @@
 -- Shared/ReactComponents/StorePanel.luau
+--[[
+TODO: refactor so no yields when opening this panel. Dont GetProductInfo everytime.
+]]
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -37,7 +40,7 @@ local function getProductPrice(productId: number, infoType, fallback: number): s
 		return "Setup required"
 	end
 
-	local ok, info = pcall(function()
+	local ok, info = pcall(function() -- no need to call everytime.
 		return MarketplaceService:GetProductInfo(productId, infoType)
 	end)
 
@@ -91,12 +94,27 @@ local function StoreCard(props: {
 				LayoutOrder = 1,
 			}),
 			Action = e(SmallButton, {
-				Text = props.ActionText,
 				Size = UDim2.fromOffset(150, 40),
 				AutomaticSize = Enum.AutomaticSize.None,
-				BackgroundColor3 = props.ActionDisabled and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(40, 150, 90),
+				Image = not props.ActionDisabled and "rbxassetid://128846321008253" or "rbxassetid://91750414973277",
+				HoverScale = true,
+				ScaleType = Enum.ScaleType.Slice,
+				SliceCenter = Rect.new(50, 50, 54, 57),
+
+				-- BackgroundColor3 = props.ActionDisabled and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(40, 150, 90),
+				BackgroundTransparency = 1,
+				Rounded = false,
 				LayoutOrder = 2,
 				[React.Event.Activated] = if props.ActionDisabled then nil else props.OnAction,
+				Padding = { All = UDim.new(0, 0) },
+			}, {
+				e(SmallText, {
+					Text = props.ActionText,
+					RichText = true,
+					Size = UDim2.new(1, 0, 1, 0),
+					TextXAlignment = "Center",
+					TextYAlignment = "Center",
+				}),
 			}),
 		}),
 	}
@@ -124,22 +142,30 @@ local function StoreCard(props: {
 	}, cardChildren)
 end
 
-local function StorePanel()
+local function StorePanel(props: { Embedded: boolean? }?)
+	props = props or {}
+	local embedded = props.Embedded == true
+
 	local xs, sm, md = useBreakpoint()
 	local mobile = xs or sm or md
-	local isOpen, setIsOpen = useState(false)
+	local isOpen, setIsOpen = useState(embedded)
 	local tab, setTab = useState("cash")
 	local stats, setStats = useState(nil)
 	local prices, setPrices = useState({})
 
 	useEffect(function()
+		if embedded then
+			setIsOpen(true)
+			return
+		end
+
 		local unsub = UIState:subscribe(function(state)
 			return state.panel == "store"
 		end, setIsOpen)
 
 		setIsOpen(UIState:getState().panel == "store")
 		return unsub
-	end, {})
+	end, { embedded })
 
 	useEffect(function()
 		if isOpen then
@@ -324,6 +350,126 @@ local function StorePanel()
 		elseif tab == "perks" then perksTabChildren
 		else styleTabChildren
 
+	local contentRoot = e(VStack, {
+		Size = UDim2.fromScale(1, 1),
+		AutomaticSize = Enum.AutomaticSize.None,
+		HorizontalAlignment = Enum.HorizontalAlignment.Left,
+		HorizontalFlex = "Fill",
+		VerticalFlex = "None",
+		Spacing = UDim.new(0, 10),
+		LayoutOrder = 1,
+	}, {
+		Tabs = e(HStack, {
+			Size = UDim2.new(1, 0, 0, mobile and 28 or 40),
+			AutomaticSize = Enum.AutomaticSize.None,
+			HorizontalFlex = "Fill",
+			Spacing = UDim.new(0, 8),
+			LayoutOrder = 1,
+		}, {
+			Cash = e(SmallButton, {
+				Size = UDim2.new(0, 0, 1, 0),
+				AutomaticSize = Enum.AutomaticSize.None,
+				BackgroundTransparency = 1,
+				LayoutOrder = 1,
+				Image = "rbxassetid://75739845148535",
+				ImageColor3 = tab ~= "cash" and Color3.new(0.4, 0.4, 0.4) or nil,
+				HoverScale = true,
+				ScaleType = Enum.ScaleType.Slice,
+				SliceCenter = Rect.new(50, 50, 54, 57),
+
+				[React.Event.Activated] = function()
+					setTab("cash")
+				end,
+				Rounded = false,
+			}, {
+				e(SmallText, {
+					Text = "Cash",
+					Size = UDim2.new(1, 0, 1, 0),
+					TextXAlignment = Enum.TextXAlignment.Center,
+					TextYAlignment = Enum.TextYAlignment.Center,
+				}),
+			}),
+			Perks = e(SmallButton, {
+				Size = UDim2.new(0, 0, 1, 0),
+				AutomaticSize = Enum.AutomaticSize.None,
+				BackgroundTransparency = 1,
+				LayoutOrder = 2,
+				Image = "rbxassetid://75739845148535",
+				ImageColor3 = tab ~= "perks" and Color3.new(0.4, 0.4, 0.4) or nil,
+				HoverScale = true,
+				ScaleType = Enum.ScaleType.Slice,
+				SliceCenter = Rect.new(50, 50, 54, 57),
+
+				[React.Event.Activated] = function()
+					setTab("perks")
+				end,
+				Rounded = false,
+			}, {
+				e(SmallText, {
+					Text = "Perks",
+					Size = UDim2.new(1, 0, 1, 0),
+					TextXAlignment = Enum.TextXAlignment.Center,
+					TextYAlignment = Enum.TextYAlignment.Center,
+				}),
+			}),
+			Style = e(SmallButton, {
+				Size = UDim2.new(0, 0, 1, 0),
+				AutomaticSize = Enum.AutomaticSize.None,
+				BackgroundTransparency = 1,
+				LayoutOrder = 3,
+				Image = "rbxassetid://75739845148535",
+				ImageColor3 = tab ~= "style" and Color3.new(0.4, 0.4, 0.4) or nil,
+				HoverScale = true,
+				ScaleType = Enum.ScaleType.Slice,
+				SliceCenter = Rect.new(50, 50, 54, 57),
+
+				[React.Event.Activated] = function()
+					setTab("style")
+				end,
+				Rounded = false,
+			}, {
+				e(SmallText, {
+					Text = "Style",
+					Size = UDim2.new(1, 0, 1, 0),
+					TextXAlignment = Enum.TextXAlignment.Center,
+					TextYAlignment = Enum.TextYAlignment.Center,
+				}),
+			}),
+		}),
+		Balance = e(SmallText, {
+			Text = `Your cash: {cash}`,
+			TextSize = 14,
+			Size = UDim2.new(1, 0, 0, 0),
+			AutomaticSize = Enum.AutomaticSize.Y,
+			TextColor3 = Color3.fromRGB(200, 200, 210),
+			LayoutOrder = 2,
+		}),
+		Content = e("ScrollingFrame", {
+			Size = UDim2.new(1, 0, 1, -80),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			ScrollBarThickness = 8,
+			AutomaticCanvasSize = Enum.AutomaticSize.Y,
+			CanvasSize = UDim2.new(0, 0, 0, 0),
+			ScrollingDirection = Enum.ScrollingDirection.Y,
+			LayoutOrder = 3,
+		}, {
+			List = e(VStack, {
+				Size = UDim2.new(1, 0, 0, 0),
+				AutomaticSize = Enum.AutomaticSize.Y,
+				HorizontalAlignment = Enum.HorizontalAlignment.Left,
+				HorizontalFlex = "None",
+				VerticalFlex = "None",
+				Spacing = UDim.new(0, 8),
+				Padding = { Right = UDim.new(0, 12) },
+			}, tabContent),
+		}),
+	})
+
+	if embedded then
+		return contentRoot
+	end
+
 	return e(Panel, {
 		Title = "Cafe Store",
 		Open = isOpen,
@@ -341,82 +487,7 @@ local function StorePanel()
 			UIState.toggle("none")
 		end,
 	}, {
-		ContentRoot = e(VStack, {
-			Size = UDim2.fromScale(1, 1),
-			AutomaticSize = Enum.AutomaticSize.None,
-			HorizontalAlignment = Enum.HorizontalAlignment.Left,
-			HorizontalFlex = "Fill",
-			VerticalFlex = "None",
-			Spacing = UDim.new(0, 10),
-			LayoutOrder = 1,
-		}, {
-			Tabs = e(HStack, {
-				Size = UDim2.new(1, 0, 0, 40),
-				AutomaticSize = Enum.AutomaticSize.None,
-				HorizontalFlex = "Fill",
-				Spacing = UDim.new(0, 8),
-				LayoutOrder = 1,
-			}, {
-				Cash = e(SmallButton, {
-					Text = "Cash",
-					Size = UDim2.new(0, 0, 1, 0),
-					AutomaticSize = Enum.AutomaticSize.None,
-					BackgroundTransparency = tab == "cash" and 0 or 0.55,
-					LayoutOrder = 1,
-					[React.Event.Activated] = function()
-						setTab("cash")
-					end,
-				}),
-				Perks = e(SmallButton, {
-					Text = "Perks",
-					Size = UDim2.new(0, 0, 1, 0),
-					AutomaticSize = Enum.AutomaticSize.None,
-					BackgroundTransparency = tab == "perks" and 0 or 0.55,
-					LayoutOrder = 2,
-					[React.Event.Activated] = function()
-						setTab("perks")
-					end,
-				}),
-				Style = e(SmallButton, {
-					Text = "Style",
-					Size = UDim2.new(0, 0, 1, 0),
-					AutomaticSize = Enum.AutomaticSize.None,
-					BackgroundTransparency = tab == "style" and 0 or 0.55,
-					LayoutOrder = 3,
-					[React.Event.Activated] = function()
-						setTab("style")
-					end,
-				}),
-			}),
-			Balance = e(SmallText, {
-				Text = `Your cash: {cash}`,
-				TextSize = 14,
-				Size = UDim2.new(1, 0, 0, 0),
-				AutomaticSize = Enum.AutomaticSize.Y,
-				TextColor3 = Color3.fromRGB(200, 200, 210),
-				LayoutOrder = 2,
-			}),
-			Content = e("ScrollingFrame", {
-				Size = UDim2.new(1, 0, 1, -80),
-				BackgroundTransparency = 1,
-				BorderSizePixel = 0,
-				ScrollBarThickness = 8,
-				AutomaticCanvasSize = Enum.AutomaticSize.Y,
-				CanvasSize = UDim2.new(0, 0, 0, 0),
-				ScrollingDirection = Enum.ScrollingDirection.Y,
-				LayoutOrder = 3,
-			}, {
-				List = e(VStack, {
-					Size = UDim2.new(1, 0, 0, 0),
-					AutomaticSize = Enum.AutomaticSize.Y,
-					HorizontalAlignment = Enum.HorizontalAlignment.Left,
-					HorizontalFlex = "None",
-					VerticalFlex = "None",
-					Spacing = UDim.new(0, 8),
-					Padding = { Right = UDim.new(0, 12) },
-				}, tabContent),
-			}),
-		}),
+		ContentRoot = contentRoot,
 	})
 end
 

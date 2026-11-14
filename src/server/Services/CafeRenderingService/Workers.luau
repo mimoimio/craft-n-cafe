@@ -1,13 +1,8 @@
 -- ServerScriptService/Server/Services/CafeRenderingService/Workers.luau
 --[[
-TODO:
-	do client side, when worker found no station for it's next station in plot, then warn player.
-	either warn when observing worker's ingredient mismatch with placed stations, or
-	warn when there are unplaced stations in inventory. Maybe just unplaced stations.
+TODO: Can noise be added? like so if workers on the same spot they would still be noticable. And target points too, when walking so more natural?
 
-	do something like observe the cashier in src\server\Services\CafeRenderingService\Cafe.luau:64
 ]]
-local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -37,11 +32,6 @@ local useRef = React.useRef
 
 -- local LOGENABLED = true
 local Log = LOGENABLED and warn or function() end
-
---[[
-CRITICAL BUG: after the 6 sec implementatino, if player has two staffs, the second staff wont do anything. Maybe because the wait keeps resetting?
-	I think instead of wait 6 sec for player to take the customer, instead they have like slower cooldown maybe 3s, meaning when 3s they will lock and take whatever order there is
-]]
 
 local function getPlayer(playerId: string): Player?
 	if playerId == "MockUser" then

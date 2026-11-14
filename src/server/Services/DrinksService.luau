@@ -89,6 +89,8 @@ function DrinksService.AddIngredient(
 end
 
 local function calculateScore(ratio): number
+	-- A fully-charged timing bar auto-submits at 1, but holding to the end should
+	-- fail the timing minigame. It falls through to the final branch below.
 	if ratio <= 0.1 then
 		return 0
 	elseif ratio <= 0.25 then

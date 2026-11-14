@@ -278,13 +278,21 @@ local AppWrapper = function()
 			}),
 			e(SmallButton, {
 				[React.Event.Activated] = function()
-					GlobalState._addExp("MockUser", 100, LevelConfig.GetLevel(100))
+					local exp = GlobalState:getState().Stats["MockUser"].EXP
+					GlobalState._addExp("MockUser", exp + 10, LevelConfig.GetLevel(exp + 10))
 				end,
 				Text = "Add Exp",
 			}),
 			e(SmallButton, {
 				[React.Event.Activated] = function()
 					Remotes.CompleteTutorial:FireServer()
+				end,
+
+				Text = "completetu",
+			}),
+			e(SmallButton, {
+				[React.Event.Activated] = function()
+					GlobalState.grantCash("MockUser", {Cash=1000,Source = "Son"})
 				end,
 
 				Text = "completetu",
@@ -309,7 +317,7 @@ local function story(frame: Frame)
 			-- Level = 10000,
 			EXP = 1,
 			Level = 1,
-			Cash = 300000,
+			Cash = 30,
 			TutorialCompleted = false,
 			CafeOpen = true,
 			PlayerPhase = "playing",

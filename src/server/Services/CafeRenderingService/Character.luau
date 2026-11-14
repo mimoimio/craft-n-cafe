@@ -1,4 +1,9 @@
 -- CafeRenderingService.luau
+--[[
+The cup is welded to the character's HumanoidRootPart (or PrimaryPart),
+positioned Vector3.new(0, -1, 2) away from it, while the hold-cup
+animation plays. Everything is cleaned up on unmount.
+]]
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -61,47 +66,71 @@ local function Cup(props: { Character: Model, PlayerId: string, WorkerId: string
 			warn("model not found")
 			return
 		end
-		local clone = model:Clone()
-		local pl = clone:FindFirstChildWhichIsA("PackageLink", true)
+		local hrp: BasePart = character:FindFirstChild("HumanoidRootPart") or character.PrimaryPart
+		if not hrp then
+			print("[Cup] no HumanoidRootPart/PrimaryPart on", character:GetFullName())
+			return
+		end
+		print("[Cup] effect running for", character:GetFullName(), "armed with", hrp:GetFullName())
 
-		local tool = Instance.new("Tool")
-		tool.Name = config.DisplayName
+		local clone = model:Clone()
+		local basePart = clone.PrimaryPart or clone:FindFirstChildWhichIsA("BasePart", true)
+		if not basePart then
+			clone:Destroy()
+			return
+		end
+		clone.PrimaryPart = basePart
+
+		local pl = clone:FindFirstChildWhichIsA("PackageLink", true)
 		if pl then
-			local numericId = string.match(tostring(pl.PackageId), "%d+")
-			tool.TextureId = string.format("rbxthumb://type=Asset&id=%s&w=150&h=150", numericId)
 			pl:Destroy()
 		end
 
-		local handle = Instance.new("Part")
-		handle.Name = "Handle"
-		handle.Parent = tool
-		handle.Transparency = 1
-		handle.CanCollide = false
-		clone:PivotTo(tool:GetPivot())
-		clone.Parent = tool
-		for i, desc: BasePart in clone:GetDescendants() do
-			if not desc:IsA("BasePart") then
-				continue
-			end
-
-			local weld = Instance.new("WeldConstraint")
-			weld.Part0 = handle
-			weld.Part1 = desc
-			weld.Parent = handle
-
-			desc.Anchored = false
-			desc.CanCollide = false
-		end
-		local toolInCharacter = character:FindFirstChildWhichIsA("Tool")
-		if toolInCharacter then
-			local player = Players:GetPlayerByUserId(tonumber(props.PlayerId))
-			if player and player.Backpack then
-				toolInCharacter.Parent = player.Backpack
+		for _, desc in clone:GetDescendants() do
+			if desc:IsA("BasePart") then
+				desc.Anchored = false
+				desc.CanCollide = false
+				desc.Massless = true
 			end
 		end
-		tool.Parent = character
+
+		clone:PivotTo(hrp:GetPivot() * CFrame.new(0, -0.2, -2))
+		local id = props.PlayerId .. "Cup"
+		clone:AddTag(id)
+		clone.Parent = workspace
+
+		for _, part in clone:GetDescendants() do
+			if part:IsA("BasePart") then
+				part:SetNetworkOwner(nil)
+			end
+		end
+		-- proxy:SetNetworkOwner(nil)
+
+		local clonepart = clone.PrimaryPart or clone:FindFirstChildWhichIsA("BasePart")
+		local hrpWeld = Instance.new("WeldConstraint")
+		hrpWeld.Part0 = hrp
+		hrpWeld.Part1 = clonepart
+		hrpWeld.Parent = clonepart
+
+		local holdingAnimation: AnimationTrack? = nil
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
+		if animator then
+			local animation = Instance.new("Animation")
+			animation.AnimationId = "rbxassetid://507768375"
+			holdingAnimation = animator:LoadAnimation(animation)
+			holdingAnimation.Looped = true
+			holdingAnimation.Priority = Enum.AnimationPriority.Action
+			holdingAnimation:Play(0.1, 1, 2)
+		end
+
 		return function()
-			tool:Destroy()
+			if holdingAnimation then
+				holdingAnimation:Stop()
+				holdingAnimation:Destroy()
+			end
+			hrpWeld:Destroy()
+			clone:Destroy()
 		end
 	end, { config, character })
 

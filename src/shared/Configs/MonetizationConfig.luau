@@ -88,7 +88,7 @@ MonetizationConfig.StarterProduct = {
 	Key = "OpeningDayPack",
 	DisplayName = "Opening Day Pack",
 	Description = "Cash plus the starter stations and register for a head start.",
-	ProductId = 0,
+	ProductId = 3726514456,
 	Cash = 8000,
 	Items = {
 		"cup_station",

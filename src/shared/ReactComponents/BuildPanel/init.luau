@@ -1,4 +1,8 @@
 -- Shared/ReactComponents/BuildPanel.luau
+--[[
+TODO: Label the item when placing and show how much there is in inventory.
+TODO: BUG: Stuck in buildpanel when zoomed in. cant press o or i to zoom out. Maybe put in main, when press ESC key, toggle("none")
+]]
 local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -34,10 +38,6 @@ local useInputDevice = require(ReplicatedStorage.Shared.Hooks.useInputDevice)
 local CategoryRow = require(script.CategoryRow)
 local PaintDock = require(script.PaintDock)
 local ItemButton = require(script.ItemButton)
-
---[[
-TODO: add cancel button somewhere between delete, paint and rotate
-]]
 
 local playerId = Players.LocalPlayer and tostring(Players.LocalPlayer.UserId) or "MockUser"
 
@@ -517,12 +517,47 @@ local function BuildPanel()
 					}),
 				}),
 
+				Cancel = e(SmallButton, {
+					Image = "",
+					AutomaticSize = Enum.AutomaticSize.None,
+					Size = UDim2.new(0, mobile and 40 or 60, 0, mobile and 40 or 60),
+					BackgroundTransparency = not (DELETEMODE or PAINTMODE) and 0.9 or nil,
+					BackgroundColor3 = Color3.new(0.85, 0.85, 0.85),
+					LayoutOrder = 3,
+					[React.Event.Activated] = function()
+						playPaintSound("glass_004", 0.9)
+						UIState.selectBuildItem(nil)
+					end,
+					Padding = { All = UDim.new() },
+				}, {
+					e("UIStroke", { Thickness = 2, Transparency = not (DELETEMODE or PAINTMODE) and 0.4 or nil }),
+					e("ImageLabel", {
+						ZIndex = 1,
+						Image = "rbxassetid://17368177673",
+						ScaleType = Enum.ScaleType.Fit,
+						Size = UDim2.fromScale(1, 1),
+						ImageTransparency = not (DELETEMODE or PAINTMODE) and 0.4 or nil,
+						BackgroundTransparency = 1,
+					}),
+					e(SmallText, {
+						TextSize = mobile and 12 or 24,
+						Text = `cancel`,
+						Size = UDim2.fromScale(1, 1),
+						RichText = true,
+						AutomaticSize = Enum.AutomaticSize.XY,
+						HorizontalAlignment = Enum.HorizontalAlignment.Center,
+						TextXAlignment = Enum.TextXAlignment.Center,
+						TextTransparency = not (DELETEMODE or PAINTMODE) and 0.4 or nil,
+						TextStrokeTransparency = not (DELETEMODE or PAINTMODE) and 0.4 or nil,
+					}),
+				}),
+
 				Rotate = e(SmallButton, {
 					Image = "",
 					OverlayTextSize = 8,
 					Size = UDim2.new(0, mobile and 40 or 60, 0, mobile and 40 or 60),
 					AutomaticSize = Enum.AutomaticSize.None,
-					LayoutOrder = 3,
+					LayoutOrder = 4,
 					[React.Event.Activated] = function()
 						playPaintSound("Cranking Sound (Wrench)", 1.15)
 						PlacementController:rotateItem()
@@ -552,7 +587,7 @@ local function BuildPanel()
 					Image = "",
 					AutomaticSize = Enum.AutomaticSize.None,
 					Size = UDim2.new(0, mobile and 40 or 60, 0, mobile and 40 or 60),
-					LayoutOrder = 4,
+					LayoutOrder = 5,
 					BackgroundColor3 = DELETEMODE and Color3.new(0.8, 0.2, 0.2)
 						or (PAINTMODE and Color3.new(0.2, 0.6, 1) or Color3.new(0.2, 0.7, 0.2)),
 					OnMount = function(rbx)

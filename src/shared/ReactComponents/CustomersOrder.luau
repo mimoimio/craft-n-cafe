@@ -9,6 +9,7 @@ local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local Types = require(ReplicatedStorage.Shared.Types)
 local CoffeeModule = require(ReplicatedStorage.Shared.CoffeeModule)
 local DispatchEvent = require(ReplicatedStorage.Shared.Controllers.DispatchEvent)
+local SoundController = require(ReplicatedStorage.Shared.Controllers.SoundController)
 local Toasts = require(script.Parent.Toasts) -- Adjust path if Toasts.luau is located elsewhere
 
 local e = React.createElement
@@ -122,6 +123,7 @@ return function(props)
 		local unsubTimeOut = DispatchEvent.OnEvent("timeOut", function(actPlayerId, payload)
 			if actPlayerId == playerId then
 				toast.open("Customer Left!", 3, Color3.new(1, 0.2, 0.2))
+				SoundController.Sound("angry sound")
 			end
 		end)
 
@@ -132,12 +134,27 @@ return function(props)
 				else
 					toast.open("Worker Gave Wrong Order!", 3, Color3.new(1, 0.4, 0.4))
 				end
+				SoundController.Sound("angry sound")
+			end
+		end)
+
+		local unsubOrder = DispatchEvent.OnEvent("takeCustomerOrder", function(actPlayerId, payload)
+			if actPlayerId == playerId then
+				SoundController.Sound("talk player")
+			end
+		end)
+
+		local unsubServed = DispatchEvent.OnEvent("serveCustomer", function(actPlayerId, payload)
+			if actPlayerId == playerId then
+				SoundController.Sound("yay-roblox")
 			end
 		end)
 
 		return function()
 			unsubTimeOut()
 			unsubWrongOrder()
+			unsubOrder()
+			unsubServed()
 		end
 	end, { toast })
 

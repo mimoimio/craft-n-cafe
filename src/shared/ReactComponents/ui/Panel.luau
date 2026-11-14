@@ -51,6 +51,10 @@ local function Panel(props)
 		ZIndex = props.ZIndex,
 		Visible = true,
 	}, {
+		(props.MaxSize or props.MinSize) and e("UISizeConstraint", {
+			MaxSize = props.MaxSize,
+			MinSize = props.MinSize,
+		}),
 		Background = props.BackgroundImage and e("ImageLabel", {
 			Size = UDim2.fromScale(1, 1),
 			BackgroundTransparency = 1,
@@ -61,6 +65,12 @@ local function Panel(props)
 			SliceCenter = useTile and nil or (props.SliceCenter or Rect.new(8, 8, 248, 248)),
 			TileSize = useTile and (props.TileSize or UDim2.new(0, 200, 0, 200)) or nil,
 			ZIndex = props.BackgroundZIndex or 1,
+		}, {
+
+			(props.MaxSize or props.MinSize) and e("UISizeConstraint", {
+				MaxSize = props.MaxSize,
+				MinSize = props.MinSize,
+			}),
 		}),
 		Content = e(VStack, {
 			Size = UDim2.fromScale(1, 1),
@@ -88,26 +98,26 @@ local function Panel(props)
 				LayoutOrder = 1,
 				ClipsDescendants = false,
 			}, {
-				-- Title = e(SmallText, {
-				-- 	Text = props.Title or "",
-				-- 	TextSize = props.TitleSize or 18,
-				-- 	AutomaticSize = Enum.AutomaticSize.XY,
-				-- 	Size = UDim2.fromScale(1, 0),
-				-- 	LayoutOrder = 1,
-				-- }),
-				Spacer = e("Frame", {
-					LayoutOrder = 2,
+				Title = e(SmallText, {
+					Text = props.Title or "",
+					TextSize = props.TitleSize or 18,
 					AutomaticSize = Enum.AutomaticSize.XY,
 					Size = UDim2.fromScale(1, 0),
-					BackgroundTransparency = 1,
-				}), -- why is when this uncommented the button got pushed to the right
+					LayoutOrder = 1,
+				}),
+				-- Spacer = e("Frame", {
+				-- 	LayoutOrder = 2,
+				-- 	AutomaticSize = Enum.AutomaticSize.XY,
+				-- 	Size = UDim2.fromScale(1, 0),
+				-- 	BackgroundTransparency = 1,
+				-- }), -- why is when this uncommented the button got pushed to the right
 				CloseButton = props.OnClose and e(SmallButton, {
 					LayoutOrder = 3,
 					Size = UDim2.new(0, 32, 0, 32),
 					-- Size = UDim2.fromScale(0, 0),
 					AutomaticSize = Enum.AutomaticSize.None,
 					BackgroundTransparency = props.CloseButtonBackgroundTransparency,
-					BackgroundColor3 = props.CloseButtonBackgroundColor3,
+					BackgroundColor3 = props.CloseButtonBackgroundColor3 or Color3.new(1, 0, 0),
 					TextColor3 = props.CloseButtonTextColor3,
 					[React.Event.Activated] = props.OnClose,
 					Padding = {

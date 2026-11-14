@@ -86,30 +86,31 @@ local function ItemButton(props: {
 
 		Rounded = false,
 		BackgroundTransparency = 1,
-		ScaleType = Enum.ScaleType.Slice,
+		ScaleType = Enum.ScaleType.Stretch,
 		SliceCenter = Rect.new(8, 8, 92, 92),
 		Visible = props.Visible,
 		OnMount = props.OnMount,
 		Selectable = props.selectingCategory and props.selectingCategory:map(function(is)
 			return not is
 		end) or nil,
+		Image = isSelected and "rbxassetid://92291108480114" or "rbxassetid://77002938843500",
 	}, {
-		e("ImageLabel", {
-			ZIndex = 1,
-			BackgroundTransparency = 1,
-			Size = UDim2.new(1, 0, 1, 0),
-			AnchorPoint = Vector2.one * 0.5,
-			Position = UDim2.new(0.5, 0, 0.5, 0),
-			-- ImageColor3 = isSelected and Color3.new(0, 1, 0) or nil,
-			Image = isSelected and "rbxassetid://92291108480114" or "rbxassetid://77002938843500",
-		}, { e("UIScale", { Scale = isSelected and 1.1 or 1 }) }),
+		-- e("ImageLabel", {
+		-- 	ZIndex = 1,
+		-- 	BackgroundTransparency = 1,
+		-- 	Size = UDim2.new(1, 0, 1, 0),
+		-- 	AnchorPoint = Vector2.one * 0.5,
+		-- 	Position = UDim2.new(0.5, 0, 0.5, 0),
+		-- 	-- ImageColor3 = isSelected and Color3.new(0, 1, 0) or nil,
+		-- 	Image = isSelected and "rbxassetid://92291108480114" or "rbxassetid://77002938843500",
+		-- }, { e("UIScale", { Scale = isSelected and 1.1 or 1 }) }),
 		stroke = e("UIStroke", { Thickness = isSelected and 2 or 0 }),
 		-- Make reddot cleared when GuiService.SelectedObject == this.
 		reddot = not props.cleared and e(RedDot, { Position = UDim2.new(1, -8, 0, 8), SizeNum = 48 }),
 		e("Frame", {
 			Size = UDim2.fromScale(1, 1),
 			BackgroundColor3 = Color3.new(0, 0, 0),
-			BackgroundTransparency = isLocked and 0.5 or props.maxed and 0.8 or 1,
+			BackgroundTransparency = isLocked and 0.5 or props.maxed and 0.6 or 1,
 			ZIndex = 4,
 			Visible = isLocked or props.maxed,
 		}, {

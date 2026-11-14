@@ -165,6 +165,12 @@ local function ScreenPromptButton(props: {
 		props.PromptHidden,
 	})
 
+	local colorA, setColorA = useSpring({
+		start = 0,
+		target = 0,
+		damper = 0.8,
+		speed = 40,
+	})
 	local buttonProps = {
 		ref = props.OnMount,
 		[React.Change.AbsolutePosition] = props[React.Change.AbsolutePosition],
@@ -210,9 +216,19 @@ local function ScreenPromptButton(props: {
 		end,
 		[React.Event.MouseButton1Down] = proximityPrompt and function()
 			proximityPrompt:InputHoldBegin()
+			setColorA({
+				target = 1,
+				speed = 40,
+				damper = 0.8,
+			})
 		end,
 		[React.Event.MouseButton1Up] = proximityPrompt and function()
 			proximityPrompt:InputHoldEnd()
+			setColorA({
+				target = 0,
+				speed = 40,
+				damper = 0.8,
+			})
 		end,
 	}
 
@@ -225,8 +241,14 @@ local function ScreenPromptButton(props: {
 		local base = props.ImageTransparency or 0
 		return base + (1 - base) * n
 	end)
-
-	buttonProps.ImageColor3 = props.ImageColor3 or props.TextColor3
+	buttonProps.ImageColor3 = props.ImageColor3
+				and colorA:map(function(n)
+					return (props.ImageColor3 :: Color3):Lerp(Color3.new(0, 0, 0), n / 2)
+				end)
+			or colorA:map(function(n)
+				return (Color3.new(1, 1, 1) :: Color3):Lerp(Color3.new(0, 0, 0), n / 2)
+			end)
+	-- buttonProps.ImageColor3 = props.ImageColor3 or props.TextColor3
 	buttonProps.ScaleType = props.ScaleType or Enum.ScaleType.Fit
 	buttonProps.SliceCenter = props.SliceCenter
 
@@ -282,6 +304,7 @@ local function ScreenPromptButton(props: {
 		})
 	end
 
+	-- return e(require(script.Parent.SmallButton), buttonProps, children)
 	return e("ImageButton", buttonProps, children)
 end
 

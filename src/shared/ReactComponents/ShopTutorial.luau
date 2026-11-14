@@ -1,3 +1,4 @@
+-- Shared/ReactComponents/ShopTutorial.luau
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)
@@ -160,13 +161,23 @@ local function ShopTutorial()
 	local targets = uiStates.tutorialTargets or {}
 
 	if totalIceStations == 0 then
+		local itemTarget = targets["ShopItem_ice_station"]
+		local subTabTarget = targets["ShopSubTab_Station"]
+
 		if panel ~= "shop" then
 			stepText = "You Unlocked Building! Let's buy an Ice Station."
 			circleTarget2D = targets["ShopButton"]
-		elseif selectedShopItem ~= "ice_station" or not targets["BuyButton"] then
-			-- Falls back here if they select another item, or if the buy button hasn't mounted yet
-			stepText = "Select the Ice Station from the catalog."
-			circleTarget2D = targets["ShopItem_ice_station"]
+		elseif not itemTarget then
+			if subTabTarget then
+				stepText = "Open the Stations tab in the catalog."
+				circleTarget2D = subTabTarget
+			else
+				stepText = "Open the Items tab in the shop."
+				circleTarget2D = targets["ShopTab_item"]
+			end
+		elseif selectedShopItem ~= "ice_station" then
+			stepText = "Select the Ice Station from the shop."
+			circleTarget2D = itemTarget
 		else
 			stepText = "Buy the Ice Station!"
 			circleTarget2D = targets["BuyButton"]

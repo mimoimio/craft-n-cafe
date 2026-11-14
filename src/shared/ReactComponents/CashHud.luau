@@ -252,9 +252,9 @@ local function CashHud(props: {
 			-- Image = "rbxassetid://15402844695",
 			Size = UDim2.new(0, width, 0, height),
 			BackgroundTransparency = 1,
-			Image = "rbxassetid://103478691850846",
+			Image = "rbxassetid://127861275302784",
 			ScaleType = Enum.ScaleType.Slice,
-			SliceCenter = Rect.new(8, 8, 92, 92),
+			SliceCenter = Rect.new(60, 60, 69, 69),
 		}, {
 			e("ImageLabel", {
 				ZIndex = 1,
@@ -275,9 +275,9 @@ local function CashHud(props: {
 				Size = UDim2.new(0, width, 0, height),
 				AutomaticSize = Enum.AutomaticSize.None,
 				TextXAlignment = Enum.TextXAlignment.Center,
-				TextYAlignment = Enum.TextYAlignment.Top,
+				TextYAlignment = Enum.TextYAlignment.Center,
 				Rotation = hudRot,
-				LayoutOrder = 1, -- Force it to stay on top
+				LayoutOrder = 2, -- Force it to stay on top
 			}, {}),
 		}),
 

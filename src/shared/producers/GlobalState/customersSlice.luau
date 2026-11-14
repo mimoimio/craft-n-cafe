@@ -69,6 +69,33 @@ local actions = {
 		)
 	end,
 
+	-- Release any customers still locked to a worker that is being reset.
+	resetWorker = function(state: CustomersState, playerId: string, payload: Types.ResetWorkerPayload)
+		local playersCustomers = state[playerId]
+		if not playersCustomers then
+			return state
+		end
+
+		local changed = false
+		local newCustomers = {}
+		for i, customer in ipairs(playersCustomers) do
+			if customer.servedBy == payload.workerUid then
+				local new = table.clone(customer)
+				new.servedBy = nil
+				newCustomers[i] = new
+				changed = true
+			else
+				newCustomers[i] = customer
+			end
+		end
+
+		if not changed then
+			return state
+		end
+
+		return Set(state, playerId, newCustomers)
+	end,
+
 	-- ==========================================
 	-- NEW INTERCEPT: Lock the Customer when Manager assigns a Worker!
 	-- ==========================================
