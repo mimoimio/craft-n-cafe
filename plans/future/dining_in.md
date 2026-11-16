@@ -1,0 +1,1 @@
+currently customers can sit but nothing happens. this later maybe but how long later

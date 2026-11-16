@@ -1,4 +1,7 @@
 -- Shared/ReactComponents/WorkerWarnings.luau
+--[[
+TODO: repeat the warning every 3 secs once worker wants it
+]]
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local React = require(ReplicatedStorage.Packages.React)

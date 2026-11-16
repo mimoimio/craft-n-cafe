@@ -38,7 +38,7 @@ local function UpgradeTab(props: { plotState: any, playerStats: any })
 			AutomaticSize = Enum.AutomaticSize.X,
 			BackgroundTransparency = 1,
 			Image = "rbxassetid://128846321008253",
-			ImageColor3 = isActive and nil or Color3.new(0.4, 0.4, 0.6),
+			ImageColor3 = not isActive and Color3.new(0.4, 0.4, 0.6) or nil,
 			ScaleType = Enum.ScaleType.Slice,
 			SliceCenter = Rect.new(50, 50, 54, 57),
 			Rounded = false,
@@ -54,11 +54,12 @@ local function UpgradeTab(props: { plotState: any, playerStats: any })
 		}, {
 			e(SmallText, {
 				Text = tab.label,
-				TextSize = 13,
 				Size = UDim2.new(1, 0, 1, 0),
+				TextSize = props.mobile and (isActive and 15 or 11) or (isActive and 17 or 13),
 				TextXAlignment = Enum.TextXAlignment.Center,
 				TextYAlignment = Enum.TextYAlignment.Center,
 				TextTransparency = isActive and 0 or 0.4,
+				Thickness = isActive and 3 or nil,
 			}),
 		})
 	end

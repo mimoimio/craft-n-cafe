@@ -1,4 +1,7 @@
 -- Shared/ReactComponents/CustomerPrompts.luau
+--[[
+make just a small 'order taken' for one thats not player's.
+]]
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -116,7 +119,7 @@ local function CustomerPromptNode(props: {
 					-- Image = "rbxassetid://127657596958436",
 					-- ScaleType = Enum.ScaleType.Slice,
 					-- SliceCenter = Rect.new(8, 8, 92, 92),
-					
+
 					Image = "rbxassetid://75739845148535",
 					HoverScale = true,
 					ScaleType = Enum.ScaleType.Slice,

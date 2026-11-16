@@ -5,7 +5,7 @@ TODO: space out item unlock progression for each categories
 return {
 	{
 		Id = "cup_station",
-		DisplayName = "Cup Stack",
+		DisplayName = "Cups",
 		Category = "Station",
 		Price = 0,
 		UnlockLevel = 1,

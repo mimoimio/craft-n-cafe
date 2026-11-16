@@ -1,4 +1,11 @@
 -- ServerScriptService/Server/Services/PlacementService.luau
+--[[
+TODO:
+	limit the building parts maybe? too much maybe dangerous. Limit to 500.
+	maybe needs to include in a config or existing shared module cuz client's placementcontroller
+	also needs to know. So have feedback when limit reached
+
+]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Remotes = require(ReplicatedStorage.Shared.Remotes)

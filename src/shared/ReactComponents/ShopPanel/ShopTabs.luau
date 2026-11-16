@@ -39,13 +39,14 @@ local function ShopTabs(props: {
 	local children = {}
 	for index, tab in ipairs(ShopTabConfig.Tabs) do
 		local unlocked = props.level >= tab.level
+		local isActive = props.tab == tab.id
 		children[tab.id] = e(SmallButton, {
 			LayoutOrder = index,
 			Size = UDim2.new(0, props.mobile and 78 or 110, 0, 34),
 			AutomaticSize = Enum.AutomaticSize.None,
 			-- BackgroundColor3 = (not unlocked) and Color3.new(0.4, 0.4, 0.4) or nil,
 			BackgroundTransparency = 1,
-			ImageColor3 = props.tab ~= tab.id and Color3.new(0.4, 0.4, 0.6) or nil,
+			ImageColor3 = not isActive and Color3.new(0.4, 0.4, 0.6) or nil,
 			ImageTransparency = (not unlocked) and 0.8 or 0,
 			Image = "rbxassetid://128846321008253",
 			HoverScale = true,
@@ -67,8 +68,9 @@ local function ShopTabs(props: {
 			}, {
 				e(SmallText, {
 					Text = tab.label,
-					TextSize = props.mobile and 12 or 14,
+					TextSize = props.mobile and (isActive and 18 or 12) or (isActive and 20 or 14),
 					-- Size = UDim2.new(1, 0, 1, 0),
+					Thickness = isActive and 3 or nil,
 					TextXAlignment = Enum.TextXAlignment.Center,
 					-- BackgroundTransparency = 0,
 					TextYAlignment = Enum.TextYAlignment.Center,

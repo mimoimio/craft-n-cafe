@@ -70,7 +70,7 @@ local function story(frame: Frame)
 	UIState.toggle("shop")
 	GlobalState.startPlayerSession("MockUser", {
 		Plot = getPlot(),
-		Stats = { EXP = 100, Level = 5, Cash = 500000 },
+		Stats = { EXP = 44, Level = 4, Cash = 500000 },
 		Inventory = inventory,
 
 		Ingredients = {},

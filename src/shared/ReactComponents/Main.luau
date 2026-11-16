@@ -301,10 +301,17 @@ local function Main(props)
 		local state = GlobalState:getState()
 		local stats = state.Stats[playerId]
 		local initialPhase = stats and stats.PlayerPhase or "mainMenu"
-
+		local conn = UserInputService.InputBegan:Connect(function(io, gp)
+			if io.KeyCode == Enum.KeyCode.Escape then
+				UIState.toggle("none")
+			end
+		end)
 		setPlayerPhase(initialPhase)
 
-		return unsub
+		return function()
+			unsub()
+			conn:Disconnect()
+		end
 	end, {})
 
 	return e(React.Fragment, {}, {

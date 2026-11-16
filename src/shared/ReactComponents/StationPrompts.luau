@@ -114,12 +114,12 @@ local function TimingBar(props: {
 		if validatedScore == 1 then
 			setScoreText("Good Enough")
 			setTextY({
-				start = 0,
+				start = -40,
 				target = -80,
 				info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
 			})
 			setTextScale({
-				start = 0.5,
+				start = 0.7,
 				target = 1.2,
 				info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
 			})
@@ -143,12 +143,12 @@ local function TimingBar(props: {
 			})
 			setScoreText("Nice!")
 			setTextY({
-				start = 0,
+				start = -40,
 				target = -80,
 				info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
 			})
 			setTextScale({
-				start = 0.5,
+				start = 0.7,
 				target = 1.2,
 				info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
 			})
@@ -166,12 +166,12 @@ local function TimingBar(props: {
 			})
 			setScoreText("Perfect!")
 			setTextY({
-				start = 0,
+				start = -40,
 				target = -80,
 				info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
 			})
 			setTextScale({
-				start = 0.5,
+				start = 0.7,
 				target = 1.3,
 				info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
 			})
@@ -189,12 +189,12 @@ local function TimingBar(props: {
 			})
 			setScoreText("Invalid Drink!")
 			setTextY({
-				start = 0,
+				start = -40,
 				target = -80,
 				info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
 			})
 			setTextScale({
-				start = 0.5,
+				start = 0.7,
 				target = 1.3,
 				info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
 			})
@@ -212,12 +212,12 @@ local function TimingBar(props: {
 			})
 			setScoreText("Grab a Cup First!")
 			setTextY({
-				start = 0,
+				start = -40,
 				target = -80,
 				info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
 			})
 			setTextScale({
-				start = 0.5,
+				start = 0.7,
 				target = 1.3,
 				info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
 			})
@@ -235,12 +235,12 @@ local function TimingBar(props: {
 			})
 			setScoreText("Release On Green Area!")
 			setTextY({
-				start = 0,
+				start = -40,
 				target = -80,
 				info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
 			})
 			setTextScale({
-				start = 0.5,
+				start = 0.7,
 				target = 1.3,
 				info = TweenInfo.new(0.6, Enum.EasingStyle.Cubic, Enum.EasingDirection.Out),
 			})

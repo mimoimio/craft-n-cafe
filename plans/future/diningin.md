@@ -1,1 +1,0 @@
-currently customers can sit but nothing happens.

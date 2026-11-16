@@ -9,13 +9,168 @@ local PlaceablesModule = require(ReplicatedStorage.Shared.PlaceablesModule)
 local Primitives = ReplicatedStorage.Shared.ReactComponents.ui
 local VStack = require(Primitives.VStack)
 local HStack = require(Primitives.HStack)
+local Padding = require(Primitives.Padding)
+local Types = require(ReplicatedStorage.Shared.Types)
 local SmallButton = require(Primitives.SmallButton)
 local SmallText = require(Primitives.SmallText)
 local ItemButton = require(script.Parent.ItemButton)
 local ShopTabConfig = require(script.Parent.ShopTabConfig)
+local RedDot = require(script.Parent.Parent.RedDot).RedDot
 
 local e = React.createElement
+local useState = React.useState
+local useEffect = React.useEffect
+local function StationsItemButton(props: {
+	isSelected: boolean,
+	isLocked: boolean,
+	maxed: boolean?,
+	config: Types.PlaceableConfig,
+	mobile: boolean,
+	cleared: boolean,
+	selectingCategory: React.ReactBinding<boolean>?,
+	Visible: boolean?,
+	OnMount: ((GuiObject) -> ())?,
+})
+	local itemId = props.config.Id
+	local isSelected = props.isSelected
+	local isLocked = props.isLocked
+	local currentCamera: Camera, setCurrentCamera = useState(nil)
+	local worldModel, setWorldModel = useState(nil)
+	local modelClone, setModelClone = useState(nil)
+	local mobile = props.mobile
 
+	useEffect(function()
+		if not worldModel then
+			return
+		end
+		local prefab = ReplicatedStorage.Shared.Models:FindFirstChild(itemId)
+		if not prefab then
+			return
+		end
+
+		local clone = prefab:Clone()
+		clone:PivotTo(CFrame.new(Vector3.zero))
+		clone.Parent = worldModel
+		setModelClone(clone)
+
+		return function()
+			clone:Destroy()
+			setModelClone(nil)
+		end
+	end, { worldModel })
+
+	useEffect(function()
+		if not (worldModel and currentCamera and modelClone) then
+			return
+		end
+		currentCamera:ZoomToExtents(modelClone:GetBoundingBox())
+	end, { worldModel, currentCamera, modelClone })
+
+	return e(SmallButton, {
+		Size = UDim2.new(0.5, 0, mobile and 0.5 or 0.3, 0),
+		AutomaticSize = Enum.AutomaticSize.None,
+		[React.Event.Activated] = props[React.Event.Activated],
+		-- BackgroundColor3 = isSelected and Color3.new(0.2, 0.6, 0.2) or nil,
+		LayoutOrder = props.config.UnlockLevel,
+		Padding = { All = UDim.new() },
+		-- Image = "rbxassetid://76169596898587",
+
+		Rounded = false,
+		BackgroundTransparency = 1,
+		ScaleType = Enum.ScaleType.Stretch,
+		-- SliceCenter = Rect.new(8, 8, 92, 92),
+		Visible = props.Visible,
+		OnMount = props.OnMount,
+		Selectable = props.selectingCategory and props.selectingCategory:map(function(is)
+			return not is
+		end) or nil,
+		-- Image = isSelected and "rbxassetid://79718487292366" or "rbxassetid://127798397798290",
+		Image = "rbxassetid://90029908240504",
+	}, {
+		e("UISizeConstraint", {
+			MaxSize = Vector2.new(mobile and 284 / 1.75 or 284, mobile and 430 / 1.75 or 430),
+			MinSize = Vector2.new(100, 100),
+		}),
+		e("UIAspectRatioConstraint", {
+			AspectRatio = 284 / 430,
+		}),
+		-- e("ImageLabel", {
+		-- 	ZIndex = 1,
+		-- 	BackgroundTransparency = 1,
+		-- 	Size = UDim2.new(1, 0, 1, 0),
+		-- 	AnchorPoint = Vector2.one * 0.5,
+		-- 	Position = UDim2.new(0.5, 0, 0.5, 0),
+		-- 	-- ImageColor3 = isSelected and Color3.new(0, 1, 0) or nil,
+		-- 	Image = isSelected and "rbxassetid://92291108480114" or "rbxassetid://77002938843500",
+		-- }, { e("UIScale", { Scale = isSelected and 1.1 or 1 }) }),
+		stroke = e("UIStroke", { Thickness = isSelected and 2 or 0 }),
+		-- Make reddot cleared when GuiService.SelectedObject == this.
+		reddot = not props.cleared and e(RedDot, { Position = UDim2.new(1, -8, 0, 8), SizeNum = 48 }),
+		-- e("Frame", {
+		-- 	Size = UDim2.fromScale(1, 1),
+		-- 	BackgroundColor3 = Color3.new(0, 0, 0),
+		-- 	BackgroundTransparency = isLocked and 0.5 or props.maxed and 0.6 or 1,
+		-- 	ZIndex = 4,
+		-- 	Visible = isLocked or props.maxed,
+		-- }, {
+		-- 	e("UICorner", { CornerRadius = UDim.new(0, 8) }),
+		-- 	e(SmallText, {
+		-- 		Text = isLocked and "🔒" or "",
+		-- 		TextSize = 24,
+		-- 		Size = UDim2.fromScale(1, 1),
+		-- 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		-- 		TextYAlignment = Enum.TextYAlignment.Center,
+		-- 	}),
+		-- }) or nil,
+		e(Padding, { All = UDim.new(0, 12) }),
+		e("ViewportFrame", {
+			ZIndex = 1,
+			CurrentCamera = currentCamera,
+			Size = UDim2.new(1, 0, 1, 0),
+			LightDirection = Vector3.new(0, -1, -1),
+			BackgroundTransparency = 1,
+			Active = false,
+			ImageColor3 = isLocked and Color3.new(0, 0, 0) or nil,
+			-- ImageTransparency = isLocked and 0.5 or 0,
+		}, {
+			World = e("WorldModel", { ref = setWorldModel }, {
+				Camera = e("Camera", {
+					ref = setCurrentCamera,
+					CFrame = CFrame.new(Vector3.new(20, 20, -20), Vector3.zero),
+					FieldOfView = 45,
+				}),
+			}),
+		}),
+		e(VStack, {
+			Size = UDim2.new(1, 0, 1, 0),
+		}, {
+			e(SmallText, {
+				Text = props.config and props.config.DisplayName,
+				TextWrapped = true,
+				Size = UDim2.new(1, 0, 1, 0),
+
+				ZIndex = 3,
+				TextXAlignment = Enum.TextXAlignment.Center,
+				TextYAlignment = Enum.TextYAlignment.Top,
+			}),
+			e(SmallText, {
+				Text = props.maxed and "✅" or (isLocked and "🔒") or "",
+				ZIndex = 4,
+				TextSize = 48,
+				Size = UDim2.fromScale(1, 1),
+				TextXAlignment = Enum.TextXAlignment.Center,
+				TextYAlignment = Enum.TextYAlignment.Center,
+			}),
+		}),
+		e(SmallText, {
+			Text = props.config and "Level " .. props.config.UnlockLevel,
+			TextWrapped = true,
+			Size = UDim2.new(1, 0, 1, 0),
+
+			TextXAlignment = Enum.TextXAlignment.Center,
+		}),
+	})
+end
 local function ItemTab(props: {
 	tab: string,
 	mobile: boolean,
@@ -38,7 +193,7 @@ local function ItemTab(props: {
 			AutomaticSize = Enum.AutomaticSize.X,
 			BackgroundTransparency = 1,
 			Image = "rbxassetid://128846321008253",
-			ImageColor3 = isActive and nil or Color3.new(0.4, 0.4, 0.6),
+			ImageColor3 = not isActive and Color3.new(0.4, 0.4, 0.6) or nil,
 			ScaleType = Enum.ScaleType.Slice,
 			SliceCenter = Rect.new(50, 50, 54, 57),
 			Rounded = false,
@@ -57,22 +212,24 @@ local function ItemTab(props: {
 		}, {
 			e(SmallText, {
 				Text = ShopTabConfig.getCategoryLabel(category),
-				TextSize = props.mobile and 11 or 13,
+				TextSize = props.mobile and (isActive and 15 or 11) or (isActive and 17 or 13),
 				Size = UDim2.new(1, 0, 1, 0),
 				TextXAlignment = Enum.TextXAlignment.Center,
 				TextYAlignment = Enum.TextYAlignment.Center,
 				TextTransparency = isActive and 0 or 0.4,
+				Thickness = isActive and 3 or nil,
 			}),
 		})
 	end
 
 	local itemButtons = {}
+	local isStations = props.subTab == "Station"
 	for _, config in ipairs(PlaceablesModule.Array) do
 		if config.Category == props.subTab then
 			local isLocked = props.playerStats.Level < config.UnlockLevel
 			local maxed = props.amount and ((props.amount[config.Id] or 0) >= config.MaxAllowed) or nil
 
-			itemButtons[config.Id] = e(ItemButton, {
+			itemButtons[config.Id] = e(isStations and StationsItemButton or ItemButton, {
 				config = config,
 				Visible = true,
 				maxed = maxed,
@@ -118,6 +275,7 @@ local function ItemTab(props: {
 			LayoutOrder = 2,
 			Size = UDim2.new(1, 0, 0, 0),
 			AutomaticSize = Enum.AutomaticSize.XY,
+			-- Wraps = not isStations,
 			Wraps = true,
 			Spacing = UDim.new(0, 8),
 			BackgroundTransparency = 1,
