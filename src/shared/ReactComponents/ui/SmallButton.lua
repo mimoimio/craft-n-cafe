@@ -89,6 +89,11 @@ local function SmallButton(props)
 				damper = 0.8,
 			})
 			-- SoundController.Sound("drop_001")
+			setColorA({
+				target = 0,
+				speed = 40,
+				damper = 0.8,
+			})
 		end,
 		[React.Event.MouseButton1Down] = function()
 			if props[React.Event.MouseButton1Down] then

@@ -35,6 +35,19 @@ local actions = {
 		stats.CashPurchased = stats.CashPurchased or 0
 		stats.LifetimeCash = stats.LifetimeCash or 0
 		stats.CustomersServed = stats.CustomersServed or 0
+		stats.PerfectCupsServed = stats.PerfectCupsServed or 0
+		stats.PlayerCustomersServed = stats.PlayerCustomersServed or 0
+		stats.DailyPerfectCups = stats.DailyPerfectCups or 0
+		stats.DailyPlayerCustomers = stats.DailyPlayerCustomers or 0
+		stats.DailyKey = stats.DailyKey or ""
+		local todayKey = os.date("!%Y-%m-%d")
+		if stats.DailyKey ~= todayKey then
+			stats.DailyKey = todayKey
+			stats.DailyPerfectCups = 0
+			stats.DailyPlayerCustomers = 0
+		end
+		stats.GroupRewardClaimed = stats.GroupRewardClaimed == true
+		stats.FeedbackPromptedAt = stats.FeedbackPromptedAt or 0
 		return Set(state, playerId, stats)
 	end,
 	endPlayerSession = function(state: StatsState, playerId: string, data: PlayerData)
@@ -126,11 +139,7 @@ local actions = {
 
 		return Set(state, playerId, Set(playersStats, "Cash", playersStats.Cash + payload.Cash))
 	end,
-	grantCash = function(
-		state: StatsState,
-		playerId: string,
-		payload: { Cash: number, Source: string? }
-	)
+	grantCash = function(state: StatsState, playerId: string, payload: { Cash: number, Source: string? })
 		local playersStats = state[playerId]
 		if not playersStats then
 			return state
@@ -138,11 +147,7 @@ local actions = {
 
 		return Set(state, playerId, Set(playersStats, "Cash", playersStats.Cash + payload.Cash))
 	end,
-	setGamePassOwnership = function(
-		state: StatsState,
-		playerId: string,
-		payload: { passKey: string, owned: boolean }
-	)
+	setGamePassOwnership = function(state: StatsState, playerId: string, payload: { passKey: string, owned: boolean })
 		local playersStats = state[playerId]
 		if not playersStats then
 			return state
@@ -153,11 +158,7 @@ local actions = {
 
 		return Set(state, playerId, Set(playersStats, "OwnedGamePasses", ownedPasses))
 	end,
-	markProductPurchased = function(
-		state: StatsState,
-		playerId: string,
-		payload: { productKey: string }
-	)
+	markProductPurchased = function(state: StatsState, playerId: string, payload: { productKey: string })
 		local playersStats = state[playerId]
 		if not playersStats then
 			return state
@@ -168,11 +169,23 @@ local actions = {
 
 		return Set(state, playerId, Set(playersStats, "PurchasedProducts", purchasedProducts))
 	end,
-	recordCashPurchase = function(
-		state: StatsState,
-		playerId: string,
-		payload: { productKey: string, cash: number }
-	)
+	markGroupRewardClaimed = function(state: StatsState, playerId: string)
+		local playersStats = state[playerId]
+		if not playersStats then
+			return state
+		end
+
+		return Set(state, playerId, Set(playersStats, "GroupRewardClaimed", true))
+	end,
+	markFeedbackPrompted = function(state: StatsState, playerId: string, timestamp: number)
+		local playersStats = state[playerId]
+		if not playersStats then
+			return state
+		end
+
+		return Set(state, playerId, Set(playersStats, "FeedbackPromptedAt", timestamp))
+	end,
+	recordCashPurchase = function(state: StatsState, playerId: string, payload: { productKey: string, cash: number })
 		local playersStats = state[playerId]
 		if not playersStats then
 			return state
@@ -204,6 +217,14 @@ local actions = {
 		if not playersStats then
 			return state
 		end
+
+		local isPlayerServe = (payload.workerUid or "player") == "player"
+		local dayKey = payload.dayKey or playersStats.DailyKey or ""
+		local sameDay = dayKey == "" or dayKey == playersStats.DailyKey
+		local dailyPerfectCups = if sameDay then playersStats.DailyPerfectCups or 0 else 0
+		local dailyPlayerCustomers = if sameDay then playersStats.DailyPlayerCustomers or 0 else 0
+		local earnedPerfectCup = isPlayerServe and payload.perfectCup == true
+
 		return Set(
 			state,
 			playerId,
@@ -213,6 +234,11 @@ local actions = {
 				Level = payload.level,
 				CustomersServed = (playersStats.CustomersServed or 0) + 1,
 				LifetimeCash = (playersStats.LifetimeCash or 0) + payload.cash,
+				PerfectCupsServed = (playersStats.PerfectCupsServed or 0) + (earnedPerfectCup and 1 or 0),
+				PlayerCustomersServed = (playersStats.PlayerCustomersServed or 0) + (isPlayerServe and 1 or 0),
+				DailyPerfectCups = dailyPerfectCups + (earnedPerfectCup and 1 or 0),
+				DailyPlayerCustomers = dailyPlayerCustomers + (isPlayerServe and 1 or 0),
+				DailyKey = dayKey,
 			})
 		)
 	end,

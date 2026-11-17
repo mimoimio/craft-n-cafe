@@ -55,9 +55,9 @@ local WorkersConfig = {
 			Levels = {
 				[1] = { Value = 6, Cost = 0 },
 				[2] = { Value = 9, Cost = 500 },
-				[3] = { Value = 12, Cost = 800 },
-				[4] = { Value = 15, Cost = 1000 },
-				[5] = { Value = 18, Cost = 1200 },
+				[3] = { Value = 12, Cost = 1000 },
+				[4] = { Value = 15, Cost = 1500 },
+				[5] = { Value = 18, Cost = 2000 },
 			},
 		},
 		craftSpeed = {
@@ -69,9 +69,9 @@ local WorkersConfig = {
 			Levels = {
 				[1] = { Value = 1.5, Cost = 0 },
 				[2] = { Value = 1.2, Cost = 400 },
-				[3] = { Value = 0.9, Cost = 600 },
-				[4] = { Value = 0.6, Cost = 800 },
-				[5] = { Value = 0.3, Cost = 1000 },
+				[3] = { Value = 0.9, Cost = 800 },
+				[4] = { Value = 0.6, Cost = 1200 },
+				[5] = { Value = 0.3, Cost = 1600 },
 			},
 		},
 		quality = {
@@ -82,8 +82,8 @@ local WorkersConfig = {
 			end,
 			Levels = {
 				[1] = { Value = 1, Cost = 0 }, -- Starts at 1 ("Good Enough")
-				[2] = { Value = 2, Cost = 800 }, -- Upgrades to 2 ("Nice")
-				[3] = { Value = 3, Cost = 1600 }, -- Upgrades to 3 ("Perfect")
+				[2] = { Value = 2, Cost = 1000 }, -- Upgrades to 2 ("Nice")
+				[3] = { Value = 3, Cost = 2000 }, -- Upgrades to 3 ("Perfect")
 			},
 		},
 	},

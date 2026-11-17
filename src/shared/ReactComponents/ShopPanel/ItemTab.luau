@@ -67,7 +67,8 @@ local function StationsItemButton(props: {
 	end, { worldModel, currentCamera, modelClone })
 
 	return e(SmallButton, {
-		Size = UDim2.new(0.5, 0, mobile and 0.5 or 0.3, 0),
+		-- Size = UDim2.new(0.5, 0, mobile and 0.5 or 0.3, 0),
+		Size = UDim2.fromOffset(284, 430):Lerp(UDim2.fromOffset(0, 0), 1 / (mobile and 2 or 3)),
 		AutomaticSize = Enum.AutomaticSize.None,
 		[React.Event.Activated] = props[React.Event.Activated],
 		-- BackgroundColor3 = isSelected and Color3.new(0.2, 0.6, 0.2) or nil,
@@ -87,41 +88,9 @@ local function StationsItemButton(props: {
 		-- Image = isSelected and "rbxassetid://79718487292366" or "rbxassetid://127798397798290",
 		Image = "rbxassetid://90029908240504",
 	}, {
-		e("UISizeConstraint", {
-			MaxSize = Vector2.new(mobile and 284 / 1.75 or 284, mobile and 430 / 1.75 or 430),
-			MinSize = Vector2.new(100, 100),
-		}),
-		e("UIAspectRatioConstraint", {
-			AspectRatio = 284 / 430,
-		}),
-		-- e("ImageLabel", {
-		-- 	ZIndex = 1,
-		-- 	BackgroundTransparency = 1,
-		-- 	Size = UDim2.new(1, 0, 1, 0),
-		-- 	AnchorPoint = Vector2.one * 0.5,
-		-- 	Position = UDim2.new(0.5, 0, 0.5, 0),
-		-- 	-- ImageColor3 = isSelected and Color3.new(0, 1, 0) or nil,
-		-- 	Image = isSelected and "rbxassetid://92291108480114" or "rbxassetid://77002938843500",
-		-- }, { e("UIScale", { Scale = isSelected and 1.1 or 1 }) }),
 		stroke = e("UIStroke", { Thickness = isSelected and 2 or 0 }),
 		-- Make reddot cleared when GuiService.SelectedObject == this.
 		reddot = not props.cleared and e(RedDot, { Position = UDim2.new(1, -8, 0, 8), SizeNum = 48 }),
-		-- e("Frame", {
-		-- 	Size = UDim2.fromScale(1, 1),
-		-- 	BackgroundColor3 = Color3.new(0, 0, 0),
-		-- 	BackgroundTransparency = isLocked and 0.5 or props.maxed and 0.6 or 1,
-		-- 	ZIndex = 4,
-		-- 	Visible = isLocked or props.maxed,
-		-- }, {
-		-- 	e("UICorner", { CornerRadius = UDim.new(0, 8) }),
-		-- 	e(SmallText, {
-		-- 		Text = isLocked and "🔒" or "",
-		-- 		TextSize = 24,
-		-- 		Size = UDim2.fromScale(1, 1),
-		-- 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
-		-- 		TextYAlignment = Enum.TextYAlignment.Center,
-		-- 	}),
-		-- }) or nil,
 		e(Padding, { All = UDim.new(0, 12) }),
 		e("ViewportFrame", {
 			ZIndex = 1,
@@ -165,8 +134,10 @@ local function StationsItemButton(props: {
 		e(SmallText, {
 			Text = props.config and "Level " .. props.config.UnlockLevel,
 			TextWrapped = true,
-			Size = UDim2.new(1, 0, 1, 0),
-
+			Size = UDim2.new(0.8, 0, 0.8, 0),
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			TextSize = 14,
 			TextXAlignment = Enum.TextXAlignment.Center,
 		}),
 	})
@@ -282,6 +253,7 @@ local function ItemTab(props: {
 			VerticalAlignment = Enum.VerticalAlignment.Top,
 			HorizontalAlignment = Enum.HorizontalAlignment.Center,
 			VerticalFlex = "None",
+			HorizontalFlex = "None",
 			-- Padding = { All = UDim.new(0, 12) },
 		}, itemButtons),
 	})

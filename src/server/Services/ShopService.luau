@@ -155,7 +155,10 @@ function ShopService.BuyUpgrade(player: Player, payload: Types.BuyUpgradeRemoteP
 	if playerStats.Cash < cost then
 		return
 	end
-
+	--[[
+TODO: initially, GlobalState.Stats[id].Upgrades will be an empty table.
+So upgrades will literally
+]]
 	GlobalState.buyUpgrade(playerId, {
 		upgradeId = config.Id,
 		cost = cost,

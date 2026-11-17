@@ -192,6 +192,8 @@ function CustomersService.ServeCustomer(player: Player?, uid: string, workerUid:
 			timestamp = workspace:GetServerTimeNow(),
 			workerUid = workerUid,
 			targetSeatUuid = chosenSeatUuid,
+			perfectCup = cup.status == 3,
+			dayKey = os.date("!%Y-%m-%d"),
 		})
 	elseif cup.drinkId ~= found.order then
 		GlobalState.wrongOrder(playerId, {

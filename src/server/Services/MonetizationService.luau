@@ -10,6 +10,7 @@ local MonetizationConfig = require(ReplicatedStorage.Shared.Configs.Monetization
 local PlaceablesModule = require(ReplicatedStorage.Shared.PlaceablesModule)
 local PlaytestConfig = require(ReplicatedStorage.Shared.Configs.PlaytestConfig)
 local PlayerDataService = require(script.Parent.PlayerDataService)
+local TelemetryService = require(script.Parent.TelemetryService)
 
 local MonetizationService = {}
 
@@ -88,15 +89,15 @@ local function saveProfile(profile): boolean
 	return saved
 end
 
-local function logPurchase(player: Player, productKey: string, cash: number)
+local function logPurchase(player: Player, productKey: string, cash: number, endingBalance: number)
 	pcall(function()
 		AnalyticsService:LogEconomyEvent(
 			player,
 			Enum.AnalyticsEconomyFlowType.Source,
 			"Cash",
 			cash,
-			player.leaderstats and player.leaderstats.Cash and player.leaderstats.Cash.Value or cash,
-			Enum.AnalyticsEconomyTransactionType.RobuxPurchase,
+			endingBalance,
+			Enum.AnalyticsEconomyTransactionType.RobuxPurchase.Name,
 			productKey,
 			{ ProductKey = productKey }
 		)
@@ -159,19 +160,18 @@ local function applyProductGrant(profile, product): (number, { string }, boolean
 	if MonetizationConfig.IsStarterProduct(product.ProductId) then
 		local starter = MonetizationConfig.StarterProduct
 		local alreadyOwned = data.Stats.PurchasedProducts[starter.Key] == true
-		local cash = starter.Cash
-		local grantedItems = {}
-
-		if not alreadyOwned then
-			local extraCash, items = grantStarterItems(data, starter.Items)
-			cash += extraCash
-			grantedItems = items
-			data.Stats.PurchasedProducts[starter.Key] = true
+		if alreadyOwned then
+			return 0, {}, false
 		end
+
+		local cash = starter.Cash
+		local extraCash, grantedItems = grantStarterItems(data, starter.Items)
+		cash += extraCash
+		data.Stats.PurchasedProducts[starter.Key] = true
 
 		data.Stats.Cash = (data.Stats.Cash or 0) + cash
 		recordProfileCashPurchase(data, starter.Key, cash)
-		return cash, grantedItems, not alreadyOwned
+		return cash, grantedItems, true
 	end
 
 	return 0, {}, false
@@ -184,6 +184,17 @@ local function syncGamePasses(player: Player)
 	end
 
 	ensureProfileTables(profile)
+
+	if PlaytestConfig.AlwaysNoPassUserIds[player.UserId] then
+		for _, pass in pairs(MonetizationConfig.GamePasses) do
+			profile.Data.Stats.OwnedGamePasses[pass.Key] = false
+			GlobalState.setGamePassOwnership(tostring(player.UserId), {
+				passKey = pass.Key,
+				owned = false,
+			})
+		end
+		return
+	end
 
 	if RunService:IsStudio() and PlaytestConfig.UseGamePassOverrideInStudio then
 		for _, pass in pairs(MonetizationConfig.GamePasses) do
@@ -266,6 +277,7 @@ local function handleGamePassPurchase(player: Player, passId: number, wasPurchas
 			passKey = pass.Key,
 			owned = true,
 		})
+		TelemetryService.LogShopPurchase(player, pass.Key)
 	end)
 end
 
@@ -340,7 +352,10 @@ local function handleReceipt(receiptInfo)
 		})
 	end
 
-	logPurchase(player, product.Key, cashGranted)
+	if cashGranted > 0 then
+		logPurchase(player, product.Key, cashGranted, profile.Data.Stats.Cash or cashGranted)
+	end
+	TelemetryService.LogShopPurchase(player, product.Key)
 
 	return Enum.ProductPurchaseDecision.PurchaseGranted
 end
@@ -374,10 +389,7 @@ function MonetizationService.initialize()
 		end)
 	)
 
-	table.insert(
-		MonetizationService._connections,
-		Players.PlayerAdded:Connect(syncGamePassesWhenReady)
-	)
+	table.insert(MonetizationService._connections, Players.PlayerAdded:Connect(syncGamePassesWhenReady))
 
 	for _, player in Players:GetPlayers() do
 		syncGamePassesWhenReady(player)

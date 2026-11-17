@@ -221,6 +221,10 @@ local function PlayPhase(props)
 		e(require(script.Parent.ShopTutorial)),
 		e(require(script.Parent.RegisterTutorial)),
 		e(require(script.Parent.SettingsPanel)),
+		e(require(script.Parent.GroupRewards)),
+		-- e(require(script.Parent.FeedbackPrompt)),
+		e(require(script.Parent.RanksPanel)),
+		e(require(script.Parent.FeedbackPrompt)),
 		e("Frame", {
 			Size = UDim2.new(1, 0, 1, 0),
 			BackgroundTransparency = 1,
@@ -256,7 +260,7 @@ local function PlayPhase(props)
 			AutomaticSize = Enum.AutomaticSize.XY,
 		}, {
 			layout = e("UIListLayout", {
-				FillDirection = Enum.FillDirection.Vertical,
+				FillDirection = Enum.FillDirection.Horizontal,
 				HorizontalAlignment = Enum.HorizontalAlignment.Center,
 				SortOrder = Enum.SortOrder.LayoutOrder,
 				Padding = UDim.new(0, 5),
@@ -277,6 +281,9 @@ local function PlayPhase(props)
 			}),
 			Goal = e(require(script.Parent.NextGoal), {
 				LayoutOrder = 2,
+			}),
+			Daily = e(require(script.Parent.DailyStatsHud), {
+				LayoutOrder = 3,
 			}),
 		}),
 		e(require(script.Parent.PlayersCup), {

@@ -13,6 +13,7 @@ local PlaytestSnapshot = require(ReplicatedStorage.Shared.Utils.PlaytestSnapshot
 local Primitives = ReplicatedStorage.Shared.ReactComponents.ui
 local VStack = require(Primitives.VStack)
 local SmallButton = require(Primitives.SmallButton)
+local SmallText = require(Primitives.SmallText)
 
 local e = React.createElement
 local useEffect = React.useEffect
@@ -130,19 +131,20 @@ local function PlaytestLogger(props: { PlayerId: string? })
 
 	local textBoxes = {}
 	for index, chunk in ipairs(chunks) do
+		-- for j = 1, 10 do
 		textBoxes[`Chunk{index}`] = e("TextBox", {
 			TextEditable = false,
-			Size = UDim2.new(1, 0, 0, 0),
-			AutomaticSize = Enum.AutomaticSize.Y,
+			Size = UDim2.new(1, 0, 0, 40),
+			AutomaticSize = Enum.AutomaticSize.None,
 			LayoutOrder = index,
 			BackgroundColor3 = Color3.fromRGB(16, 16, 20),
 			Text = chunk,
+			TextSize = 10,
 			TextColor3 = Color3.new(1, 1, 1),
-			TextSize = 12,
 			Font = Enum.Font.Code,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextYAlignment = Enum.TextYAlignment.Top,
-			TextWrapped = true,
+			-- TextWrapped = true,
 			MultiLine = true,
 			ClearTextOnFocus = false,
 			Selectable = true,
@@ -159,37 +161,49 @@ local function PlaytestLogger(props: { PlayerId: string? })
 				PaddingLeft = UDim.new(0, 6),
 				PaddingRight = UDim.new(0, 6),
 			}),
+			e(SmallText, {
+				Text = index,
+			}),
 		})
+		-- end
 	end
 
 	return e(VStack, {
-		Size = UDim2.fromScale(0, 0),
+		Size = UDim2.fromScale(1, 1),
 		AutomaticSize = Enum.AutomaticSize.XY,
-		Position = UDim2.new(0, 8, 0, 8),
 		AnchorPoint = Vector2.new(0, 0),
 		HorizontalAlignment = Enum.HorizontalAlignment.Left,
-		HorizontalFlex = "None",
-		VerticalFlex = "None",
-		Spacing = UDim.new(0, 6),
+		HorizontalFlex = "Fill",
+		VerticalFlex = "Fill",
+		-- VerticalFlex = "None",
+		-- Spacing = UDim.new(0, 6),
 		ZIndex = 50,
 	}, {
-		Toggle = e(SmallButton, {
-			Text = if visible then "Hide CSV" else "Show CSV",
-			Size = UDim2.fromOffset(92, 32),
-			AutomaticSize = Enum.AutomaticSize.None,
-			LayoutOrder = 1,
-			BackgroundColor3 = Color3.fromRGB(32, 92, 138),
-			TextColor3 = Color3.new(1, 1, 1),
-			TextSize = 14,
-			ZIndex = 50,
-			[React.Event.Activated] = function()
-				setVisible(function(value)
-					return not value
-				end)
-			end,
+		Toggle = e(VStack, {
+			Size = UDim2.new(0, 0, 0, 0),
+			AutomaticSize = Enum.AutomaticSize.XY,
+			HorizontalFlex = "None",
+			HorizontalAlignment = "Left",
+			VerticalFlex = "None",
+		}, {
+			e(SmallButton, {
+				Text = if visible then "Hide CSV" else "Show CSV",
+				Size = UDim2.fromOffset(92, 32),
+				AutomaticSize = Enum.AutomaticSize.None,
+				LayoutOrder = 1,
+				BackgroundColor3 = Color3.fromRGB(32, 92, 138),
+				TextColor3 = Color3.new(1, 1, 1),
+				TextSize = 14,
+				ZIndex = 50,
+				[React.Event.Activated] = function()
+					setVisible(function(value)
+						return not value
+					end)
+				end,
+			}),
 		}),
 		Snapshot = visible and e(VStack, {
-			Size = UDim2.fromOffset(384, 300),
+			Size = UDim2.fromScale(1, 1),
 			LayoutOrder = 2,
 			BackgroundColor3 = Color3.fromRGB(24, 24, 28),
 			BackgroundTransparency = 0,

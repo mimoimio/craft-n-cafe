@@ -81,7 +81,8 @@ for _, ingConfig in ipairs(CoffeeModule.IngredientConfigs or {}) do
 			return `{ingConfig.DisplayName} lvl {level}`
 		end,
 		GetCost = function(nextLevel: number)
-			return math.floor((basePrice * 75) * (1.7 ^ (nextLevel - 1)))
+			return math.floor((basePrice * 75) * (2 ^ (nextLevel - 1)))
+			-- changed from 1.7 to 2
 		end,
 		GetBonus = function(level: number)
 			return level * bonusPerLevel

@@ -173,7 +173,9 @@ local function UpgradeTab(props: { plotState: any, playerStats: any })
 					actionLabel = `${cost}`
 				end
 
-				local descText = upg.Description(math.max(currentLevel, 1))
+				-- starting from level 0 seems much more reasonable, cuz at first all upgrades are nil, default to 0.
+				-- i'm avoiding the hassle of initializing every upgrades when player profile just
+				local descText = upg.Description(math.max(currentLevel, 0))
 
 				local rowChildren = {
 					Content = e(HStack, {

@@ -1,10 +1,8 @@
 -- PlayerDataService.luau
 local DATASTORENAME = "PLAYERS"
 local DRINKS_MIXED_DATASTORE = "DRINKS_MIXED_DATASTORE"
-local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 
 local ProfileStoreModule = require(game.ServerScriptService.Server.Modules.ProfileStore)
 local Remotes = require(game.ReplicatedStorage.Shared.Remotes)
@@ -16,31 +14,7 @@ local Types = require(ReplicatedStorage.Shared.Types)
 local Signal = require(game.ReplicatedStorage.Packages.Signal)
 local ShopCycle = require(game.ReplicatedStorage.Shared.ShopCycle)
 local PlotConfig = require(game.ReplicatedStorage.Shared.Configs.PlotConfig)
-
--- Studio keeps the mock store so UI Labs / quick playtests never touch live data.
--- Published servers use the real ProfileStore.
--- local IS_PLAYTESTING = RunService:IsStudio()
---
-local DrinksBrewedLeaderboard = DataStoreService:GetOrderedDataStore("DrinksBrewed")
-
---- Sycs the player's profile data to the OrderedDataStores
-local function SyncLeaderboards(player, profile)
-	local userId = player.UserId
-
-	-- Always wrap API calls in a pcall
-	local success, err = pcall(function()
-		-- math.floor is used as a safety net since OrderedDataStore ONLY accepts integers
-		local customersServed = profile.Data.Stats and profile.Data.Stats.CustomersServed or 0
-		DrinksBrewedLeaderboard:SetAsync(userId, math.floor(customersServed))
-
-		warn("Saved profile.Data.Stats.CustomersServed", customersServed)
-		-- RebirthsLeaderboard:SetAsync(userId, math.floor(profile.Data.Rebirths))
-	end)
-
-	if not success then
-		warn("Failed to sync leaderboards for " .. player.Name .. ": " .. tostring(err))
-	end
-end
+local PlaytestConfig = require(ReplicatedStorage.Shared.Configs.PlaytestConfig)
 
 type PlayerData = Types.PlayerData
 type Profile = ProfileStoreModule.Profile<PlayerData> -- Typed Profile object
@@ -91,6 +65,13 @@ local PROFILE_TEMPLATE: PlayerData = {
 		LifetimeCash = 0,
 		CashPurchased = 0,
 		CashPurchases = {},
+		PerfectCupsServed = 0,
+		PlayerCustomersServed = 0,
+		DailyPerfectCups = 0,
+		DailyPlayerCustomers = 0,
+		DailyKey = "",
+		GroupRewardClaimed = false,
+		FeedbackPromptedAt = 0,
 		OwnedGamePasses = {},
 		PurchasedProducts = {},
 		Upgrades = {},
@@ -165,7 +146,7 @@ local PlayerProfileStore = ProfileStoreModule.New(
 	DATASTORENAME, -- Your DataStore name
 	PROFILE_TEMPLATE
 )
-if IS_PLAYTESTING then
+if PlaytestConfig.UseMockProfileStore then
 	PlayerProfileStore = PlayerProfileStore.Mock
 end
 
@@ -325,14 +306,18 @@ local broadcaster = Reflex.createBroadcaster({
 		return filteredState
 		-- return state
 	end,
+	--[[
+	TODO: TEST REHYDRATION IN RUNNING MODE IF THIS WORKS. IF DOESNT THEN NOT NEED FIX
+	]]
 	dispatch = function(player, actions)
 		local playerId = tostring(player.UserId)
 
 		local relevantActions = {}
 		for _, action in actions do
-			-- if action.name == `__hydrate__` then
-			-- 	warn("dispatched", action.name, action.arguments)
-			-- end
+			-- i worry not adding hydrate here may desync. but beforehydrate is up there, should i worry?
+			if action.name == `__hydrate__` then
+				warn("HYDRATE DISPATCHED")
+			end
 			if action.arguments[1] == playerId then
 				table.insert(relevantActions, action)
 			end

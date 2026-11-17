@@ -1,4 +1,4 @@
--- SettingsPanel.story.luau
+-- GeneralHud.story.luau
 local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
@@ -50,15 +50,22 @@ local function StoryApp(props: {})
 		end
 	end, { textBox })
 	return e(React.Fragment, nil, {
-		ShopPanel = e(
+		PlaytestLogger = e(
 			require(ReplicatedStorage.Shared.ReactComponents.RedDot).RedDotProvider,
 			nil,
-			{ e(require(ReplicatedStorage.Shared.ReactComponents.SettingsPanel)) }
+			{ e(require(ReplicatedStorage.Shared.ReactComponents.PlaytestLogger)) }
 		),
 		LevelSetter = e("TextBox", {
 			Text = "5",
 			Size = UDim2.new(0, 200, 0, 50),
 			ref = setTextBox,
+		}),
+		e(require(ReplicatedStorage.Shared.ReactComponents.ConsoleApp)),
+		e(require(ReplicatedStorage.Shared.ReactComponents.ui.SmallButton), {
+			Text = "Toggle console/shop",
+			[React.Event.Activated] = function()
+				UIState.toggle(UIState:getState().panel == "shop" and "admin" or "shop")
+			end,
 		}),
 	})
 end
@@ -67,19 +74,11 @@ local function story(frame: Frame)
 	for i, config in PlaceablesModule.Array do
 		inventory[config.Id] = math.min(32, config.MaxAllowed)
 	end
-	UIState.toggle("settings")
+	UIState.toggle("shop")
 	GlobalState.startPlayerSession("MockUser", {
 		Plot = getPlot(),
-		Stats = {
-			EXP = 100,
-			Level = 5,
-			Cash = 500000,
-		},
+		Stats = { EXP = 44, Level = 4, Cash = 500000 },
 		Inventory = inventory,
-		SfxVolume = 0.5,
-		SfxOn = true,
-		MusicVolume = 0.5,
-		MusicOn = true,
 
 		Ingredients = {},
 		Customers = {},
@@ -90,8 +89,11 @@ local function story(frame: Frame)
 	local root = ReactRoblox.createRoot(frame)
 	root:render(e(StoryApp))
 	ViewportController.initialize()
+	local ShopService = require(ServerScriptService.Server.Services.ShopService)
+	ShopService.initialize()
 
 	return function()
+		ShopService.cleanup()
 		root:unmount()
 		ViewportController.cleanup()
 		GlobalState:resetState()

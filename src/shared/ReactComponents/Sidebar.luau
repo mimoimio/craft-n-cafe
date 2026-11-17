@@ -15,6 +15,7 @@ local useState = React.useState
 local RedDot = require(script.Parent.RedDot).RedDot
 
 local VStack = require(script.Parent.ui.VStack)
+local HStack = require(script.Parent.ui.HStack)
 
 local player = game:GetService("Players").LocalPlayer
 local playerId = player and tostring(player.UserId) or "MockUser"
@@ -93,6 +94,19 @@ function Sidebar(props)
 		setLevel(state.Stats[playerId] and state.Stats[playerId].Level or nil)
 		return unsub
 	end, {})
+	local GroupRewardClaimed, setGroupRewardClaimed = useState(nil)
+	useEffect(function()
+		local unsub = GlobalState:subscribe(function(state: GlobalState.GlobalState)
+			return state.Stats[playerId]
+		end, function(stats)
+			if stats then
+				setGroupRewardClaimed(stats.GroupRewardClaimed)
+			end
+		end)
+		local state = GlobalState:getState()
+		setGroupRewardClaimed(state.Stats[playerId] and state.Stats[playerId].GroupRewardClaimed or nil)
+		return unsub
+	end, {})
 	useEffect(function()
 		local unsub = GlobalState:subscribe(function(state: GlobalState.GlobalState)
 			return state.Stats[playerId] and state.Stats[playerId].TutorialCompleted or nil
@@ -102,72 +116,104 @@ function Sidebar(props)
 		return unsub
 	end, {})
 	level = level or 0
-	return e(VStack, {
-		VerticalFlex = Enum.UIFlexAlignment.None,
-		HorizontalFlex = Enum.UIFlexAlignment.None,
-		VerticalAlignment = Enum.VerticalAlignment.Center,
-		HorizontalAlignment = Enum.HorizontalAlignment.Left,
-		Spacing = UDim.new(0, 8),
-	}, {
-
-		ToggleShop = level > 2 and e(SidebarButton, {
-			[React.Event.Activated] = function()
-				UIState.toggle("shop")
-			end,
-			OnMount = function(rbx)
-				UIState.setTutorialTarget("ShopButton", rbx)
-			end, -- NEW
-			Image = "rbxassetid://15403066964",
-			Text = "Shop",
-			LayoutOrder = 1,
+	return e(React.Fragment, nil, {
+		e(VStack, {
+			-- e(HStack, {
+			VerticalFlex = Enum.UIFlexAlignment.None,
+			HorizontalFlex = Enum.UIFlexAlignment.None,
+			VerticalAlignment = Enum.VerticalAlignment.Center,
+			HorizontalAlignment = Enum.HorizontalAlignment.Right,
+			Spacing = UDim.new(0, 8),
+			Padding = { All = UDim.new(0, 8) },
+			Size = UDim2.new(1, 0, 1, 0),
 		}, {
-			panelCleared.shop == false and e(RedDot, {}, {}),
+			Group = level > 2 and TutorialCompleted and not GroupRewardClaimed and e(SidebarButton, {
+				[React.Event.Activated] = function()
+					UIState.toggle("group")
+				end,
+				Image = "rbxassetid://95813773299412",
+				Text = "Group",
+				LayoutOrder = 4,
+			}, {
+				not GroupRewardClaimed and e(RedDot, {}, {}),
+			}),
+			Leaderboards = level > 2 and TutorialCompleted and e(SidebarButton, {
+				[React.Event.Activated] = function()
+					UIState.toggle("ranks")
+				end,
+				Image = "rbxassetid://15403009775",
+				Text = "Leaderboards",
+				LayoutOrder = 4,
+			}),
 		}),
-		-- ToggleIndex = level > 3 and e(SidebarButton, {
-		-- 	[React.Event.Activated] = function()
-		-- 		UIState.toggle("recipe")
-		-- 	end,
-		-- 	Image = "rbxassetid://127110909372919",
-		-- 	Text = "Index",
-		-- 	LayoutOrder = 2,
-		-- }),
-		ToggleBuild = level > 2 and e(SidebarButton, {
-			OnMount = function(rbx)
-				UIState.setTutorialTarget("BuildButton", rbx)
-			end, -- NEW
-			[React.Event.Activated] = function()
-				UIState.toggle("build")
-			end,
-			Image = "rbxassetid://17368183719",
-			Text = "Build",
-			LayoutOrder = 3,
-		}),
-		-- Console = admin and e(SidebarButton, {
-		-- 	[React.Event.Activated] = function()
-		-- 		UIState.toggle("admin")
-		-- 	end,
-		-- 	Image = "rbxassetid://17368118782",
-		-- 	Text = "Console",
-		-- 	LayoutOrder = 4,
-		-- }) or nil,
-		-- Store = TutorialCompleted and level > 2 and e(SidebarButton, {
-		-- 	[React.Event.Activated] = function()
-		-- 		UIState.toggle("store")
-		-- 	end,
-		-- 	Image = "rbxassetid://15402844695",
-		-- 	Text = "Store",
-		-- 	LayoutOrder = 4,
-		-- }, {
-		-- 	panelCleared.store == false and e(RedDot, {}, {}),
-		-- }),
-		Settings = TutorialCompleted and e(SidebarButton, {
-			OnMount = UIState.setSettingsButton,
-			[React.Event.Activated] = function()
-				UIState.toggle("settings")
-			end,
-			Image = "rbxassetid://17368089841",
-			Text = "Settings",
-			LayoutOrder = 5,
+		e(VStack, {
+			VerticalFlex = Enum.UIFlexAlignment.None,
+			HorizontalFlex = Enum.UIFlexAlignment.None,
+			VerticalAlignment = Enum.VerticalAlignment.Center,
+			HorizontalAlignment = Enum.HorizontalAlignment.Left,
+			Spacing = UDim.new(0, 8),
+		}, {
+
+			ToggleShop = level > 2 and e(SidebarButton, {
+				[React.Event.Activated] = function()
+					UIState.toggle("shop")
+				end,
+				OnMount = function(rbx)
+					UIState.setTutorialTarget("ShopButton", rbx)
+				end, -- NEW
+				Image = "rbxassetid://15403066964",
+				Text = "Shop",
+				LayoutOrder = 1,
+			}, {
+				panelCleared.shop == false and e(RedDot, {}, {}),
+			}),
+			-- ToggleIndex = level > 3 and e(SidebarButton, {
+			-- 	[React.Event.Activated] = function()
+			-- 		UIState.toggle("recipe")
+			-- 	end,
+			-- 	Image = "rbxassetid://127110909372919",
+			-- 	Text = "Index",
+			-- 	LayoutOrder = 2,
+			-- }),
+			ToggleBuild = level > 2 and e(SidebarButton, {
+				OnMount = function(rbx)
+					UIState.setTutorialTarget("BuildButton", rbx)
+				end, -- NEW
+				[React.Event.Activated] = function()
+					UIState.toggle("build")
+				end,
+				Image = "rbxassetid://17368183719",
+				Text = "Build",
+				LayoutOrder = 3,
+			}),
+
+			-- Console = admin and e(SidebarButton, {
+			-- 	[React.Event.Activated] = function()
+			-- 		UIState.toggle("admin")
+			-- 	end,
+			-- 	Image = "rbxassetid://17368118782",
+			-- 	Text = "Console",
+			-- 	LayoutOrder = 4,
+			-- }) or nil,
+			-- Store = TutorialCompleted and level > 2 and e(SidebarButton, {
+			-- 	[React.Event.Activated] = function()
+			-- 		UIState.toggle("store")
+			-- 	end,
+			-- 	Image = "rbxassetid://15402844695",
+			-- 	Text = "Store",
+			-- 	LayoutOrder = 4,
+			-- }, {
+			-- 	panelCleared.store == false and e(RedDot, {}, {}),
+			-- }),
+			Settings = TutorialCompleted and e(SidebarButton, {
+				OnMount = UIState.setSettingsButton,
+				[React.Event.Activated] = function()
+					UIState.toggle("settings")
+				end,
+				Image = "rbxassetid://17368089841",
+				Text = "Settings",
+				LayoutOrder = 5,
+			}),
 		}),
 	})
 end

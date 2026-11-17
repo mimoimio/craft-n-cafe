@@ -47,6 +47,11 @@ local function StaffTab(props: { playerWorkers: { any }?, playerStats: any })
 					end
 				end
 			end,
+			Image = canAfford and "rbxassetid://128846321008253" or "rbxassetid://91750414973277",
+			ScaleType = Enum.ScaleType.Slice,
+			SliceCenter = Rect.new(50, 50, 54, 57),
+			Rounded = false,
+			HoverScale = true,
 		}, {
 			-- e("UIStroke", { Thickness = 2, Color = Color3.new(0.5, 0.8, 1) }),
 			e(SmallText, {

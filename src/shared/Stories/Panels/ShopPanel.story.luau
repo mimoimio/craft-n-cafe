@@ -60,6 +60,13 @@ local function StoryApp(props: {})
 			Size = UDim2.new(0, 200, 0, 50),
 			ref = setTextBox,
 		}),
+		e(require(ReplicatedStorage.Shared.ReactComponents.ConsoleApp)),
+		e(require(ReplicatedStorage.Shared.ReactComponents.ui.SmallButton), {
+			Text = "Toggle console/shop",
+			[React.Event.Activated] = function()
+				UIState.toggle(UIState:getState().panel == "shop" and "admin" or "shop")
+			end,
+		}),
 	})
 end
 local function story(frame: Frame)
@@ -82,8 +89,11 @@ local function story(frame: Frame)
 	local root = ReactRoblox.createRoot(frame)
 	root:render(e(StoryApp))
 	ViewportController.initialize()
+	local ShopService = require(ServerScriptService.Server.Services.ShopService)
+	ShopService.initialize()
 
 	return function()
+		ShopService.cleanup()
 		root:unmount()
 		ViewportController.cleanup()
 		GlobalState:resetState()

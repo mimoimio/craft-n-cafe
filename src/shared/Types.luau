@@ -140,6 +140,13 @@ export type StatsEntity = {
 	CashPurchases: { [string]: number }?,
 	LifetimeCash: number?,
 	Upgrades: { [string]: number }?, -- Tracks global & ingredient upgrade levels
+	PerfectCupsServed: number?,
+	PlayerCustomersServed: number?,
+	DailyPerfectCups: number?,
+	DailyPlayerCustomers: number?,
+	DailyKey: string?,
+	GroupRewardClaimed: boolean?,
+	FeedbackPromptedAt: number?,
 }
 
 export type CupsState = {
@@ -231,6 +238,8 @@ export type ServeCustomerPayload = {
 	timestamp: number,
 	level: number,
 	EXP: number,
+	perfectCup: boolean?,
+	dayKey: string?,
 }
 export type FinishDiningPayload = {
 	customerUid: string,
@@ -351,6 +360,8 @@ export type CombinedActions = {
 	setGamePassOwnership: (playerId: PlayerId, payload: { passKey: string, owned: boolean }) -> (),
 	markProductPurchased: (playerId: PlayerId, payload: { productKey: string }) -> (),
 	recordCashPurchase: (playerId: PlayerId, payload: { productKey: string, cash: number }) -> (),
+	markGroupRewardClaimed: (playerId: PlayerId) -> (),
+	markFeedbackPrompted: (playerId: PlayerId, timestamp: number) -> (),
 
 	-- Plot Building
 	placeItem: (playerId: string, payload: PlaceItemPayload) -> (),

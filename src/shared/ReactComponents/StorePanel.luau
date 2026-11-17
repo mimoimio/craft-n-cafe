@@ -11,6 +11,7 @@ local GlobalState = require(ReplicatedStorage.Shared.producers.GlobalState)
 local UIState = require(ReplicatedStorage.Shared.producers.UIState)
 local MonetizationConfig = require(ReplicatedStorage.Shared.Configs.MonetizationConfig)
 local PaintConfig = require(ReplicatedStorage.Shared.Configs.PaintConfig)
+local Remotes = require(ReplicatedStorage.Shared.Remotes)
 local useBreakpoint = require(ReplicatedStorage.Shared.Hooks.useBreakpoint)
 
 local Primitives = ReplicatedStorage.Shared.ReactComponents.ui
@@ -169,6 +170,12 @@ local function StorePanel(props: { Embedded: boolean? }?)
 
 	useEffect(function()
 		if isOpen then
+			Remotes.LogShopFunnel:FireServer(1)
+		end
+	end, { isOpen })
+
+	useEffect(function()
+		if isOpen then
 			UIState.setPanelCleared("store", true)
 		end
 	end, { isOpen })
@@ -226,6 +233,7 @@ local function StorePanel(props: { Embedded: boolean? }?)
 		if not player or not MonetizationConfig.IsConfigured(productId) then
 			return
 		end
+		Remotes.LogShopFunnel:FireServer(2)
 		MarketplaceService:PromptProductPurchase(player, productId)
 	end
 
@@ -233,6 +241,7 @@ local function StorePanel(props: { Embedded: boolean? }?)
 		if not player or not MonetizationConfig.IsConfigured(passId) then
 			return
 		end
+		Remotes.LogShopFunnel:FireServer(2)
 		MarketplaceService:PromptGamePassPurchase(player, passId)
 	end
 

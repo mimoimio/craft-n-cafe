@@ -86,19 +86,12 @@ MonetizationConfig.CashProducts = {
 
 MonetizationConfig.StarterProduct = {
 	Key = "OpeningDayPack",
-	DisplayName = "Opening Day Pack",
-	Description = "Cash plus the starter stations and register for a head start.",
+	DisplayName = "Opening Day Boost",
+	Description = "A small one-time cash boost for your first day.",
 	ProductId = 3726514456,
-	Cash = 8000,
-	Items = {
-		"cup_station",
-		"water_station",
-		"espresso_station",
-		"milk_station",
-		"trash_station",
-		"Cashier",
-	},
-	PriceHint = 199,
+	Cash = 500,
+	Items = {},
+	PriceHint = 19,
 	Icon = "rbxassetid://15402844695",
 } :: StarterProductConfig
 

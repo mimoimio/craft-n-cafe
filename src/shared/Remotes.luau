@@ -144,7 +144,6 @@ return {
 	UpgradeLuck = CreateRemote("UpgradeLuck"),
 	UpgradeCafeCapacity = CreateRemote("UpgradeCafeCapacity"),
 	-- ShortenRollCooldown = CreateRemote("ShortenRollCooldown"),
-	LogTutorialStep = CreateRemote("LogTutorialStep"),
 	ClaimShelfCollector = CreateRemote("ClaimShelfCollector"),
 	ToggleSfx = CreateRemote("ToggleSfx"),
 	ToggleMusic = CreateRemote("ToggleMusic"),
@@ -168,6 +167,10 @@ return {
 	UpgradeWorker = CreateRemote("UpgradeWorker"),
 	PaintItem = CreateRemote("PaintItem"),
 	FetchReports = CreateRemoteFunction("FetchReports"),
+	FetchLeaderboard = CreateRemoteFunction("FetchLeaderboard"),
+	ClaimGroupReward = CreateRemoteFunction("ClaimGroupReward"),
+	MarkFeedbackPrompted = CreateRemote("MarkFeedbackPrompted"),
+	LogShopFunnel = CreateRemote("LogShopFunnel"),
 
 	-- Example usage for RemoteFunction:
 	-- GetServerData = CreateRemoteFunction("GetServerData"),
